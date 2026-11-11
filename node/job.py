@@ -28,7 +28,7 @@ def run_job(model: Model, grid: np.ndarray, lot_mask: np.ndarray, fault: Fault |
     )
 
 
-def save_artifacts(res: JobResult, lot_mask: np.ndarray, path: Path) -> None:
+def save_artifacts(res: JobResult, lot_mask: np.ndarray, path: Path, fault: Fault | None = None) -> None:
     """Lo que el validador baja (en la demo, archivo local; en prod, IPFS/HTTP con requestURI)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     arrays = {"lot_mask": lot_mask}
@@ -42,6 +42,8 @@ def save_artifacts(res: JobResult, lot_mask: np.ndarray, path: Path) -> None:
         "outputHash": "0x" + res.output_hash.hex(),
         "merkleRoot": "0x" + res.merkle_root.hex(),
         "layers": [t.name for t in res.traces],
+        # registro de la inyección (simulada) para reproducirla: tipo, capa, semilla y bits
+        "fault": fault.describe() if fault else None,
     }
     path.with_suffix(".json").write_text(json.dumps(meta, indent=2))
 
@@ -65,9 +67,11 @@ def main() -> None:
     ap.add_argument("--fault", help="kind:layer:seed[:bits], ej. seu:1:7 o weight:2:2:7 (falla de la demo)")
     a = ap.parse_args()
     d = np.load(a.grid)
-    res = run_job(default_model(), d["grid"], d["lot_mask"], _parse_fault(a.fault))
-    save_artifacts(res, d["lot_mask"], Path(a.out))
-    print(json.dumps({"indexBps": res.index_bps, "merkleRoot": "0x" + res.merkle_root.hex()}))
+    fault = _parse_fault(a.fault)
+    res = run_job(default_model(), d["grid"], d["lot_mask"], fault)
+    save_artifacts(res, d["lot_mask"], Path(a.out), fault)
+    print(json.dumps({"indexBps": res.index_bps, "merkleRoot": "0x" + res.merkle_root.hex(),
+                      "fault": fault.describe() if fault else None}))
 
 
 if __name__ == "__main__":

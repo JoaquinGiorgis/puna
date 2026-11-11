@@ -111,3 +111,19 @@ def test_cli_fault_parses_bits():
 
     assert _parse_fault("weight:2:2:7") == DEMO_FAULT
     assert _parse_fault("multibit:1:3:28,30").bits == (28, 30)
+
+
+@pytest.mark.parametrize("cli,layer", [("weight:2:2:7", "L3"), ("seu:1:3", "L2"), ("multibit:0:5:28,30", "L1")])
+def test_fault_is_recorded_and_certificate_names_the_layer(setup, tmp_path, cli, layer):
+    import json
+
+    from node.job import _parse_fault, save_artifacts
+
+    model, grid, mask = setup
+    fault = _parse_fault(cli)
+    res = run_job(model, grid, mask, fault)
+    save_artifacts(res, mask, tmp_path / "job.npz", fault)
+    meta = json.loads((tmp_path / "job.json").read_text())
+    assert meta["fault"] == fault.describe()
+    cert = _audit(model, res, mask)
+    assert cert.summary.startswith(f"Rechazado: capa {layer}") and "Freivalds" in cert.summary

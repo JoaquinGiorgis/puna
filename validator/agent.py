@@ -65,8 +65,7 @@ def handle(w3, esc, reg, acct, request_hash: bytes, agent_id: int, request_uri: 
         cert = audit_artifacts(job, fetch(request_uri))
     except Exception as e:  # artefactos ausentes o adulterados: el nodo no probó nada
         cert = Certificate(0, [Check("artifacts", False, f"{type(e).__name__}: {e}")])
-    bad = [c.name for c in cert.checks if not c.ok]
-    print(f"  score {cert.score}" + (f" — falla: {', '.join(bad)}" if bad else " — todos los chequeos OK"), flush=True)
+    print(f"  score {cert.score} — {cert.summary}", flush=True)
 
     body = json.loads(cert.to_json())
     body.update({"jobId": job_id, "attempt": job["attempt"], "agentId": agent_id, "requestHash": rh,

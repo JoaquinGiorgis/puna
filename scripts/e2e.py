@@ -90,9 +90,10 @@ def main() -> None:
     job = onchain.get_job(esc, job_id)
 
     # 3. nodo: corre la CNN, publica artefactos, submitResult y validationRequest
-    res = run_job(model, grid, mask, _parse_fault(a.fault))
+    fault = _parse_fault(a.fault)
+    res = run_job(model, grid, mask, fault)
     art = ROOT / "out" / "e2e" / f"job{job_id}-a{job['attempt']}.npz"
-    save_artifacts(res, mask, art)
+    save_artifacts(res, mask, art, fault)
     request_uri = publish_file(art, {"escrow": esc.address, "job": job_id})
     print(f"      nodo: indexBps {res.index_bps} · requestURI {request_uri}", flush=True)
     rcpt = onchain.send(w3, f"3a. submitResult (ORBIT-{a.node})", esc.functions.submitResult(

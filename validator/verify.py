@@ -28,6 +28,19 @@ from node.model import LayerTrace, Model, default_model, im2col, index_bps, requ
 from .freivalds import freivalds
 
 
+_WHY = {
+    "Freivalds": "el acumulador C no es im2col(x)·W mod p con los pesos comprometidos",
+    "requant/ReLU": "la salida no es la recuantización del acumulador",
+    "in[i+1]=out[i]": "la entrada de la capa siguiente no es la salida de esta",
+    "inputHash": "la grilla de entrada no es la comprometida",
+    "modelHash": "los pesos no son los del modelo comprometido",
+    "outputHash": "la salida final no es la comprometida",
+    "indexBps": "el índice declarado no sale de la salida final",
+    "merkleRoot": "la raíz Merkle de las capas no coincide",
+    "artifacts": "no se pudieron bajar o verificar los artefactos",
+}
+
+
 @dataclass
 class Check:
     name: str
@@ -44,9 +57,23 @@ class Certificate:
     def passed(self) -> bool:
         return all(c.ok for c in self.checks)
 
+    @property
+    def summary(self) -> str:
+        """Una línea para humanos: qué capa falla y qué chequeo."""
+        bad = [c for c in self.checks if not c.ok]
+        if not bad:
+            return f"Aprobado ({len(self.checks)} chequeos): el cálculo corresponde al modelo y a la entrada comprometidos."
+        first = bad[0]
+        layer, _, check = first.name.partition(": ")
+        why = _WHY.get(check or layer, "no coincide con lo comprometido on-chain")
+        where = f"capa {layer}" if check else layer
+        extra = f" (+{len(bad) - 1} chequeo(s) más)" if len(bad) > 1 else ""
+        return f"Rechazado: {where} no pasa {check or 'el chequeo'}: {why}{extra}."
+
     def to_json(self) -> str:
         return json.dumps(
-            {"score": self.score, "checks": [c.__dict__ for c in self.checks]}, ensure_ascii=False, indent=2
+            {"score": self.score, "summary": self.summary, "checks": [c.__dict__ for c in self.checks]},
+            ensure_ascii=False, indent=2,
         )
 
     def hash(self) -> bytes:
