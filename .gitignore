@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+out/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+node_modules/
+.next/
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/31337/
+.DS_Store

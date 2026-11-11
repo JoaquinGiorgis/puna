@@ -1,0 +1,19 @@
+[project]
+name = "puna"
+version = "0.1.0"
+description = "PUNA — Proof of Untampered Neural Answers: nodo, validador Freivalds y órbita"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=1.26",
+  "matplotlib>=3.8",   # solo matplotlib.path para la máscara del lote
+  "sgp4>=2.23",
+  "web3>=7.0",
+  "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
