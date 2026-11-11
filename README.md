@@ -25,6 +25,15 @@ Copiá `.env.example` a `.env` para deploy y FIRMS. Más detalle en [`CLAUDE.md`
 |---|---|
 | Órbitas (TLE CelesTrak + SGP4), focos NASA FIRMS, verificación Freivalds, transacciones en Fuji, registros ERC-8004 | Satélites/nodos de cómputo, operadores, radiación (proxy `saaBps`), vista satelital del lote |
 
+## Contrato en Fuji (dirección congelada)
+**PunaEscrow:** [`0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982`](https://testnet.snowtrace.io/address/0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982), verificado.
+
+Para correr la demo completa (ORBIT-07 en la Anomalía, con falla, se rechaza; reasigna a ORBIT-03; paga):
+```bash
+.venv/bin/python scripts/e2e.py --demo
+```
+Hashes en [`docs/txs.md`](docs/txs.md).
+
 ## ERC-8004 en Fuji
 | Registro | Dirección |
 |---|---|
