@@ -41,24 +41,25 @@ def audit_artifacts(job: dict, npz: bytes) -> Certificate:
     )
 
 
-def handle(w3, esc, reg, acct, request_hash: bytes, agent_id: int, request_uri: str) -> None:
+def handle(w3, esc, reg, acct, request_hash: bytes, agent_id: int, request_uri: str) -> bool:
+    """True si respondió este pedido."""
     rh = "0x" + request_hash.hex()
     status = reg.functions.getValidationStatus(request_hash).call()
     if status[3] != b"\x00" * 32:
         print(f"· {rh[:12]}… ya respondido (score {status[2]}), salteo", flush=True)
-        return
+        return False
     hint = fragment(request_uri)
     if Web3.to_checksum_address(hint.get("escrow", "0x" + "0" * 40)) != esc.address or "job" not in hint:
         print(f"· {rh[:12]}… no es de este escrow ({request_uri}), salteo", flush=True)
-        return
+        return False
     job_id = int(hint["job"])
     job = onchain.get_job(esc, job_id)
     if bytes(job["requestHash"]) != request_hash or job["validator"] != acct.address or job["agentId"] != agent_id:
         print(f"· {rh[:12]}… no coincide con el job {job_id} on-chain, salteo", flush=True)
-        return
+        return False
     if job["stateName"] != "Submitted":
         print(f"· job {job_id} en estado {job['stateName']}, salteo", flush=True)
-        return
+        return False
 
     print(f"→ job {job_id} intento {job['attempt']} agente {agent_id}: audito {request_uri}", flush=True)
     try:
@@ -76,24 +77,29 @@ def handle(w3, esc, reg, acct, request_hash: bytes, agent_id: int, request_uri: 
     onchain.send(w3, f"validationResponse job {job_id} (score {cert.score})",
                  reg.functions.validationResponse(request_hash, cert.score, response_uri, response_hash, TAG), acct)
     print(f"  responseURI {response_uri}\n  responseHash {response_hash.to_0x_hex()}", flush=True)
+    return True
 
 
-def scan(w3, esc, reg, acct, frm: int, to: int) -> None:
+def scan(w3, esc, reg, acct, frm: int, to: int) -> int:
     topic_me = "0x" + "00" * 12 + acct.address[2:].lower()
     ev = reg.events.ValidationRequest()
+    handled = 0
     for a in range(frm, to + 1, onchain.LOGS_MAX_RANGE):
         b = min(to, a + onchain.LOGS_MAX_RANGE - 1)
         logs = w3.eth.get_logs({"address": reg.address, "fromBlock": a, "toBlock": b,
                                 "topics": [ev.topic, topic_me]})
         for log in logs:
             e = ev.process_log(log)
-            handle(w3, esc, reg, acct, bytes(e.args.requestHash), e.args.agentId, e.args.requestURI)
+            handled += handle(w3, esc, reg, acct, bytes(e.args.requestHash), e.args.agentId, e.args.requestURI)
+    return handled
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--from-block", type=int, help="por defecto, los últimos 300 bloques")
-    ap.add_argument("--once", action="store_true", help="un barrido hasta el último bloque y termina")
+    ap.add_argument("--once", action="store_true",
+                    help="espera hasta responder al menos un pedido desde --from-block (o --timeout) y termina")
+    ap.add_argument("--timeout", type=float, default=90.0)
     ap.add_argument("--poll", type=float, default=4.0)
     a = ap.parse_args()
 
@@ -103,13 +109,21 @@ def main() -> None:
     head = w3.eth.block_number
     frm = a.from_block if a.from_block is not None else max(0, head - 300)
     print(f"validador {acct.address} · escrow {esc.address} · desde bloque {frm}", flush=True)
+    if a.once:
+        # La RPC pública balancea entre nodos: uno atrasado puede no tener todavía el bloque o el log.
+        # Re-barremos el mismo rango hasta responder algo o agotar el timeout.
+        deadline = time.time() + a.timeout
+        while time.time() < deadline:
+            head = w3.eth.block_number
+            if head >= frm and scan(w3, esc, reg, acct, frm, head):
+                return
+            time.sleep(a.poll)
+        raise SystemExit(f"timeout: ningún pedido pendiente para {acct.address} desde el bloque {frm}")
     while True:
         head = w3.eth.block_number
         if head >= frm:
             scan(w3, esc, reg, acct, frm, head)
             frm = head + 1
-        if a.once:
-            return
         time.sleep(a.poll)
 
 
