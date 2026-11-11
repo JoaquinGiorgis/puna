@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "puna"
 version = "0.1.0"
@@ -13,6 +17,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+render = ["pillow>=10"]  # solo para regenerar docs/design/assets/lot.py
+
+[tool.setuptools]
+packages = ["node", "validator", "orbit", "onchain", "bench"]
+
+[tool.setuptools.package-data]
+onchain = ["abi/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
