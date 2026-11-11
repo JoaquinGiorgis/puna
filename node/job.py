@@ -1,6 +1,6 @@
 """Agente nodo: corre el modelo sobre la grilla del lote y arma lo que publica on-chain.
 
-  python -m node.job --grid sample-data/lot14_grid.npz --out out/job.npz [--fault seu:2:7]
+  python -m node.job --grid sample-data/lot14_grid.npz --out out/job.npz [--fault weight:2:2:7]
 """
 from __future__ import annotations
 
@@ -49,15 +49,20 @@ def save_artifacts(res: JobResult, lot_mask: np.ndarray, path: Path) -> None:
 def _parse_fault(s: str | None) -> Fault | None:
     if not s:
         return None
-    kind, layer, seed = s.split(":")
-    return Fault(kind, int(layer), int(seed))
+    parts = s.split(":")
+    if len(parts) not in (3, 4):
+        raise SystemExit(f"--fault inválido: {s!r} (kind:layer:seed[:bit,bit…])")
+    kind, layer, seed = parts[0], int(parts[1]), int(parts[2])
+    if len(parts) == 4:
+        return Fault(kind, layer, seed, tuple(int(b) for b in parts[3].split(",")))
+    return Fault(kind, layer, seed)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--grid", default="sample-data/lot14_grid.npz")
     ap.add_argument("--out", default="out/job.npz")
-    ap.add_argument("--fault", help="kind:layer:seed, ej. seu:1:7")
+    ap.add_argument("--fault", help="kind:layer:seed[:bits], ej. seu:1:7 o weight:2:2:7 (falla de la demo)")
     a = ap.parse_args()
     d = np.load(a.grid)
     res = run_job(default_model(), d["grid"], d["lot_mask"], _parse_fault(a.fault))
