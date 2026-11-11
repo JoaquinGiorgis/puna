@@ -1,0 +1,142 @@
+{
+  "labels": {
+    "contracts": "5319E7",
+    "node": "0E8A16",
+    "validator": "1D76DB",
+    "orbit": "0052CC",
+    "data": "C5DEF5",
+    "web": "FBCA04",
+    "design": "F9D0C4",
+    "pitch": "D93F0B",
+    "infra": "BFDADC",
+    "must": "B60205",
+    "cut-if-late": "EDEDED",
+    "plan-b": "D4C5F9"
+  },
+  "milestones": [
+    {"title": "H0 · Smoke test ERC-8004", "due_on": "2026-11-11T16:00:00Z", "description": "Mié 13:00 ART — tx de register y validationResponse en el explorer"},
+    {"title": "H1 · Contrato en Fuji", "due_on": "2026-11-11T20:00:00Z", "description": "Mié 17:00 ART — PunaEscrow en Snowtrace con un createJob"},
+    {"title": "H2 · Camino feliz real por CLI", "due_on": "2026-11-12T03:30:00Z", "description": "Jue 00:30 ART — e2e real grabado (respaldo 1)"},
+    {"title": "H3 · Contrato final congelado", "due_on": "2026-11-12T14:00:00Z", "description": "Jue 11:00 ART — reasignación, feedback, maxSaaBps; dirección final"},
+    {"title": "H4 · Demo e2e on-chain", "due_on": "2026-11-12T16:00:00Z", "description": "Jue 13:00 ART — rechaza, no paga, baja reputación, reasigna, paga (respaldo 2)"},
+    {"title": "H5 · Feature freeze", "due_on": "2026-11-12T21:00:00Z", "description": "Jue 18:00 ART — demo completa dos veces seguidas"},
+    {"title": "Entrega", "due_on": "2026-11-13T10:30:00Z", "description": "Vie 07:30 ART — entrega (cierre 09:00)"}
+  ],
+  "issues": [
+    {
+      "title": "Smoke test de ERC-8004 en Fuji (Identity + Validation + Reputation)",
+      "milestone": "H0 · Smoke test ERC-8004", "labels": ["contracts", "must"],
+      "body": "**Rol:** P1\n\nSeguir `docs/erc8004.md`.\n\n- [ ] Registrar agentes ORBIT-07 y ORBIT-03 en Identity (confirmar firma real de `register`)\n- [ ] `validationRequest` desde el dueño del agente\n- [ ] `validationResponse` desde el validador\n- [ ] `getValidationStatus` devuelve (validator, agentId, response, responseHash, tag, lastUpdate)\n- [ ] Confirmar firma de `giveFeedback` (int128 value + uint8 decimals) contra el contrato desplegado y ajustar `IERC8004.sol` si difiere\n- [ ] Hashes en `docs/txs.md`\n\n**Si Validation no responde en Fuji:** abrir y priorizar el issue de plan B (EIP-712)."
+    },
+    {
+      "title": "Wallets, faucet, FIRMS MAP_KEY y .env del equipo",
+      "milestone": "H0 · Smoke test ERC-8004", "labels": ["infra", "must"],
+      "body": "- [ ] 5 wallets: deployer/scheduler, aseguradora, validador, nodo A (ORBIT-07), nodo B (ORBIT-03)\n- [ ] AVAX de testnet del faucet de Fuji en cada una\n- [ ] Pedir MAP_KEY gratis de NASA FIRMS\n- [ ] Completar `.env` a partir de `.env.example` (nunca commitear)\n- [ ] Confirmar con mentores: track final (Avalanche · Agentes) y si Oracle Cloud es obligatorio"
+    },
+    {
+      "title": "Deploy PunaEscrow v0 en Fuji y verificar en Snowtrace",
+      "milestone": "H1 · Contrato en Fuji", "labels": ["contracts", "must"],
+      "body": "**Rol:** P1\n\n```bash\ncd contracts && forge script script/Deploy.s.sol --rpc-url fuji --broadcast --verify\n```\n- [ ] Contrato verificado en Snowtrace\n- [ ] `setValidatorAllowed(validator)`\n- [ ] Un `createJob` de prueba\n- [ ] Dirección en `.env` (PUNA_ESCROW) y en `docs/txs.md`"
+    },
+    {
+      "title": "FIRMS real: incendio en Salta/Jujuy → grilla 12×12 en sample-data",
+      "milestone": "H1 · Contrato en Fuji", "labels": ["data", "orbit", "must"],
+      "body": "**Rol:** P3\n\nHoy `sample-data/lot14_grid.npz` es sintética. Reemplazar por focos reales.\n\n- [ ] Elegir un incendio real reciente en el NOA (Orán u otro) con varios focos VIIRS\n- [ ] `python -m orbit.firms fetch --bbox ... --out sample-data/firms_<lugar>.csv` (guardar la respuesta: plan B si la API cae)\n- [ ] `python -m orbit.firms grid --csv ... --bbox ... --out sample-data/lot14_grid.npz`\n- [ ] Recalibrar el bias de L4 en `node/model.py` si el índice queda absurdo y actualizar `test_honest_index_is_about_37_percent` y los números de `CLAUDE.md`\n- [ ] Citar en `docs/ATTRIBUTION.md`"
+    },
+    {
+      "title": "TLE de CelesTrak para los nodos simulados + saaBps de la ventana",
+      "milestone": "H1 · Contrato en Fuji", "labels": ["orbit", "data"],
+      "body": "**Rol:** P3\n\n- [ ] Elegir dos satélites reales en órbita heliosincrónica como proxy de ORBIT-07 (pasa por la Anomalía en la ventana) y ORBIT-03 (fuera)\n- [ ] Guardar TLE en `sample-data/tle/` (fuente CelesTrak GP)\n- [ ] `python -m orbit.saa --tle ... --start ... --minutes 9` → saaBps de cada uno\n- [ ] `orbitHash` = hash del TLE + ventana, para `assignNode`"
+    },
+    {
+      "title": "Script e2e on-chain: camino feliz (createJob → settle)",
+      "milestone": "H2 · Camino feliz real por CLI", "labels": ["contracts", "node", "validator", "must"],
+      "body": "**Rol:** P1\n\n`scripts/e2e.py` con web3.py:\n1. Aseguradora: `createJob` (inputHash/modelHash del job real, triggerBps 3000, minScore 80, maxSaaBps)\n2. Scheduler: `assignNode` con saaBps del TLE\n3. Nodo: `python -m node.job`, `submitResult`, y `validationRequest` en ERC-8004 nombrando al validador\n4. Validador: `python -m validator.verify` → `validationResponse(score, responseHash)`\n5. Cualquiera: `settle`\n\n- [ ] Corre de punta a punta en Fuji\n- [ ] Grabación de pantalla (respaldo 1)\n- [ ] Hashes en `docs/txs.md`"
+    },
+    {
+      "title": "Agente validador como proceso separado con identidad propia",
+      "milestone": "H2 · Camino feliz real por CLI", "labels": ["validator", "must"],
+      "body": "**Rol:** P2\n\n- [ ] Escucha eventos `ValidationRequest` donde `validatorAddress` = el suyo\n- [ ] Baja artefactos de `requestURI`, chequea hashes contra el escrow (`getJob`)\n- [ ] Corre `validator.verify.audit` y publica el certificado JSON (responseURI) y su hash (responseHash)\n- [ ] Llama a `validationResponse` con su propia clave (otro operador: distinta wallet y proceso)"
+    },
+    {
+      "title": "Publicar artefactos del job para el validador (requestURI)",
+      "milestone": "H2 · Camino feliz real por CLI", "labels": ["node"],
+      "body": "**Rol:** P2\n\n`node/job.py` ya guarda `out/job.npz` + `.json`. Servirlos (HTTP simple o IPFS) y usar esa URL como `requestURI`.\n\n- [ ] El validador no confía en el JSON: recalcula todo desde los tensores y compara con lo on-chain\n- [ ] Documentar el formato en `node/README.md`"
+    },
+    {
+      "title": "Plan B: validación por firma EIP-712 en el escrow",
+      "milestone": "H2 · Camino feliz real por CLI", "labels": ["contracts", "plan-b"],
+      "body": "**Solo si el smoke test de Validation en Fuji falla.**\n\n- [ ] `settleWithSignature(jobId, score, responseHash, sig)` que verifica EIP-712 con `ecrecover` contra `job.validator`\n- [ ] Dominio: name PUNA, version 1, chainId 43113, verifyingContract escrow\n- [ ] Tests Foundry equivalentes al guion de la demo\n- [ ] ERC-8004 queda para Identity y Reputation"
+    },
+    {
+      "title": "Contrato final: reassign + feedback + maxSaaBps en Fuji, dirección congelada",
+      "milestone": "H3 · Contrato final congelado", "labels": ["contracts", "must"],
+      "body": "**Rol:** P1\n\n- [ ] Redeploy final verificado\n- [ ] Probar en Fuji: rechazo → `reassign` → `Paid`; feedback en Reputation (si revierte, se emite `FeedbackFailed` y sigue)\n- [ ] `assignNode` revierte con saaBps > maxSaaBps\n- [ ] Dirección congelada en README, `.env.example` y `docs/txs.md`"
+    },
+    {
+      "title": "Scheduler orbital: elegir nodo por saaBps y aplicar la política",
+      "milestone": "H3 · Contrato final congelado", "labels": ["orbit"],
+      "body": "**Rol:** P3\n\n- [ ] Para cada nodo candidato calcular saaBps en la ventana\n- [ ] Política del caso: si el nodo que ve Salta está en la Anomalía, diferir hasta que salga o relevar a otro nodo\n- [ ] Para el guion de la demo se asigna primero ORBIT-07 (en la Anomalía, dentro de maxSaaBps) para mostrar el rechazo\n- [ ] Llama a `assignNode` / `reassign`"
+    },
+    {
+      "title": "Inyecciones de la demo reproducibles por CLI y registradas",
+      "milestone": "H3 · Contrato final congelado", "labels": ["node"],
+      "body": "**Rol:** P2\n\nFalla del guion: `--fault weight:2:2` (bit 7) → índice 0 %.\n\n- [ ] Cada corrida guarda semilla, capa, bit y tipo en el JSON del job\n- [ ] Las tres familias (seu, weight, multibit) disponibles por CLI\n- [ ] Mensaje claro en el certificado: qué capa falla y qué chequeo"
+    },
+    {
+      "title": "Demo e2e completa on-chain (rechaza → reasigna → paga) — respaldo 2",
+      "milestone": "H4 · Demo e2e on-chain", "labels": ["contracts", "node", "validator", "must"],
+      "body": "- [ ] ORBIT-07 en la Anomalía devuelve 0 % → el validador rechaza → `settle` = Rejected, sin pago, reputación −\n- [ ] `reassign` a ORBIT-03 → 37,8 % ≥ 30 % → `Paid`, el productor cobra\n- [ ] Todos los hashes en `docs/txs.md`\n- [ ] Grabado"
+    },
+    {
+      "title": "Web: scaffold Next.js + tokens liquid glass + layout Mission Control",
+      "milestone": "H5 · Feature freeze", "labels": ["web", "must"],
+      "body": "Ver `docs/design.md` y Figma.\n\n- [ ] Next.js (App Router) + Tailwind, Geist y Geist Mono\n- [ ] Tokens Light/Dark como CSS variables (incluye tintes `-bg`)\n- [ ] Paneles de vidrio: blur, borde blanco, reflejo interior, sombra azulada\n- [ ] Layout 1440 de 4 paneles + top bar; responsive razonable\n- [ ] Foco visible, `prefers-reduced-motion`"
+    },
+    {
+      "title": "Web: panel Constelación (globo + órbitas + Anomalía)",
+      "milestone": "H5 · Feature freeze", "labels": ["web"],
+      "body": "- [ ] Plan A (si hay tiempo, opcional): R3F + drei, textura Blue Marble, satellite.js desde `sample-data/tle`, satélites `satA/satB.png` como sprites, momento de la demo: entra a la Anomalía + destello del bit-flip\n- [ ] Plan B (obligatorio): `public/renders/globe.png` + overlays SVG desde `globe-overlay.json`\n- [ ] HUD en vidrio oscuro, leyenda, atribución NASA/CelesTrak/FIRMS"
+    },
+    {
+      "title": "Web: panel Póliza (vista del lote + grilla + índice vs disparador)",
+      "milestone": "H5 · Feature freeze", "labels": ["web"],
+      "body": "- [ ] `lot.png` (etiquetada como simulada) + grilla 12×12 desde los artefactos del job; celdas quemadas con contorno\n- [ ] Índice validado vs disparador con barra\n- [ ] Indemnización, beneficiario, asegurador, hashes (Geist Mono)\n- [ ] Tag de estado con ícono + etiqueta"
+    },
+    {
+      "title": "Web: panel Auditoría (certificado por capa + reputación ERC-8004)",
+      "milestone": "H5 · Feature freeze", "labels": ["web", "validator"],
+      "body": "- [ ] Tabla por capa: encadenado, intento 1, intento 2 (✓/✕ con texto, no solo color)\n- [ ] Score ERC-8004 por intento\n- [ ] Tarjetas de reputación de nodos leídas de Reputation"
+    },
+    {
+      "title": "Web: timeline del job desde eventos del escrow",
+      "milestone": "H5 · Feature freeze", "labels": ["web", "contracts"],
+      "body": "- [ ] viem en Fuji: JobCreated, NodeAssigned, ResultSubmitted, JobRejected, PayoutTriggered, NoPayout + eventos ERC-8004\n- [ ] Componente Timeline step con variantes Neutral/Warning/Danger/Success (ícono + etiqueta)\n- [ ] Links subrayados a Snowtrace\n- [ ] Resumen: transacciones, gas total, tiempo de la póliza al pago"
+    },
+    {
+      "title": "Benchmark mini: 300 inyecciones y tasa de detección",
+      "milestone": "H5 · Feature freeze", "labels": ["node", "validator", "cut-if-late"],
+      "body": "Primero en cortarse si hay atraso (queda una tabla chica).\n\n- [ ] `bench/run.py`: 300 fallas (3 familias × 4 capas × 25 semillas)\n- [ ] Tabla: detectadas / total por familia y capa, falsos positivos sobre corridas honestas\n- [ ] Resultado en `bench/README.md` y en el deck"
+    },
+    {
+      "title": "Sincronizar números de la UI con la salida real",
+      "milestone": "H5 · Feature freeze", "labels": ["design", "web"],
+      "body": "El Figma dice 37,4 % y \"L2–L4 fallan\"; el modelo real da 3.777 bps (37,8 %) y la falla de la demo está en L3.\n\n- [ ] Actualizar Figma y web con los números reales (o los de FIRMS real cuando esté)\n- [ ] Scores reales del certificado"
+    },
+    {
+      "title": "Deck del pitch",
+      "milestone": "H5 · Feature freeze", "labels": ["pitch"],
+      "body": "**Rol:** P4\n\n- [ ] Apertura con el pitch de una línea\n- [ ] Problema: data centers orbitales + Anomalía; Freivalds en una slide\n- [ ] Demo; real vs simulado; límites; competencia (Flipless, complementarios)\n- [ ] Respuestas al jurado (ver `docs/resumen-tecnico.md`)"
+    },
+    {
+      "title": "Video de la demo (100–120 s)",
+      "milestone": "Entrega", "labels": ["pitch", "must"],
+      "body": "- [ ] 3 tomas, 1080p, explorer visible\n- [ ] Subido como no listado\n- [ ] Grabado antes del viernes 13 a las 9:00"
+    },
+    {
+      "title": "Entrega: README final, atribución, links en incógnito",
+      "milestone": "Entrega", "labels": ["pitch", "must"],
+      "body": "- [ ] README con dirección del contrato, video, deck y txs\n- [ ] `docs/ATTRIBUTION.md` completo\n- [ ] Repo público, sin secretos (revisar historial)\n- [ ] Probar todos los links en incógnito\n- [ ] Entregar 07:30; ensayo del pitch 07:30–09:00"
+    }
+  ]
+}
