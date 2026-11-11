@@ -60,6 +60,7 @@ pytest -q
 
 ## Números de la demo (mantener sincronizados con la UI)
 - Grilla 12×12, lote de 135 celdas. Índice honesto: 3.777 bps (37,8 %). Disparador: 3.000 bps.
+- Órbitas: ORBIT-07 = NOAA 20 (en la Anomalía, saaBps 10.000) y ORBIT-03 = NOAA 21 (fuera, 0), ventana 2026-11-12T15:30Z de 9 min. Como el escrow rechaza si saaBps > maxSaaBps, el job de la demo necesita maxSaaBps = 10.000 para asignar ORBIT-07.
 - Lote 14 = incendio **real** de FIRMS en Anta, Salta (-25,06; -62,92), 8–11/11/2026. Zona de soja y poroto, no de caña: el copy del lote tiene que decirlo.
 - Falla de la demo: `Fault("weight", layer=2, seed=2, bits=(7,))` → índice 0 → score < 50 → `Rejected` → `reassign` → `Paid`.
 - La UI de Figma todavía dice 37,4 %: actualizar al número real (issue).

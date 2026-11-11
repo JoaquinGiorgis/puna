@@ -4,14 +4,22 @@ saaBps = fracción de la ventana en que la traza sub-satelital cae dentro del po
 Anomalía, × 10.000. Es un proxy declarado, no una tasa de fallas.
 
 TLE de CelesTrak (GP API): https://celestrak.org/NORAD/elements/gp.php?CATNR=<id>&FORMAT=TLE
-  python -m orbit.saa --tle sample-data/tle/orbit07.tle --start 2026-11-11T14:02:00Z --minutes 9
+Proxies reales de los nodos simulados (los mismos VIIRS que vieron el incendio del Lote 14):
+  ORBIT-07 → NOAA 20 (JPSS-1, NORAD 43013)  sample-data/tle/orbit07.tle
+  ORBIT-03 → NOAA 21 (JPSS-2, NORAD 54234)  sample-data/tle/orbit03.tle
+Ventana de la demo: 2026-11-12T15:30:00Z, 9 min → ORBIT-07 10.000 bps (dentro), ORBIT-03 0 bps.
+
+  python -m orbit.saa --tle sample-data/tle/orbit07.tle --start 2026-11-12T15:30:00Z --minutes 9
+  → {"saaBps": 10000, "orbitHash": "0x…"}   (orbitHash va a assignNode/reassign)
 """
 from __future__ import annotations
 
 import argparse
+import json
 import math
 from datetime import datetime, timedelta, timezone
 
+from eth_utils import keccak
 from sgp4.api import Satrec, jday
 
 # Polígono aproximado de la Anomalía a ~500 km (lon, lat). Simplificado para la demo; ver docs/resumen-tecnico.md.
@@ -62,16 +70,27 @@ def saa_bps(line1: str, line2: str, start: datetime, minutes: float, step_s: int
     return hits * 10_000 // n
 
 
+def orbit_hash(line1: str, line2: str, start: datetime, minutes: float) -> bytes:
+    """keccak256 del TLE + ventana: ata el saaBps declarado on-chain a una órbita y un intervalo verificables."""
+    start_iso = start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    payload = f"{line1.strip()}\n{line2.strip()}\n{start_iso}\n{minutes:g}"
+    return keccak(text=payload)
+
+
+def read_tle(path: str) -> tuple[str, str]:
+    lines = [l.strip() for l in open(path) if l.strip()]
+    return lines[-2], lines[-1]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tle", required=True, help="archivo con 2 o 3 líneas TLE")
     ap.add_argument("--start", required=True)
     ap.add_argument("--minutes", type=float, default=9)
     a = ap.parse_args()
-    lines = [l.strip() for l in open(a.tle) if l.strip()]
-    l1, l2 = lines[-2], lines[-1]
+    l1, l2 = read_tle(a.tle)
     start = datetime.fromisoformat(a.start.replace("Z", "+00:00")).astimezone(timezone.utc)
-    print(saa_bps(l1, l2, start, a.minutes))
+    print(json.dumps({"saaBps": saa_bps(l1, l2, start, a.minutes), "orbitHash": "0x" + orbit_hash(l1, l2, start, a.minutes).hex()}))
 
 
 if __name__ == "__main__":
