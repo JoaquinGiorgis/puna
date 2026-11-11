@@ -30,7 +30,7 @@ Copiá `.env.example` a `.env` para deploy y FIRMS. Más detalle en [`CLAUDE.md`
 |---|---|
 | Identity | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | Reputation | `0x8004B663056A597Dffe9eCcC1965A193B7388713` |
-| Validation | `0x8004Cb1BF31DAf7788923b405b754f57acEB4272` (a confirmar en H0) |
+| Validation | `0x8004Cb1BF31DAf7788923b405b754f57acEB4272` (confirmado en H0) |
 
 ## Límites
 - PUNA prueba que el cálculo es correcto, no que la imagen de entrada sea auténtica.
