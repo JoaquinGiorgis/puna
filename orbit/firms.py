@@ -1,9 +1,10 @@
 """NASA FIRMS → grilla del lote.
 
 Descarga (requiere MAP_KEY gratis en https://firms.modaps.eosdis.nasa.gov/api/map_key/, va en .env):
-  python -m orbit.firms fetch --bbox -64.6,-23.4,-64.0,-22.8 --days 2 --out sample-data/firms_oran.csv
+  python -m orbit.firms fetch --bbox -63.2,-25.3,-62.6,-24.8 --days 5 --out out/firms_anta.csv
 Rasteriza a la grilla 12×12 del lote:
-  python -m orbit.firms grid --csv sample-data/firms_oran.csv --bbox ... --out sample-data/lot14_grid.npz
+  python -m orbit.firms grid --csv sample-data/firms_anta.csv --bbox -62.9370,-25.0760,-62.9020,-25.0410 \
+      --out sample-data/lot14_grid.npz   # Lote 14 real (Anta, Salta)
 
 La API de área devuelve CSV: /api/area/csv/{MAP_KEY}/{SOURCE}/{west,south,east,north}/{DAYS}
 Fuente por defecto VIIRS_NOAA20_NRT (~375 m). VIIRS_SNPP_NRT devolvía 0 focos en el NOA (11/11/2026),
@@ -54,8 +55,9 @@ def rasterize(rows: list[dict], bbox: tuple[float, float, float, float], n: int 
         lat, lon = float(row["latitude"]), float(row["longitude"])
         if not (w <= lon < e and s <= lat < nn):
             continue
-        c = int((lon - w) / (e - w) * n)
-        r = int((nn - lat) / (nn - s) * n)
+        # min(): por redondeo de float, un foco pegado al borde sur/este daba índice n
+        c = min(n - 1, int((lon - w) / (e - w) * n))
+        r = min(n - 1, int((nn - lat) / (nn - s) * n))
         frp = float(row.get("frp") or 0)
         g[r, c, 0] = max(g[r, c, 0], min(127, int(frp * 4)))
         g[r, c, 1] = min(127, g[r, c, 1] + 16)

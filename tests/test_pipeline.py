@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -5,7 +7,7 @@ from node.inject import Fault
 from node.job import run_job
 from node.merkle import leaf, proof, root, verify_proof
 from node.model import default_model, im2col
-from orbit.firms import demo_grid, lot_mask
+from orbit.firms import lot_mask
 from validator.freivalds import freivalds
 from validator.verify import audit
 
@@ -13,9 +15,14 @@ from validator.verify import audit
 DEMO_FAULT = Fault("weight", 2, 2, (7,))
 
 
+# Grilla real: focos VIIRS (NOAA-20/21) de un incendio en Anta, Salta, 8–11/11/2026 (sample-data/firms_anta.csv)
+LOT14 = Path(__file__).resolve().parents[1] / "sample-data" / "lot14_grid.npz"
+
+
 @pytest.fixture(scope="module")
 def setup():
-    return default_model(), demo_grid(), lot_mask()
+    d = np.load(LOT14)
+    return default_model(), d["grid"], d["lot_mask"]
 
 
 def _audit(model, res, mask):
@@ -97,3 +104,10 @@ def test_saa_polygon_and_subpoint():
     l2 = "2 25544  51.6439 211.2001 0007417  17.6667  85.6398 15.50103472202482"
     v = saa_bps(l1, l2, datetime(2019, 12, 9, 16, 0, tzinfo=timezone.utc), 95)
     assert 0 <= v <= 10_000
+
+
+def test_cli_fault_parses_bits():
+    from node.job import _parse_fault
+
+    assert _parse_fault("weight:2:2:7") == DEMO_FAULT
+    assert _parse_fault("multibit:1:3:28,30").bits == (28, 30)

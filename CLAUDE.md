@@ -36,9 +36,9 @@ forge script script/Deploy.s.sol --rpc-url fuji --broadcast --verify   # requier
 
 # python (desde la raíz)
 pip install -e ".[dev]"
-python -m orbit.firms grid --demo --out sample-data/lot14_grid.npz
+python -m orbit.firms grid --csv sample-data/firms_anta.csv --bbox -62.9370,-25.0760,-62.9020,-25.0410 --out sample-data/lot14_grid.npz  # FIRMS real
 python -m node.job --out out/job.npz                         # honesto → ~37,8 %
-python -m node.job --out out/bad.npz --fault weight:2:2      # falla de la demo → 0 %
+python -m node.job --out out/bad.npz --fault weight:2:2:7    # falla de la demo → 0 %
 python -m validator.verify --artifacts out/bad.npz           # score < 50 → rechazo
 pytest -q
 ```
@@ -60,5 +60,6 @@ pytest -q
 
 ## Números de la demo (mantener sincronizados con la UI)
 - Grilla 12×12, lote de 135 celdas. Índice honesto: 3.777 bps (37,8 %). Disparador: 3.000 bps.
+- Lote 14 = incendio **real** de FIRMS en Anta, Salta (-25,06; -62,92), 8–11/11/2026. Zona de soja y poroto, no de caña: el copy del lote tiene que decirlo.
 - Falla de la demo: `Fault("weight", layer=2, seed=2, bits=(7,))` → índice 0 → score < 50 → `Rejected` → `reassign` → `Paid`.
 - La UI de Figma todavía dice 37,4 %: actualizar al número real (issue).
