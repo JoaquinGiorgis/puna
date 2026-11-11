@@ -28,15 +28,13 @@ img=img*(1-road[...,None])+np.array([0.66,0.60,0.50])*(0.9+0.15*n3[...,None])*ro
 # canal
 canal=np.abs(v-(0.62*N)-18*np.sin(u/90))<1.1*S
 img[canal]=np.array([0.16,0.26,0.30])
-# burn mask from cells
-lvl={}
-L1="1,6 1,7 1,8 1,9 2,5 3,4 3,11 5,4 6,4 6,11 7,5 7,10 8,7 8,8 8,9".split()
-L2="2,6 2,7 2,8 2,9 2,10 3,5 3,10 4,4 4,5 4,10 4,11 5,5 5,10 5,11 6,5 6,6 6,10 7,6 7,7 7,8 7,9".split()
-L3="3,6 3,7 3,8 3,9 4,6 4,7 4,8 4,9 5,6 5,7 5,8 5,9 6,7 6,8 6,9".split()
+# burn mask from cells: celdas quemadas REALES (salida del modelo sobre FIRMS de Anta, web/public/data/demo.json).
+# La textura del campo es simulada; la forma del quemado no.
+import json, pathlib
+_demo=json.loads((pathlib.Path(__file__).resolve().parents[3]/"web"/"public"/"data"/"demo.json").read_text())
+_burn=np.array(_demo["lot"]["burned"],np.float32); _det=np.array(_demo["lot"]["detections"],np.float32)
 cell=16.33*S
-M=np.zeros((12,12),np.float32)
-for k,val in [(L1,0.55),(L2,0.85),(L3,1.0)]:
-    for s in k: r,c=map(int,s.split(',')); M[r,c]=val
+M=np.maximum(_burn*1.0, _det*0.6)
 Mi=Image.fromarray((M*255).astype(np.uint8)).resize((N,N),Image.NEAREST).filter(ImageFilter.GaussianBlur(6*S))
 m=np.asarray(Mi).astype(np.float32)/255
 pm=np.random.default_rng(9).random(4000)[pid%4000]
@@ -48,7 +46,7 @@ img=img*(1-burn[...,None])+char*burn[...,None]
 halo=np.clip((m-0.32)/0.10,0,1)*(1-burn)
 img=img*(1-0.45*halo[...,None])+np.array([0.35,0.24,0.12])*0.45*halo[...,None]
 # active fire front: thin band at hottest boundary (eastern/northern edge)
-hot=np.clip(1-np.abs(m-0.425)/0.02,0,1)*((xx-N*0.62)-(yy-N*0.25)*0.6>0)*(n1>0.3)
+hot=np.clip(1-np.abs(m-0.425)/0.02,0,1)*(n1>0.3)
 glow=np.asarray(Image.fromarray((hot*255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(4*S))).astype(np.float32)/255
 img=img+np.array([1.0,0.45,0.08])*np.clip(glow*2.2,0,1)[...,None]*0.9+np.array([1.0,0.82,0.45])*hot[...,None]*0.8
 # smoke plume drifting to NE
@@ -65,4 +63,4 @@ gray=img.mean(-1,keepdims=True)
 out_img=(img*0.35+gray*0.65)*0.55
 img=img*inside[...,None]+out_img*(1-inside[...,None])
 img=np.clip(img,0,1)**0.95
-Image.fromarray((img*255).astype(np.uint8)).save('lot.png')
+Image.fromarray((img*255).astype(np.uint8)).save(pathlib.Path(__file__).resolve().parents[3]/'web'/'public'/'renders'/'lot.png')
