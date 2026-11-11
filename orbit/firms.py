@@ -6,7 +6,8 @@ Rasteriza a la grilla 12×12 del lote:
   python -m orbit.firms grid --csv sample-data/firms_oran.csv --bbox ... --out sample-data/lot14_grid.npz
 
 La API de área devuelve CSV: /api/area/csv/{MAP_KEY}/{SOURCE}/{west,south,east,north}/{DAYS}
-Fuente por defecto VIIRS_SNPP_NRT (~375 m). Si la API se cae, se usa el CSV guardado en sample-data/.
+Fuente por defecto VIIRS_NOAA20_NRT (~375 m). VIIRS_SNPP_NRT devolvía 0 focos en el NOA (11/11/2026),
+mientras NOAA-20 traía 610 en 5 días; NOAA-21 y MODIS sirven de alternativa (--source). Si la API se cae, se usa el CSV guardado en sample-data/.
 """
 from __future__ import annotations
 
@@ -26,7 +27,10 @@ FIRMS_AREA = "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/{src}/{bbo
 LOT_POLYGON = [(2.9, 0), (12, 0), (12, 9.8), (9.8, 12), (0.9, 12), (0.9, 8.9), (0, 8.9), (0, 1), (2.9, 1)]
 
 
-def fetch(bbox: str, days: int, source: str = "VIIRS_SNPP_NRT") -> str:
+DEFAULT_SOURCE = "VIIRS_NOAA20_NRT"
+
+
+def fetch(bbox: str, days: int, source: str = DEFAULT_SOURCE) -> str:
     key = os.environ["FIRMS_MAP_KEY"]
     url = FIRMS_AREA.format(key=key, src=source, bbox=bbox, days=days)
     with urllib.request.urlopen(url, timeout=30) as r:
@@ -78,7 +82,7 @@ def main() -> None:
     f = sub.add_parser("fetch")
     f.add_argument("--bbox", required=True)
     f.add_argument("--days", type=int, default=2)
-    f.add_argument("--source", default="VIIRS_SNPP_NRT")
+    f.add_argument("--source", default=DEFAULT_SOURCE)
     f.add_argument("--out", required=True)
     g = sub.add_parser("grid")
     g.add_argument("--csv")
