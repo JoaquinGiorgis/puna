@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+/* Tokens PUNA / Color (docs/design.md). Light = app; Dark = visor del globo (.theme-dark). */
+:root {
+  --bg-canvas: #eef3f8;
+  --bg-surface: rgb(255 255 255 / 0.5);
+  --bg-raised: rgb(255 255 255 / 0.62);
+  --text-primary: #0e1b2c;
+  --text-muted: #4d5d73;
+  --text-faint: #5f6e82;
+  --accent-cyan: #0369a1;
+  --status-success: #0b7d55;
+  --status-warning: #9a6200;
+  --status-danger: #c4352b;
+  --fire-hot: #ea6a12;
+  --accent-cyan-bg: rgb(3 105 161 / 0.09);
+  --status-success-bg: rgb(11 125 85 / 0.1);
+  --status-warning-bg: rgb(154 98 0 / 0.1);
+  --status-danger-bg: rgb(196 53 43 / 0.09);
+  --fire-hot-bg: rgb(234 106 18 / 0.1);
+  --line: rgb(14 27 44 / 0.1);
+}
+
+.theme-dark {
+  --bg-canvas: #070b12;
+  --bg-surface: #0c131e;
+  --bg-raised: #111b2a;
+  --text-primary: #e6edf7;
+  --text-muted: #8293ad;
+  --text-faint: #8293ad; /* #55657E no llega a AA para texto chico sobre el visor */
+  --accent-cyan: #3dd6f5;
+  --status-success: #34d399;
+  --status-warning: #f5b03d;
+  --status-danger: #ff5a4e;
+  --fire-hot: #ff7a1a;
+  --accent-cyan-bg: rgb(61 214 245 / 0.15);
+  --status-success-bg: rgb(52 211 153 / 0.15);
+  --status-warning-bg: rgb(245 176 61 / 0.15);
+  --status-danger-bg: rgb(255 90 78 / 0.16);
+  --fire-hot-bg: rgb(255 122 26 / 0.15);
+  --line: rgb(230 237 247 / 0.14);
+  color: var(--text-primary);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --color-canvas: var(--bg-canvas);
+  --color-surface: var(--bg-surface);
+  --color-raised: var(--bg-raised);
+  --color-ink: var(--text-primary);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-cyan: var(--accent-cyan);
+  --color-ok: var(--status-success);
+  --color-warn: var(--status-warning);
+  --color-bad: var(--status-danger);
+  --color-fire: var(--fire-hot);
+  --color-cyan-bg: var(--accent-cyan-bg);
+  --color-ok-bg: var(--status-success-bg);
+  --color-warn-bg: var(--status-warning-bg);
+  --color-bad-bg: var(--status-danger-bg);
+  --color-fire-bg: var(--fire-hot-bg);
+  --color-line: var(--line);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  color: var(--text-primary);
+  /* "Salinas Grandes": blanco salar → celeste de altura, con brillo rosado de laguna */
+  background:
+    radial-gradient(1100px 600px at 85% 105%, rgb(244 196 210 / 0.55), transparent 60%),
+    radial-gradient(900px 700px at 10% -10%, rgb(255 255 255 / 0.95), transparent 60%),
+    linear-gradient(180deg, #f7f9fb 0%, #e3edf6 55%, #d6e6f4 100%);
+  background-attachment: fixed;
+  min-height: 100dvh;
+}
+
+/* Vidrio: fondo blanco ~50 %, blur 28px, borde blanco 1px, reflejo interior arriba, sombra azulada */
+.glass {
+  background: var(--bg-surface);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid rgb(255 255 255 / 0.85);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    inset 0 24px 40px -32px rgb(255 255 255 / 0.9),
+    0 18px 50px -18px rgb(30 70 130 / 0.28);
+}
+
+.glass-raised {
+  background: var(--bg-raised);
+  border: 1px solid rgb(255 255 255 / 0.9);
+}
+
+.glass-dark {
+  background: rgb(12 19 30 / 0.66);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgb(230 237 247 / 0.16);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+
+a.ext {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@keyframes sat-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.35); }
+}
+.sat-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sat-pulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sat-halo { animation: none; }
+  * { scroll-behavior: auto !important; }
+}
