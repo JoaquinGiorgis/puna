@@ -77,5 +77,5 @@ export function summary(d: Demo) {
   const feeLabel = nano < 1000
     ? `${nano.toLocaleString("es-AR", { maximumFractionDigits: 3 })} nAVAX`
     : avax(fee.toString(), 6);
-  return { txs: d.txs.length, gas, fee: feeLabel, seconds: Math.max(...times) - Math.min(...times) };
+  return { txs: d.txs.length, gas, fee: feeLabel, seconds: times.length ? Math.max(...times) - Math.min(...times) : 0 };
 }

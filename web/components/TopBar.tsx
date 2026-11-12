@@ -1,7 +1,11 @@
-import { demo } from "@/lib/data";
+"use client";
+
+import { useDemo, useLive } from "./LiveProvider";
 import { addrUrl, short } from "@/lib/format";
 
 export function TopBar() {
+  const demo = useDemo();
+  const live = useLive();
   const { job, chain, contracts } = demo;
   return (
     <header className="glass z-20 flex shrink-0 flex-wrap items-center gap-x-6 gap-y-2 rounded-none border-x-0 border-t-0 px-5 py-2">
@@ -22,9 +26,13 @@ export function TopBar() {
         <span className="rounded-full bg-warn-bg px-3 py-1 font-mono text-warn" title="Real: órbitas (TLE + SGP4), focos NASA FIRMS, Freivalds, transacciones y ERC-8004 en Fuji. Simulado: satélites como nodos de cómputo, operadores, radiación (saaBps), vista del lote.">
           <span aria-hidden="true">▲ </span>Simulado: nodos y radiación · Real: órbitas, FIRMS, txs
         </span>
-        <span className="glass-raised rounded-full px-3 py-1 font-mono">
-          <span aria-hidden="true" className="text-bad">● </span>
-          {chain.name} · {chain.id}
+        <span className="glass-raised rounded-full px-3 py-1 font-mono" aria-live="polite"
+          title={live.kind === "offline" ? live.reason : "Lee PunaEscrow y ERC-8004 en Fuji cada 4–15 s"}>
+          {live.kind === "live" && (
+            <span className="text-ok"><span aria-hidden="true">● </span>En vivo · {chain.name} · {live.pinned ? "job fijado" : "último job"} · {live.at.toLocaleTimeString("es-AR", { hour12: false })}</span>
+          )}
+          {live.kind === "snapshot" && <span className="text-muted"><span aria-hidden="true">○ </span>Conectando a {chain.name}…</span>}
+          {live.kind === "offline" && <span className="text-warn"><span aria-hidden="true">▲ </span>Sin red · foto guardada del job {demo.job.id}</span>}
         </span>
         <a
           href={addrUrl(chain.explorer, contracts.escrow)}

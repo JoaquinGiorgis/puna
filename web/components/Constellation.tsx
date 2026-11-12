@@ -1,5 +1,8 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { demo, overlay } from "@/lib/data";
+import { overlay, type Demo } from "@/lib/data";
+import { useDemo } from "./LiveProvider";
 import { int } from "@/lib/format";
 
 const [FW, FH] = overlay.frame;
@@ -14,16 +17,31 @@ function GeoLabel({ x, y, dx, dy, w, children }: { x: number; y: number; dx: num
   );
 }
 
+/** Estado de un nodo en el job actual, siempre con ícono + etiqueta (no solo color). */
+function nodeStatus(demo: Demo, agentId: number) {
+  const a = [...demo.attempts].reverse().find((x) => x.agentId === agentId);
+  const pctTxt = (bps: number) => `${(bps / 100).toLocaleString("es-AR", { maximumFractionDigits: 1 })} % quemado`;
+  if (!a) return { icon: "→", label: "disponible", cls: "text-cyan", detail: "" };
+  const failing = a.certificate?.checks.find((c) => !c.ok)?.name.split(" ")[0];
+  if (a.outcome === "Rejected" || (a.score !== undefined && a.score < demo.job.minScore))
+    return { icon: "✕", label: "rechazado", cls: "text-bad", detail: failing ? `Freivalds ✕ ${failing}` : `score ${a.score}` };
+  if (a.outcome === "Paid" || a.outcome === "NoPayout" || a.score !== undefined)
+    return { icon: "✓", label: "validado", cls: "text-ok", detail: pctTxt(a.indexBps) };
+  if (a.indexBps !== undefined) return { icon: "▲", label: "sin auditar", cls: "text-warn", detail: `declara ${pctTxt(a.indexBps)}` };
+  return { icon: "▲", label: "calculando", cls: "text-warn", detail: `intento ${a.attempt}` };
+}
+
 /** Visor oscuro: globo NASA Blue Marble (render) + overlays SVG desde órbitas reales (sgp4, TLE CelesTrak). */
 export function Constellation() {
+  const demo = useDemo();
   const start = new Date(demo.window.start);
   const end = new Date(start.getTime() + demo.window.minutes * 60_000);
   const hm = (d: Date) => d.toISOString().slice(11, 16);
-  const [a1, a2] = demo.attempts;
   const n07 = demo.nodes.find((n) => n.name === "ORBIT-07")!;
   const n03 = demo.nodes.find((n) => n.name === "ORBIT-03")!;
   const inSaa = demo.nodes.filter((n) => n.saaBps > 0).length;
-  const failing = a1?.certificate?.checks.find((c) => !c.ok)?.name.split(" ")[0] ?? "—";
+  const s07 = nodeStatus(demo, n07.agentId);
+  const s03 = nodeStatus(demo, n03.agentId);
 
   return (
     <section
@@ -69,14 +87,12 @@ export function Constellation() {
         <image href="/renders/satB.png" x={overlay.satB[0] - 32} y={overlay.satB[1] - 20} width="64" height="40" />
 
         <GeoLabel x={overlay.satA[0]} y={overlay.satA[1]} dx={-250} dy={24} w={270}>
-          <p className="font-mono text-[12.5px] font-semibold text-bad"><span aria-hidden="true">✕ </span>ORBIT-07 · rechazado</p>
-          <p className="font-mono text-[12px] text-muted">{n07.proxy} · saa {int(n07.saaBps)} bps · Freivalds ✕ {failing}</p>
+          <p className={`font-mono text-[12.5px] font-semibold ${s07.cls}`}><span aria-hidden="true">{s07.icon} </span>ORBIT-07 · {s07.label}</p>
+          <p className="font-mono text-[12px] text-muted">{n07.proxy} · saa {int(n07.saaBps)} bps{s07.detail ? ` · ${s07.detail}` : ""}</p>
         </GeoLabel>
         <GeoLabel x={overlay.satB[0]} y={overlay.satB[1]} dx={30} dy={-22} w={270}>
-          <p className="font-mono text-[12.5px] font-semibold text-ok"><span aria-hidden="true">✓ </span>ORBIT-03 · validado</p>
-          <p className="font-mono text-[12px] text-muted">
-            {n03.proxy} · saa {int(n03.saaBps)} bps{a2 ? ` · ${(a2.indexBps / 100).toLocaleString("es-AR")} % quemado` : ""}
-          </p>
+          <p className={`font-mono text-[12.5px] font-semibold ${s03.cls}`}><span aria-hidden="true">{s03.icon} </span>ORBIT-03 · {s03.label}</p>
+          <p className="font-mono text-[12px] text-muted">{n03.proxy} · saa {int(n03.saaBps)} bps{s03.detail ? ` · ${s03.detail}` : ""}</p>
         </GeoLabel>
         <GeoLabel x={overlay.lote[0]} y={overlay.lote[1]} dx={14} dy={-12} w={210}>
           <p className="font-mono text-[12.5px] font-semibold text-fire">Lote 14 · {demo.lot.place}</p>

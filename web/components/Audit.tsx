@@ -1,4 +1,7 @@
-import { demo, type Attempt, type Check } from "@/lib/data";
+"use client";
+
+import type { Attempt, Check } from "@/lib/data";
+import { useDemo } from "./LiveProvider";
 import { int, short } from "@/lib/format";
 import { Panel, StatusTag } from "./ui";
 
@@ -28,6 +31,7 @@ function Cell({ checks }: { checks: Check[] | undefined }) {
 }
 
 export function Audit() {
+  const demo = useDemo();
   const [a1, a2] = demo.attempts;
   const r1 = layerRows(a1);
   const r2 = layerRows(a2);

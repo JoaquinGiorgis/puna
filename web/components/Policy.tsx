@@ -1,4 +1,6 @@
-import { demo } from "@/lib/data";
+"use client";
+
+import { useDemo } from "./LiveProvider";
 import { addrUrl, avax, pct, short } from "@/lib/format";
 import { ExtLink, Mono, Panel, StatusTag, type Tone } from "./ui";
 
@@ -13,6 +15,7 @@ const STATE: Record<string, [Tone, string]> = {
 };
 
 export function Policy() {
+  const demo = useDemo();
   const { job, lot, chain, contracts } = demo;
   const [tone, label] = STATE[job.state] ?? ["neutral", job.state];
   const idx = job.indexBps / 100;
@@ -55,7 +58,7 @@ export function Policy() {
         <div className="min-w-0">
           <div className="flex flex-wrap items-end gap-x-6 gap-y-1">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-muted">Índice validado</p>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-muted">{["Paid", "NoPayout"].includes(job.state) ? "Índice validado" : "Índice declarado"}</p>
               <p className="font-mono text-[32px] leading-none font-semibold text-fire">{pct(job.indexBps)}</p>
             </div>
             <div>

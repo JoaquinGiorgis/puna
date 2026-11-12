@@ -4,6 +4,7 @@ import { Policy } from "@/components/Policy";
 import { Timeline } from "@/components/Timeline";
 import { TopBar } from "@/components/TopBar";
 import { demo } from "@/lib/data";
+import { LiveProvider } from "@/components/LiveProvider";
 
 export default function Page() {
   return (
@@ -11,6 +12,7 @@ export default function Page() {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2">
         Saltar al contenido
       </a>
+      <LiveProvider snapshot={demo}>
       <div className="flex min-h-dvh flex-col xl:h-dvh xl:overflow-hidden">
       <TopBar />
       {/* En escritorio todo entra en una sola vista: la grilla ocupa el alto restante de la ventana. */}
@@ -34,6 +36,7 @@ export default function Page() {
         </footer>
       </main>
       </div>
+      </LiveProvider>
     </>
   );
 }

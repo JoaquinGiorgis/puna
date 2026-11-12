@@ -24,7 +24,23 @@ La página no depende de la red para mostrarse: lee archivos exportados desde la
 - `public/data/demo.json`: job, intentos con su certificado, eventos y txs (hash, bloque, hora, gas), grilla y focos FIRMS del Lote 14, nodos con saaBps y reputación ERC-8004.
 - `public/renders/globe-overlay.json`: trazas, Anomalía, lote y ciudades en el marco de `globe.png` (820×632).
 
-**En vivo:** el timeline verifica con viem, contra la RPC pública de Fuji, que cada tx exista y haya salido bien. Sin red muestra "sin red: datos guardados".
+## En vivo
+
+La página lee la cadena desde el navegador y se actualiza sola:
+
+- **Qué job muestra:** sigue al último job del escrow (`nextJobId − 1`). Con `?job=N` fija uno.
+- **Cada cuánto:** refresca cada 4 s mientras el job está en curso y cada 15 s cuando ya cerró. Si corrés `scripts/e2e.py --demo`, el timeline, la auditoría y los nodos avanzan paso a paso, unos segundos detrás de la cadena.
+- **Eventos:** salen de dos fuentes que se combinan:
+  - el indexador de Routescan, para el historial completo, filtrando por `jobId` y `requestHash` (va con ~1 min de atraso);
+  - `eth_getLogs` directo a la RPC sobre los últimos 200 bloques, para tener lo más reciente sin atraso.
+- **Estado y reputación:** `getJob` y `getSummary` vía viem, con publicnode como RPC principal y la de Avalanche de respaldo.
+- **Certificados:** la ruta `/api/artifact/<sha256>.json` sirve los que publicó el validador local, y el navegador verifica el sha256. En un host sin esos archivos, por ejemplo Vercel, se ven el score y el estado pero no el detalle por capa.
+- **Sin red:** se queda con lo último que leyó o con la foto exportada, y lo indica en la barra superior.
+
+Lo que no cambia en vivo son los insumos: la grilla y los focos FIRMS del Lote 14, las órbitas de la ventana y el benchmark.
+
+La RPC pública de Avalanche limita por IP y devuelve 429. Si la demo y la página corren en la misma máquina, conviene que los scripts usen otra RPC:
+`FUJI_RPC_URL=https://avalanche-fuji-c-chain-rpc.publicnode.com` en `.env`.
 
 ## Paneles
 
