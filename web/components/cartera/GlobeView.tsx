@@ -1,12 +1,23 @@
 "use client";
 
-import { type KeyboardEvent } from "react";
-import { FRAME, proj } from "@/lib/globe-noa";
+import { useEffect, useRef, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
+import { BOUNDS, FRAME, clampView, proj, type View } from "@/lib/globe-noa";
 import type { Assessment, Client, Level } from "@/lib/portfolio";
-import { groundTrack, type Fire, type SatDef, type SatNow } from "@/lib/sky";
+import { SAA, groundTrack, type Fire, type SatDef, type SatNow } from "@/lib/sky";
 
 export type Row = { c: Client; a: Assessment };
-export type View = { k: number; x: number; y: number }; // zoom y centro, en píxeles del marco
+export type { View };
+
+/** Polígono de la Anomalía (el mismo de saaBps), densificado para que siga la curvatura del globo. */
+const SAA_PTS = (() => {
+  const out: { x: number; y: number; visible: boolean }[] = [];
+  for (let i = 0; i < SAA.length; i++) {
+    const [lo1, la1] = SAA[i], [lo2, la2] = SAA[(i + 1) % SAA.length];
+    for (let t = 0; t < 1; t += 0.1) out.push(proj(la1 + (la2 - la1) * t, lo1 + (lo2 - lo1) * t));
+  }
+  return out;
+})();
+const SAA_LABEL = proj(-9, -60);
 
 const PIN: Record<Level, { bg: string; fg: string; icon: string; label: string }> = {
   atencion: { bg: "#c4352b", fg: "#fff", icon: "!", label: "atención" },
@@ -33,9 +44,57 @@ function Tag({ x, y, dx = 14, dy = -14, k, children }: { x: number; y: number; d
  * misma proyección: focos FIRMS en vivo, trazas y posición SGP4 de satélites reales y un pin por cliente.
  * El SVG usa "slice": llena cualquier pantalla sin deformar. El zoom cambia el viewBox (sin pixelar el SVG).
  */
-export function GlobeView({ rows, fires, sats, defs, now, selected, view, onSelect }: {
-  rows: Row[]; fires: Fire[]; sats: SatNow[]; defs: SatDef[]; now: Date; selected: string | null; view: View; onSelect: (id: string) => void;
+export function GlobeView({ rows, fires, sats, defs, now, selected, view, setView, onSelect, satHover = null }: {
+  rows: Row[]; fires: Fire[]; sats: SatNow[]; defs: SatDef[]; now: Date; selected: string | null; view: View;
+  setView: (f: (v: View) => View) => void; onSelect: (id: string) => void; satHover?: string | null;
 }) {
+  const svg = useRef<SVGSVGElement>(null);
+  const viewRef = useRef(view); viewRef.current = view;
+  const ptrs = useRef(new Map<number, { x: number; y: number }>());
+  const drag = useRef<{ x: number; y: number; v: View; dist: number; moved: boolean } | null>(null);
+
+  // px de pantalla por unidad del marco (preserveAspectRatio slice)
+  const scaleOf = (v: View) => { const r = svg.current!.getBoundingClientRect(); return { r, sc: Math.max(r.width / (FRAME.w / v.k), r.height / (FRAME.h / v.k)) }; };
+  const zoomAt = (factor: number, cx: number, cy: number, base = viewRef.current) => {
+    const { r, sc } = scaleOf(base);
+    const ux = base.x + (cx - r.left - r.width / 2) / sc, uy = base.y + (cy - r.top - r.height / 2) / sc;
+    const k = base.k * factor;
+    const sc2 = sc * (clampView({ ...base, k }).k / base.k);
+    return clampView({ k, x: ux - (cx - r.left - r.width / 2) / sc2, y: uy - (cy - r.top - r.height / 2) / sc2 });
+  };
+  // rueda: zoom hacia el cursor (listener no pasivo para poder frenar el scroll de la página)
+  useEffect(() => {
+    const el = svg.current; if (!el) return;
+    const wheel = (e: WheelEvent) => { e.preventDefault(); const f = Math.exp(-e.deltaY * 0.0015); setView((v) => zoomAt(f, e.clientX, e.clientY, v)); };
+    el.addEventListener("wheel", wheel, { passive: false });
+    return () => el.removeEventListener("wheel", wheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setView]);
+  const down = (e: RPointerEvent<SVGSVGElement>) => {
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const ps = [...ptrs.current.values()];
+    const c = ps.reduce((a, p) => ({ x: a.x + p.x / ps.length, y: a.y + p.y / ps.length }), { x: 0, y: 0 });
+    drag.current = { x: c.x, y: c.y, v: viewRef.current, dist: ps.length > 1 ? Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y) : 0, moved: false };
+  };
+  const move = (e: RPointerEvent<SVGSVGElement>) => {
+    if (!drag.current || !ptrs.current.has(e.pointerId)) return;
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const ps = [...ptrs.current.values()];
+    const c = ps.reduce((a, p) => ({ x: a.x + p.x / ps.length, y: a.y + p.y / ps.length }), { x: 0, y: 0 });
+    const d = drag.current;
+    if (!d.moved && Math.hypot(c.x - d.x, c.y - d.y) < 4 && ps.length < 2) return;
+    if (!d.moved) { d.moved = true; svg.current?.setPointerCapture(e.pointerId); }
+    let v = d.v;
+    if (ps.length > 1 && d.dist) v = zoomAt(Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y) / d.dist, d.x, d.y, d.v);
+    const { sc } = scaleOf(v);
+    setView(() => clampView({ ...v, x: v.x - (c.x - d.x) / sc, y: v.y - (c.y - d.y) / sc }));
+  };
+  const up = (e: RPointerEvent<SVGSVGElement>) => {
+    ptrs.current.delete(e.pointerId);
+    if (ptrs.current.size === 0) setTimeout(() => { drag.current = null; }, 0);
+    else down({ ...e, pointerId: -1 } as RPointerEvent<SVGSVGElement>);
+  };
+  const pick = (id: string) => { if (!drag.current?.moved) onSelect(id); };
   const vw = FRAME.w / view.k, vh = FRAME.h / view.k;
   const vb = `${view.x - vw / 2} ${view.y - vh / 2} ${vw} ${vh}`;
   const s = 1 / view.k; // tamaño constante en pantalla para marcas y textos
@@ -45,10 +104,23 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, onSele
   const key = (id: string) => (e: KeyboardEvent) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onSelect(id));
 
   return (
-    <svg viewBox={vb} preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full select-none"
+    <svg ref={svg} viewBox={vb} preserveAspectRatio="xMidYMid slice" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+      className={`absolute inset-0 h-full w-full touch-none select-none ${drag.current?.moved ? "cursor-grabbing" : "cursor-grab"}`}
       role="img" aria-label={`Globo con ${rows.length} campos asegurados, ${fires.length} focos de fuego y ${sats.length} satélites en vivo`}>
-      <rect x={-2000} y={-2000} width={6000} height={5000} fill="#04070d" />
+      <rect x={-4000} y={-4000} width={12000} height={10000} fill="#04070d" />
+      {/* render amplio (1x) para alejar, y encima el detallado (2x) del cuadro principal: misma proyección */}
+      <image href="/renders/globe-noa-wide.jpg" x={BOUNDS.x0} y={BOUNDS.y0} width={BOUNDS.x1 - BOUNDS.x0} height={BOUNDS.y1 - BOUNDS.y0} preserveAspectRatio="none" />
       <image href="/renders/globe-noa.jpg" x={0} y={0} width={FRAME.w} height={FRAME.h} preserveAspectRatio="none" />
+
+      {/* Anomalía del Atlántico Sur: zona de radiación donde los cálculos en órbita pueden fallar */}
+      <g aria-hidden="true">
+        <polygon points={SAA_PTS.filter((p) => p.visible).map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")}
+          fill="#ff5a4e" fillOpacity={0.06} stroke="#ff5a4e" strokeOpacity={0.85} strokeWidth={1.5 * s} strokeDasharray={`${8 * s} ${5 * s}`} />
+        <Tag x={SAA_LABEL.x} y={SAA_LABEL.y} k={view.k} dx={-110} dy={6}>
+          <span className="block text-[12px] font-semibold text-[#ff9b92]">▲ Anomalía del Atlántico Sur</span>
+          <span className="block text-[10.5px] text-[#d5deea]">zona de radiación: un cálculo hecho acá puede fallar</span>
+        </Tag>
+      </g>
 
       {/* trazas de satélites polares (±45 min) */}
       {tracks.map((seg, i) => seg.length > 1 && (
@@ -91,10 +163,10 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, onSele
         if (!p.visible) return null;
         return (
           <g key={x.name} aria-hidden="true">
-            <circle cx={p.x} cy={p.y} r={13 * s} fill="#3dd6f5" fillOpacity={0.2} />
-            <circle cx={p.x} cy={p.y} r={5.5 * s} fill="#3dd6f5" stroke="#fff" strokeWidth={2 * s} />
+            <circle cx={p.x} cy={p.y} r={(satHover === x.name ? 20 : 13) * s} fill={x.inSaa ? "#ff5a4e" : "#3dd6f5"} fillOpacity={0.22} />
+            <circle cx={p.x} cy={p.y} r={5.5 * s} fill={x.inSaa ? "#ff5a4e" : "#3dd6f5"} stroke="#fff" strokeWidth={2 * s} />
             <Tag x={p.x} y={p.y} k={view.k} dx={12} dy={-11}>
-              <span className="block font-mono text-[10.5px] text-[#e6edf7]">{x.name}{x.overNoa ? " · sobre el NOA" : ""}</span>
+              <span className="block font-mono text-[10.5px] text-[#e6edf7]">{x.name}{x.inSaa ? " · en la Anomalía" : x.overNoa ? " · sobre el NOA" : ""}</span>
             </Tag>
           </g>
         );
@@ -106,7 +178,7 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, onSele
         const pin = PIN[a.level];
         const sel = selected === c.id;
         return (
-          <g key={c.id} role="button" tabIndex={0} aria-label={`${c.field}: ${pin.label}. Abrir póliza`} onClick={() => onSelect(c.id)} onKeyDown={key(c.id)}
+          <g key={c.id} role="button" tabIndex={0} aria-label={`${c.field}: ${pin.label}. Abrir póliza`} onClick={() => pick(c.id)} onKeyDown={key(c.id)}
             className="cursor-pointer outline-none [&:focus-visible>circle.ring]:stroke-[#3dd6f5]">
             {a.level === "atencion" && <circle cx={p.x} cy={p.y} r={18 * s} fill={pin.bg} fillOpacity={0.25} stroke={pin.bg} strokeWidth={1 * s} className="pin-pulse" style={{ transformBox: "fill-box", transformOrigin: "center" }} />}
             <circle className="ring" cx={p.x} cy={p.y} r={(sel ? 13 : 10.5) * s} fill={pin.bg} stroke={sel ? "#3dd6f5" : "#fff"} strokeWidth={2 * s} />

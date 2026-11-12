@@ -35,7 +35,7 @@ export type SatNow = {
 };
 
 // Polígono de la Anomalía: el mismo que usa orbit/saa.py para saaBps (lon, lat)
-const SAA: [number, number][] = [
+export const SAA: [number, number][] = [
   [-90, -10], [-60, -5], [-35, -5], [-10, -15], [10, -25], [20, -40],
   [0, -50], [-30, -55], [-60, -50], [-80, -40], [-90, -25],
 ];

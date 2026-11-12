@@ -23,3 +23,19 @@ export function proj(lat: number, lon: number, r = 1): Pt {
 
 /** Punto del NOA donde centra la cámara por defecto (Anta, Salta). */
 export const NOA = proj(-25, -63.6);
+
+/** Zona cubierta por los renders: el detallado (0,0)-(1440,900) y el amplio (-720,-450)-(2160,1350). */
+export const BOUNDS = { x0: -720, y0: -450, x1: 2160, y1: 1350 };
+export const K_MIN = 0.5, K_MAX = 2.6;
+export type View = { k: number; x: number; y: number };
+export const HOME: View = { k: 1, x: 720, y: 450 };
+
+/** Limita zoom y centro para no salir de la zona renderizada. */
+export function clampView(v: View): View {
+  const k = Math.min(K_MAX, Math.max(K_MIN, v.k));
+  const hw = FRAME.w / 2 / k, hh = FRAME.h / 2 / k;
+  const cx = (BOUNDS.x0 + BOUNDS.x1) / 2, cy = (BOUNDS.y0 + BOUNDS.y1) / 2;
+  const x = BOUNDS.x1 - BOUNDS.x0 <= 2 * hw ? cx : Math.min(BOUNDS.x1 - hw, Math.max(BOUNDS.x0 + hw, v.x));
+  const y = BOUNDS.y1 - BOUNDS.y0 <= 2 * hh ? cy : Math.min(BOUNDS.y1 - hh, Math.max(BOUNDS.y0 + hh, v.y));
+  return { k, x, y };
+}
