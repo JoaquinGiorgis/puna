@@ -91,12 +91,12 @@ export function Landing() {
             <p className="rise text-[13px] text-[#b0bed1]">
               Para aseguradoras agro · sobre Avalanche
             </p>
-            <h1 id="hero-t" className="rise max-w-[15ch] text-[44px] font-semibold leading-[1.02] tracking-[-0.035em] [text-wrap:balance] md:text-[66px]" style={{ animationDelay: "60ms" }}>
-              Pagá incendios con un índice que otro auditó
+            <h1 id="hero-t" className="rise max-w-[19ch] text-[40px] font-semibold leading-[1.04] tracking-[-0.035em] [text-wrap:balance] md:text-[56px]" style={{ animationDelay: "60ms" }}>
+              Siniestros medidos por satélite, auditados antes de pagar
             </h1>
             <p className="rise max-w-[46ch] text-[17px] leading-relaxed text-[#c9d4e4] [text-wrap:pretty]" style={{ animationDelay: "120ms" }}>
-              Un satélite mide cuánto se quemó del lote. Una empresa distinta rehace la cuenta. El contrato paga solo si coincide,
-              y cada paso queda a la vista de la SSN y de tu reasegurador.
+              Incendio, sequía, inundación o helada: un satélite mide el daño en el lote. Una empresa distinta rehace la cuenta.
+              El contrato paga solo si coincide, y cada paso queda a la vista de la SSN y de tu reasegurador.
             </p>
             <div className="rise flex flex-wrap items-center gap-x-6 gap-y-3" style={{ animationDelay: "180ms" }}>
               <Link href="/ingresar" className={`flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[14.5px] font-semibold text-[#0e1b2c] shadow-[0_8px_30px_-8px_rgba(125,211,252,0.45)] hover:bg-[#dff6fd] ${btn}`}>
@@ -186,7 +186,7 @@ export function Landing() {
 
           <div className="lg rounded-[28px] p-5 md:p-7">
             <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-white/10 pb-4">
-              <p className="text-[15px] font-semibold">Siniestro real · Lote 14, Anta (Salta)</p>
+              <p className="text-[15px] font-semibold">Ejemplo real: incendio en el Lote 14, Anta (Salta)</p>
               <a href={addrUrl(demo.chain.explorer, demo.contracts.escrow)} target="_blank" rel="noreferrer" className={`flex items-center gap-1 rounded text-[12.5px] text-[#7dd3fc] hover:text-white ${btn}`}>
                 job {demo.job.id} en Avalanche Fuji <ArrowUpRight size={13} aria-hidden="true" />
               </a>
@@ -226,11 +226,11 @@ export function Landing() {
             <div className="flex flex-col gap-6">
               <Label tone="#ffb27a">Para aseguradoras</Label>
               <h2 id="aseg-t" className="max-w-[20ch] text-[36px] font-semibold leading-[1.08] tracking-[-0.025em] [text-wrap:balance] md:text-[44px]">
-                Un producto de incendio para el NOA, listo para la Res. SSN 315
+                Paramétricos satelitales para el NOA, listos para la Res. SSN 315
               </h2>
               <dl className="grid grid-cols-2 gap-x-8 gap-y-7 pt-2">
                 {([
-                  ["98,9 %", "de las primas agro del país es granizo. El incendio solo existe como adicional.", "SSN, encuesta 2024"],
+                  ["98,9 %", "de las primas agro del país es granizo. El multirriesgo es apenas el 1,1 %.", "SSN, encuesta 2024"],
                   ["2,5 %", "de las hectáreas aseguradas está en el NOA. Salta: 29.000 ha y ningún siniestro pagado.", "SSN, encuesta 2024"],
                   ["23/07/2026", "rige la Res. SSN 315: índice nombrado, dato con respaldo, acceso al cálculo y pago en 15 días.", "Marval O'Farrell Mairal"],
                   ["7.000 ha", "quemó el zonda en Salta en julio de 2026, con un muerto y unas 50 familias afectadas.", "Perfil"],
@@ -248,7 +248,7 @@ export function Landing() {
               <p className="text-[15px] font-semibold">Qué gana cada uno</p>
               <dl className="mt-3">
                 {([
-                  ["La aseguradora", "Liquida incendios sin perito y sin disputas, en una zona hoy sin producto, con trazabilidad para la SSN.", "nos contrata"],
+                  ["La aseguradora", "Liquida siniestros sin perito y sin disputas, en una zona casi sin cobertura, con trazabilidad para la SSN.", "nos contrata"],
                   ["El asegurado", "Cobra en minutos y puede ver con qué dato y qué cuenta le pagaron, o por qué no.", "cobra antes"],
                   ["El reasegurador", "Ve cada evento y cada pago en la cadena. Menos riesgo de modelo para dar capacidad.", "audita solo"],
                   ["El operador del satélite", "Cobra su fee únicamente si el cálculo pasa la auditoría, y suma reputación verificable.", "cobra si acierta"],
@@ -262,10 +262,36 @@ export function Landing() {
             </div>
           </div>
 
-          <div className="lg lg-strong mt-16 grid gap-6 overflow-hidden rounded-[32px] p-7 md:grid-cols-[1fr_auto] md:items-end md:p-10">
+          <div className="mt-16">
+            <p className="text-[15px] font-semibold">Qué siniestros mide un satélite</p>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-[13.5px]">
+                <thead className="text-[12px] text-[#9aa9be]">
+                  <tr><th className="py-2 pr-4 font-medium">Riesgo</th><th className="pr-4 font-medium">Qué se mide en el lote</th><th className="pr-4 font-medium">Fuente satelital</th><th className="font-medium">Estado</th></tr>
+                </thead>
+                <tbody className="text-[#c9d4e4]">
+                  {([
+                    ["Incendio", "Área quemada y puntos de calor", "NASA FIRMS: VIIRS, MODIS, GOES", "En la demo, con datos reales", true],
+                    ["Sequía", "Índice de vegetación y humedad del suelo", "Sentinel-2, MODIS, SMAP", "Misma capa, próximo índice", false],
+                    ["Inundación", "Superficie cubierta de agua", "Radar Sentinel-1, también con nubes", "Misma capa, próximo índice", false],
+                    ["Helada", "Temperatura de la superficie de noche", "MODIS, VIIRS", "Misma capa, próximo índice", false],
+                  ] as const).map(([r, what, src, st, live]) => (
+                    <tr key={r} className="border-t border-white/10">
+                      <td className="py-3 pr-4 font-semibold text-white">{r}</td>
+                      <td className="pr-4">{what}</td>
+                      <td className="pr-4 text-[#9aa9be]">{src}</td>
+                      <td className={live ? "font-medium text-[#6ee7b7]" : "text-[#9aa9be]"}>{st}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="lg lg-strong mt-12 grid gap-6 overflow-hidden rounded-[32px] p-7 md:grid-cols-[1fr_auto] md:items-end md:p-10">
             <div>
-              <p className="max-w-[30ch] text-[26px] font-semibold leading-tight tracking-[-0.02em] [text-wrap:balance] md:text-[32px]">
-                Arrancamos con incendios en el NOA. La misma capa sirve para cualquier índice que calcule un satélite.
+              <p className="max-w-[38ch] text-[24px] font-semibold leading-tight tracking-[-0.02em] [text-wrap:balance] md:text-[32px]">
+                Arrancamos con incendios en el NOA. La misma capa mide sequía, inundación o helada: cualquier índice que calcule un satélite.
               </p>
               <p className="mt-3 max-w-[60ch] text-[14.5px] text-[#c9d4e4]">
                 Cuando la inteligencia artificial corra en el espacio, alguien va a tener que controlar que no se equivoque antes de que se mueva la plata.
