@@ -20,6 +20,7 @@
 | Video | [pendiente, #22] |
 | Deck | [pendiente de compartir] |
 | Diseño | [Figma: Mission Control](https://www.figma.com/design/QX6MGCInnAdtuh6Vch931X) |
+| Modelo de negocio | Cliente ideal, precios, mercado y salida al mercado: [`docs/modelo-de-negocio.md`](docs/modelo-de-negocio.md) |
 
 ## Qué hace
 
