@@ -28,7 +28,7 @@ function Mark() {
 const HOW = [
   { title: "Se detecta el siniestro", body: "La NASA registra focos de calor dentro del lote asegurado y la cartera lo marca en rojo. El reclamo se abre solo, sin denuncia.", fact: "Fuente: NASA FIRMS" },
   { title: "Un satélite mide el daño", body: "Una CNN (red neuronal convolucional) recorre la imagen con filtros chicos, zona por zona, y marca cada celda del lote como quemada o sana.", fact: "Lote 14 · grilla de 12 × 12" },
-  { title: "Otro satélite lo verifica", body: "Un auditor de otro operador comprueba cada capa de la CNN con el algoritmo de Freivalds. Si una cuenta no cierra, no se paga.", fact: "C·r ≡ A·(B·r) mód p" },
+  { title: "Otro satélite lo verifica", body: "Otro operador comprueba cada capa de la CNN con el algoritmo de Freivalds: prueba la cuenta con números al azar y, si un solo valor fue alterado, no cierra y no se paga.", fact: "C·r ≡ A·(B·r) mód p" },
   { title: "Se paga el seguro", body: "Si la verificación aprueba y el daño supera el umbral de la póliza, el contrato en Avalanche le paga al productor.", fact: "" },
 ] as const;
 
@@ -150,43 +150,6 @@ export function Landing() {
               </li>
             ))}
           </ol>
-
-          <div className="lg mt-6 grid gap-6 rounded-[28px] p-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:p-8">
-            <div className="flex flex-col gap-3">
-              <Label>Nuestro núcleo: la verificación matemática</Label>
-              <h3 className="max-w-[24ch] text-[26px] font-semibold leading-[1.12] tracking-[-0.02em] [text-wrap:balance] md:text-[30px]">
-                El auditor no opina ni confía: comprueba la cuenta
-              </h3>
-              <p className="max-w-[56ch] text-[15px] leading-relaxed text-[#c9d4e4] [text-wrap:pretty]">
-                Cada capa de la CNN es una multiplicación de matrices. Rehacerla entera es caro, así que el auditor usa el
-                <b className="font-semibold text-white"> algoritmo de Freivalds (1977)</b>: multiplica ambos lados por números al azar que el
-                satélite no conoce de antemano y compara. Si alguien alteró un solo número, los dos lados dan distinto y el auditor
-                señala la capa exacta. Todo en aritmética entera módulo 2³¹−1, sin redondeos.
-              </p>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="font-mono text-[17px] text-[#7dd3fc]">C · r ≡ A · (B · r)  <span className="text-[13px] text-[#9aa9be]">mód 2³¹−1</span></p>
-                <dl className="mt-3 grid grid-cols-[22px_1fr] gap-x-2 gap-y-1 text-[13px] text-[#c9d4e4]">
-                  <dt className="font-mono text-white">A</dt><dd>lo que entra a la capa, a partir de la imagen</dd>
-                  <dt className="font-mono text-white">B</dt><dd>los pesos del modelo, fijados en el contrato antes del siniestro</dd>
-                  <dt className="font-mono text-white">C</dt><dd>el resultado que entregó el satélite</dd>
-                  <dt className="font-mono text-white">r</dt><dd>números al azar que elige el auditor</dd>
-                </dl>
-              </div>
-            </div>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-5 self-center">
-              {([
-                ["300/300", "errores provocados que detectó, incluidos los de radiación"],
-                ["0", "falsos positivos: nunca rechazó una cuenta correcta"],
-                ["< 1 en 10¹⁸", "probabilidad de que una cuenta alterada pase la prueba"],
-                ["Capa 3", "dónde estaba el error del caso real, señalado por el auditor"],
-              ] as const).map(([v, l]) => (
-                <div key={v} className="flex flex-col gap-1 border-t border-white/10 pt-3">
-                  <dt className="order-2 text-[12.5px] leading-snug text-[#c9d4e4]">{l}</dt>
-                  <dd className="order-1 font-mono text-[22px] font-semibold tabular-nums leading-none">{v}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
 
           <p className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-center text-[13px] text-[#9aa9be]">
             <span>Incendio y órbitas reales; satélites y operadores simulados.</span>
