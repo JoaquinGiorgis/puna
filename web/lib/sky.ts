@@ -49,6 +49,12 @@ export function inSaa(lat: number, lon: number): boolean {
 }
 export const NOA = { w: -68, s: -28, e: -62, n: -21.8 };
 
+const km = (a: number, b: number, c: number, d: number) => {
+  const r = Math.PI / 180;
+  const h = Math.sin(((c - a) * r) / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin(((d - b) * r) / 2) ** 2;
+  return 2 * EARTH_KM * Math.asin(Math.sqrt(h));
+};
+
 const recs = new Map<string, SatRec>();
 
 function geodetic(def: SatDef, when: Date): { lat: number; lon: number; altKm: number; speedKms: number } | null {
@@ -88,18 +94,23 @@ export function satsNow(defs: SatDef[], now: Date): SatNow[] {
     out.push({
       name: def.name, norad: def.norad, kind, lat: g.lat, lon: g.lon, altKm: g.altKm, speedKms: g.speedKms, pos: project(g.lat, g.lon, r), track,
       inSaa: kind === "polar" && inSaa(g.lat, g.lon),
-      overNoa: g.lat <= NOA.n + 8 && g.lat >= NOA.s - 8 && g.lon >= NOA.w - 10 && g.lon <= NOA.e + 10,
+      overNoa: kind === "polar" && km(g.lat, g.lon, NOA_CENTER.lat, NOA_CENTER.lon) < (HALF_SWATH_KM[def.name] ?? 1000) + 350,
     });
   }
   return out;
 }
 
-/** Próxima pasada de un satélite polar sobre el NOA (búsqueda cada 30 s, hasta 14 h). */
+// medio ancho de barrido: VIIRS ~3.000 km y MODIS ~2.330 km → el sensor ve el NOA aunque pase al costado
+const HALF_SWATH_KM: Record<string, number> = { "NOAA-20": 1500, "NOAA-21": 1500, Terra: 1165, Aqua: 1165 };
+const NOA_CENTER = { lat: (NOA.n + NOA.s) / 2, lon: (NOA.w + NOA.e) / 2 };
+
+/** Próxima vez que el NOA entra en el barrido del sensor (búsqueda cada 30 s, hasta 24 h). */
 export function nextPass(def: SatDef, now: Date): Date | null {
-  for (let s = 30; s < 14 * 3600; s += 30) {
+  const reach = (HALF_SWATH_KM[def.name] ?? 1000) + 350; // + medio ancho del NOA
+  for (let s = 30; s < 24 * 3600; s += 30) {
     const t = new Date(now.getTime() + s * 1000);
     const g = geodetic(def, t);
-    if (g && g.lat <= NOA.n + 3 && g.lat >= NOA.s - 3 && g.lon >= NOA.w - 5 && g.lon <= NOA.e + 5) return t;
+    if (g && g.altKm < 30_000 && km(g.lat, g.lon, NOA_CENTER.lat, NOA_CENTER.lon) < reach) return t;
   }
   return null;
 }
@@ -122,11 +133,7 @@ const PLACES: [string, number, number][] = [
   ["Coronel Juan Solá", -23.47, -62.89], ["Cafayate", -26.07, -65.98], ["Tilcara", -23.58, -65.4],
 ];
 
-const km = (a: number, b: number, c: number, d: number) => {
-  const r = Math.PI / 180;
-  const h = Math.sin(((c - a) * r) / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin(((d - b) * r) / 2) ** 2;
-  return 2 * EARTH_KM * Math.asin(Math.sqrt(h));
-};
+
 
 /**
  * Agrupa focos en zonas por distancia: un foco entra a la zona cuyo centro esté a menos de `radiusKm`
