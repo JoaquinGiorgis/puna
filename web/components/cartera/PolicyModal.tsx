@@ -8,6 +8,7 @@ import { LevelBadge } from "@/components/Shell";
 import { demo } from "@/lib/data";
 import { addrUrl, int, pct, short, txUrl } from "@/lib/format";
 import { Stepper } from "./Stepper";
+import { Play } from "lucide-react";
 import { frame } from "@/lib/imagery";
 import { lot14Kpis, policyHistory, policyStages, policyTxs, type Stage, type StepKind } from "@/lib/policy";
 import { distToField, sumInsured, usd } from "@/lib/portfolio";
@@ -40,7 +41,7 @@ const TxChip = ({ hash }: { hash: string }) => (
   </a>
 );
 
-export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fire[]; now: Date; onClose: () => void }) {
+export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; fires: Fire[]; now: Date; onClose: () => void; onReplay?: () => void }) {
   const { c, a } = row;
   const box = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<Tab>("historial");
@@ -102,6 +103,11 @@ export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fir
             </div>
             <p className="text-[12.5px] text-muted">{c.place} · {c.crop} · {int(c.ha)} ha · póliza {c.policy}{c.onchain ? " en Avalanche Fuji" : ""}</p>
           </div>
+          {onReplay && (
+            <button onClick={onReplay} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-[12.5px] font-semibold text-[#0e1b2c] hover:bg-white/90">
+              <Play size={14} aria-hidden="true" /> Reproducir el siniestro
+            </button>
+          )}
           <Link href={c.onchain ? `/mission-control?job=${demo.job.id}` : "/mission-control"}
             className="rounded-full border border-white/30 bg-white/[0.06] px-3 py-2 text-[12.5px] font-medium hover:bg-white/15">
             {c.onchain ? "Abrir en Mission Control" : "Ver cómo se audita"} <span aria-hidden="true">↗</span>

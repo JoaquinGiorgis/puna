@@ -9,6 +9,13 @@ import { SAA, satAt, type Fire, type SatDef, type SatNow } from "@/lib/sky";
 
 export type Row = { c: Client; a: Assessment };
 export type { View };
+/** Escena de la reproducción: satélite del nodo (posición real en la ventana del job) y estado del lote. */
+export type ReplayScene = {
+  phase: "fire" | "reserve" | "calc" | "result" | "bad" | "ok" | "paid";
+  lot: { lat: number; lon: number; name: string };
+  sat?: { name: string; node: string; lat: number; lon: number; altKm: number; inSaa: boolean };
+  paid?: string;
+};
 
 /** Polígono de la Anomalía (el mismo de saaBps), densificado para que siga la curvatura del globo. */
 const SAA_PTS = (() => {
@@ -46,9 +53,9 @@ function Tag({ x, y, dx = 14, dy = -14, k, children }: { x: number; y: number; d
  * misma proyección: focos FIRMS en vivo, trazas y posición SGP4 de satélites reales y un pin por cliente.
  * El SVG usa "slice": llena cualquier pantalla sin deformar. El zoom cambia el viewBox (sin pixelar el SVG).
  */
-export function GlobeView({ rows, fires, sats, defs, now, selected, view, setView, onSelect, satHover = null, passes = {}, onSat, onUserMove, follow = null }: {
+export function GlobeView({ rows, fires, sats, defs, now, selected, view, setView, onSelect, satHover = null, passes = {}, onSat, onUserMove, follow = null, replay = null }: {
   rows: Row[]; fires: Fire[]; sats: SatNow[]; defs: SatDef[]; now: Date; selected: string | null; view: View;
-  setView: (f: (v: View) => View) => void; onSelect: (id: string) => void; satHover?: string | null; passes?: Record<string, Date | null>; onSat?: (name: string) => void; onUserMove?: () => void; follow?: string | null;
+  setView: (f: (v: View) => View) => void; onSelect: (id: string) => void; satHover?: string | null; passes?: Record<string, Date | null>; onSat?: (name: string) => void; onUserMove?: () => void; follow?: string | null; replay?: ReplayScene | null;
 }) {
   const [aspect, setAspect] = useState(1.6);
   useEffect(() => {
@@ -204,7 +211,7 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
         const pass = passes[x.name];
         const sub = x.inSaa ? "en la Anomalía" : x.kind === "geo" ? "geoestacionario · fijo" : x.overNoa ? "sobre el NOA ahora" : pass ? `vuelve al NOA ${pass.toLocaleTimeString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: "2-digit", minute: "2-digit", hour12: false })}` : "";
         return (
-          <g key={x.name} {...satBtn(x.name, sub || "satélite")}>
+          <g key={x.name} {...satBtn(x.name, sub || "satélite")} opacity={replay ? 0.25 : 1}>
             {hl && <circle cx={p.x} cy={p.y} r={34 * s} fill="none" stroke={color} strokeWidth={1.5 * s} strokeDasharray={`${4 * s} ${3 * s}`} />}
             <circle cx={p.x} cy={p.y} r={(hl ? 27 : 23) * s} fill={color} fillOpacity={0.14} stroke={color} strokeOpacity={0.75} strokeWidth={1.2 * s} />
             {ang !== null && <path d={`M ${p.x + 33 * s} ${p.y} l ${-8 * s} ${-5.5 * s} l 0 ${11 * s} z`} fill={color} transform={`rotate(${ang} ${p.x} ${p.y})`} />}
@@ -239,6 +246,36 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
           </g>
         );
       })}
+      {replay && (() => {
+        const L = proj(replay.lot.lat, replay.lot.lon);
+        const ring = { fire: "#ff7a1a", reserve: "#3dd6f5", calc: "#3dd6f5", result: "#f5b03d", bad: "#ff5a4e", ok: "#34d399", paid: "#34d399" }[replay.phase];
+        const S = replay.sat ? proj(replay.sat.lat, replay.sat.lon, 1 + replay.sat.altKm / 6371) : null;
+        const satCol = !replay.sat ? ring : replay.phase === "bad" || (replay.sat.inSaa && replay.phase !== "ok") ? "#ff5a4e" : replay.phase === "ok" ? "#34d399" : "#3dd6f5";
+        const what = { calc: "calculando el área quemada", result: "entregó su resultado", bad: "✕ el auditor encontró un error", ok: "✓ el auditor confirmó la cuenta" } as Record<string, string>;
+        return (
+          <g aria-hidden="true" className="pointer-events-none">
+            <circle cx={L.x} cy={L.y} r={30 * s} fill={ring} fillOpacity={0.18} stroke={ring} strokeWidth={2 * s} className="pin-pulse" style={{ transformBox: "fill-box", transformOrigin: "center" }} />
+            <circle cx={L.x} cy={L.y} r={16 * s} fill="none" stroke={ring} strokeWidth={2.5 * s} />
+            {S && S.visible && replay.sat && <>
+              <line x1={S.x} y1={S.y} x2={L.x} y2={L.y} stroke={satCol} strokeWidth={2 * s} strokeDasharray={`${8 * s} ${6 * s}`} strokeOpacity={0.9} />
+              <circle cx={S.x} cy={S.y} r={40 * s} fill={satCol} fillOpacity={0.16} stroke={satCol} strokeWidth={2 * s} />
+              <image href="/renders/satA.png" x={S.x - 40 * s} y={S.y - 25 * s} width={80 * s} height={50 * s} preserveAspectRatio="xMidYMid meet" />
+              <Tag x={S.x} y={S.y} k={view.k} dx={S.x > L.x ? -290 : 46} dy={S.x > L.x ? 44 : -22}>
+                <span className="block font-mono text-[12px] font-semibold text-[#e6edf7]">{replay.sat.node} · {replay.sat.name}</span>
+                <span className="block text-[11px]" style={{ color: satCol === "#ff5a4e" ? "#ff9b92" : satCol === "#34d399" ? "#6ee7b7" : "#c9d4e4" }}>
+                  {replay.sat.inSaa ? "en la Anomalía · " : "fuera de la Anomalía · "}{what[replay.phase] ?? ""}
+                </span>
+              </Tag>
+            </>}
+            <Tag x={L.x} y={L.y} k={view.k} dx={20} dy={18}>
+              <span className="block text-[12px] font-semibold text-[#e6edf7]">{replay.lot.name}</span>
+              <span className="block text-[11px]" style={{ color: replay.phase === "paid" ? "#6ee7b7" : "#c9d4e4" }}>
+                {replay.phase === "fire" ? "fuego detectado por la NASA" : replay.phase === "reserve" ? "pago reservado en el contrato" : replay.phase === "paid" ? `✓ pagado · ${replay.paid ?? ""}` : "esperando el resultado"}
+              </span>
+            </Tag>
+          </g>
+        );
+      })()}
     </svg>
   );
 }

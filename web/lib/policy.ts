@@ -8,7 +8,9 @@ import { demo } from "./data";
 import type { Assessment, Client } from "./portfolio";
 
 export type StepKind = "fire" | "info" | "warn" | "bad" | "ok" | "pending";
-export type Step = { kind: StepKind; title: string; detail: string; tech?: string; when: string; txs: string[] };
+/** Escena del paso para la reproducción en el globo: qué satélite (NOAA real del nodo) y en qué fase. */
+export type Scene = { phase: "fire" | "reserve" | "calc" | "result" | "bad" | "ok" | "paid"; sat?: string; node?: string };
+export type Step = { kind: StepKind; title: string; detail: string; tech?: string; when: string; txs: string[]; scene?: Scene };
 export type TxRow = { hash: string; when: string; what: string; tech: string; where: string; tone?: "bad" | "ok" };
 
 /** Las 4 etapas de un siniestro, iguales para toda póliza. */
@@ -24,6 +26,7 @@ const avaxTxt = (wei: string | number | bigint, digits = 4) => `${(Number(BigInt
 
 const node = (agentId: number) => demo.nodes.find((x) => x.agentId === agentId);
 const nodeName = (agentId: number) => node(agentId)?.name ?? `agente ${agentId}`;
+const noaaOf = (agentId: number) => { const n = node(agentId); return n && NOAA[n.norad] ? NOAA[n.norad].replace(" ", "-") : undefined; };
 const nodeSat = (agentId: number) => { const n = node(agentId); return n && NOAA[n.norad] ? ` (satélite ${NOAA[n.norad]})` : ""; };
 const txTime = new Map(demo.txs.map((t) => [t.hash, t]));
 
@@ -35,7 +38,7 @@ function lot14Steps(): Step[] {
     kind: "fire", title: "Se detectó fuego en el campo",
     detail: `Satélites de la NASA vieron ${demo.lot.foci.length} puntos de calor dentro del lote.`,
     tech: `NASA FIRMS · VIIRS NOAA-20/21 · potencia máx. ${Math.round(maxFrp)} MW`,
-    when: d0 && d1 ? `${d0.slice(8)}/${d0.slice(5, 7)} al ${d1.slice(8)}/${d1.slice(5, 7)}` : "", txs: [],
+    when: d0 && d1 ? `${d0.slice(8)}/${d0.slice(5, 7)} al ${d1.slice(8)}/${d1.slice(5, 7)}` : "", txs: [], scene: { phase: "fire" },
   }];
   let lastAgent = 0;
   let first = true;
@@ -47,7 +50,7 @@ function lot14Steps(): Step[] {
       first = false;
       steps.push({ kind: "info", title: "Se abrió el reclamo y se reservó el pago",
         detail: `La aseguradora dejó ${avaxTxt(demo.job.indemnityWei)} guardados en el contrato. Solo se pagan si se quemó más del ${trig} del lote.`,
-        tech: "PunaEscrow · JobCreated", when, txs: [e.tx] });
+        tech: "PunaEscrow · JobCreated", when, txs: [e.tx], scene: { phase: "reserve" } });
     } else if (e.event === "NodeAssigned") {
       lastAgent = Number(a.agentId);
       const retry = Number(a.attempt) > 1;
@@ -57,20 +60,20 @@ function lot14Steps(): Step[] {
         detail: saa
           ? `La computadora en órbita${nodeSat(lastAgent)} hace la cuenta, pero pasa por la Anomalía del Atlántico Sur: una zona con mucha radiación que puede alterar los cálculos.`
           : `Otra computadora en órbita${nodeSat(lastAgent)}, que pasa lejos de la zona de radiación.`,
-        tech: `NodeAssigned · exposición a la Anomalía ${pctTxt(Number(a.saaBps))}`, when, txs: [e.tx] });
+        tech: `NodeAssigned · exposición a la Anomalía ${pctTxt(Number(a.saaBps))}`, when, txs: [e.tx], scene: { phase: "calc", sat: noaaOf(lastAgent), node: nodeName(lastAgent) } });
     } else if (e.event === "ResultSubmitted") {
       const bps = Number(a.indexBps);
       steps.push({ kind: "warn", title: `Resultado entregado: ${pctTxt(bps)} quemado`,
         detail: bps === 0 ? "No coincide con los puntos de calor que se vieron desde el espacio. Antes de pagar, se revisa." : "Antes de pagar, un auditor revisa la cuenta.",
-        tech: "ResultSubmitted · publica el hash del resultado y de cada paso del cálculo", when, txs: [e.tx] });
+        tech: "ResultSubmitted · publica el hash del resultado y de cada paso del cálculo", when, txs: [e.tx], scene: { phase: "result", sat: noaaOf(lastAgent), node: nodeName(lastAgent) } });
     } else if (e.event === "ValidationResponse") {
       const score = Number(a.response);
       const att = demo.attempts.find((x) => x.requestHash === String(a.requestHash));
       const bad = att?.certificate?.checks.find((c) => !c.ok);
       const ok = score >= demo.job.minScore;
       steps.push(ok
-        ? { kind: "ok", title: "El auditor confirmó la cuenta", detail: `Un auditor de otra empresa revisó cada paso del cálculo y todo coincide (${score}/100).`, tech: `ERC-8004 ValidationResponse · Freivalds en todas las capas`, when, txs: [e.tx] }
-        : { kind: "bad", title: "El auditor encontró un error y no se pagó", detail: `Un auditor de otra empresa revisó el cálculo paso a paso y encontró un error${bad ? ` en el paso ${bad.name.split(" ")[0].replace("L", "")}` : ""} (${score}/100).`, tech: `ERC-8004 ValidationResponse · Freivalds mód. 2³¹−1${bad ? ` falla en ${bad.name.split(" ")[0]}` : ""}`, when, txs: [e.tx] });
+        ? { kind: "ok", title: "El auditor confirmó la cuenta", detail: `Un auditor de otra empresa revisó cada paso del cálculo y todo coincide (${score}/100).`, tech: `ERC-8004 ValidationResponse · Freivalds en todas las capas`, when, txs: [e.tx], scene: { phase: "ok", sat: noaaOf(lastAgent), node: nodeName(lastAgent) } }
+        : { kind: "bad", title: "El auditor encontró un error y no se pagó", detail: `Un auditor de otra empresa revisó el cálculo paso a paso y encontró un error${bad ? ` en el paso ${bad.name.split(" ")[0].replace("L", "")}` : ""} (${score}/100).`, tech: `ERC-8004 ValidationResponse · Freivalds mód. 2³¹−1${bad ? ` falla en ${bad.name.split(" ")[0]}` : ""}`, when, txs: [e.tx], scene: { phase: "bad", sat: noaaOf(lastAgent), node: nodeName(lastAgent) } });
     } else if (e.event === "JobRejected") {
       const last = steps[steps.length - 1];
       last.detail += ` El contrato no pagó y ${nodeName(lastAgent)} pierde reputación.`;
@@ -79,7 +82,7 @@ function lot14Steps(): Step[] {
     } else if (e.event === "PayoutTriggered") {
       steps.push({ kind: "ok", title: "Se pagó al productor",
         detail: `${pctTxt(Number(a.indexBps))} quemado supera el ${trig} pactado: el contrato pagó ${avaxTxt(String(a.amount))} solo, sin trámites.`,
-        tech: "PunaEscrow · PayoutTriggered", when, txs: [e.tx] });
+        tech: "PunaEscrow · PayoutTriggered", when, txs: [e.tx], scene: { phase: "paid" } });
     } else if (e.event === "NoPayout") {
       steps.push({ kind: "info", title: "No corresponde pago", detail: `El área quemada verificada no llega al ${trig}.`, tech: "PunaEscrow · NoPayout", when, txs: [e.tx] });
     }

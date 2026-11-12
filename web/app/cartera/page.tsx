@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Logo, useDemoGuard } from "@/components/Shell";
 import { ClientPanel, type Filter } from "@/components/cartera/ClientPanel";
-import { GlobeView, type Row } from "@/components/cartera/GlobeView";
+import { GlobeView, type ReplayScene, type Row } from "@/components/cartera/GlobeView";
+import { ReplayBar } from "@/components/cartera/ReplayBar";
+import { Alerts } from "@/components/cartera/Alerts";
+import { policyHistory, lot14Kpis } from "@/lib/policy";
+import { inSaa, satAt } from "@/lib/sky";
 import { SatPanel } from "@/components/cartera/SatPanel";
 import { LEVEL_ICON } from "@/components/icons";
 import { Globe2, Satellite } from "lucide-react";
@@ -31,6 +35,7 @@ export default function Cartera() {
   const [satHover, setSatHover] = useState<string | null>(null);
   const [satOpen, setSatOpen] = useState<string | null>(null);
   const [follow, setFollow] = useState<string | null>(null);
+  const [replay, setReplay] = useState<{ step: number; playing: boolean } | null>(null);
   // seguir un satélite: la vista se centra en él en cada tick del reloj (1 s)
   const followed = follow ? sky.sats.find((x) => x.name === follow) : undefined;
   const fp = followed ? satPoint(followed) : null;
@@ -49,6 +54,42 @@ export default function Cartera() {
     [sky.fires],
   );
 
+  // ---- reproducción del siniestro del Lote 14 (job real en Fuji)
+  const lotRow = rows.find((r) => r.c.onchain);
+  const replaySteps = useMemo(() => (lotRow ? policyHistory(lotRow.c, lotRow.a) : []), [lotRow]);
+  const scene: ReplayScene | null = useMemo(() => {
+    if (!replay || !lotRow) return null;
+    const st = replaySteps[replay.step];
+    const sc = st?.scene ?? { phase: "fire" as const };
+    const [w, so, e, n] = lotRow.c.bbox;
+    const lot = { lat: (so + n) / 2, lon: (w + e) / 2, name: lotRow.c.field };
+    let sat: ReplayScene["sat"];
+    const def = sc.sat ? sky.defs.find((d) => d.name === sc.sat) : undefined;
+    if (def) {
+      // posición real del satélite durante la ventana del job (TLE actual de CelesTrak, SGP4)
+      const min = { calc: 4, result: 6, bad: 8, ok: 8 }[sc.phase as "calc"] ?? 4;
+      const g = satAt(def, new Date(new Date(demo.window.start).getTime() + min * 60_000));
+      if (g) sat = { name: def.name, node: sc.node ?? "", lat: g.lat, lon: g.lon, altKm: g.altKm, inSaa: inSaa(g.lat, g.lon) };
+    }
+    return { phase: sc.phase, lot, sat, paid: lot14Kpis().indemnity };
+  }, [replay, lotRow, replaySteps, sky.defs]);
+  useEffect(() => {
+    if (!scene) return;
+    // encuadre: lote y satélite dentro del área libre (entre los paneles y arriba de la barra de reproducción)
+    const free = { x0: 360, x1: 980, y0: 110, y1: 640 }; // en px de pantalla a 1440×900
+    const fx = (free.x0 + free.x1) / 2 - 720, fy = (free.y0 + free.y1) / 2 - 450;
+    const L = proj(scene.lot.lat, scene.lot.lon);
+    let box = { x0: L.x, x1: L.x, y0: L.y, y1: L.y };
+    if (scene.sat) {
+      const S = proj(scene.sat.lat, scene.sat.lon, 1 + scene.sat.altKm / 6371);
+      if (S.visible) box = { x0: Math.min(L.x, S.x), x1: Math.max(L.x, S.x), y0: Math.min(L.y, S.y), y1: Math.max(L.y, S.y) };
+    }
+    // sin clampView: en la reproducción se puede salir del render (fondo de espacio) para que entren los dos
+    const k = Math.max(0.06, Math.min(1.8, (free.x1 - free.x0 - 160) / Math.max(1, box.x1 - box.x0), (free.y1 - free.y0 - 140) / Math.max(1, box.y1 - box.y0)));
+    setView({ k, x: (box.x0 + box.x1) / 2 - fx / k, y: (box.y0 + box.y1) / 2 - fy / k });
+  }, [scene]);
+  const startReplay = useCallback(() => { setOpen(null); setFollow(null); setSatOpen(null); setReplay({ step: 0, playing: true }); }, []);
+
   const fly = useCallback((id: string | null) => {
     if (!id) return setView(HOME);
     const c = CLIENTS.find((x) => x.id === id)!;
@@ -64,7 +105,7 @@ export default function Cartera() {
 
   return (
     <div className="theme-dark fixed inset-0 overflow-hidden bg-[#04070d] text-ink">
-      <GlobeView rows={rows} fires={sky.fires} sats={sky.sats} defs={sky.defs} now={sky.mounted ? sky.now : new Date(0)} selected={selected} view={view} setView={setView} onSelect={openPolicy} satHover={satHover} passes={sky.passes} onSat={setSatOpen} onUserMove={() => setFollow(null)} follow={follow} />
+      <GlobeView rows={rows} fires={sky.fires} sats={sky.sats} defs={sky.defs} now={sky.mounted ? sky.now : new Date(0)} selected={selected} view={view} setView={setView} onSelect={openPolicy} satHover={satHover} passes={sky.passes} onSat={setSatOpen} onUserMove={() => setFollow(null)} follow={follow} replay={scene} />
 
       {/* capa de UI flotante: no bloquea el globo salvo en sus tarjetas */}
       <div className="pointer-events-none absolute inset-0 flex flex-col gap-3 p-3 md:p-4">
@@ -83,6 +124,7 @@ export default function Cartera() {
             <span className="block font-medium">{INSURER.name}</span>
             <span className="block text-[11px] text-muted">{INSURER.user}</span>
           </span>
+          <Alerts rows={rows} ready={ready} now={sky.mounted ? sky.now : new Date()} onOpen={openPolicy} />
           <button onClick={() => { signOut(); router.push("/"); }} className="rounded-full border border-white/25 bg-white/[0.07] px-3 py-1.5 text-[12px] hover:bg-white/15">Salir</button>
         </header>
 
@@ -91,6 +133,13 @@ export default function Cartera() {
             <span aria-hidden="true" className="h-2 w-2 animate-pulse rounded-full bg-[#3dd6f5]" />
             Siguiendo a <b className="font-semibold">{followed.name}</b> en tiempo real · {followed.speedKms.toLocaleString("es-AR", { maximumFractionDigits: 2 })} km/s
             <button onClick={() => setFollow(null)} className="rounded-full border border-white/25 bg-white/10 px-2.5 py-0.5 text-[11.5px] hover:bg-white/20">Dejar de seguir</button>
+          </div>
+        )}
+        {replay && replaySteps.length > 0 && (
+          <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex justify-center md:left-[352px] md:right-[424px] md:bottom-4">
+            <ReplayBar steps={replaySteps} step={replay.step} playing={replay.playing}
+              setStep={(n) => setReplay((r) => (r ? { ...r, step: n } : r))} setPlaying={(p) => setReplay((r) => (r ? { ...r, playing: p } : r))}
+              onClose={() => { setReplay(null); fly(null); }} />
           </div>
         )}
         <div className="flex min-h-0 flex-1 flex-col justify-end gap-3 md:flex-row md:items-stretch md:justify-between">
@@ -134,7 +183,7 @@ export default function Cartera() {
         return st ? <SatModal sat={st} def={sky.defs.find((d) => d.name === satOpen)} pass={sky.passes[satOpen] ?? null} fires={sky.fires} now={sky.now} onClose={() => setSatOpen(null)}
           onFollow={satOnMap(st) ? () => { setFollow(st.name); setSatOpen(null); } : undefined} /> : null;
       })()}
-      {row && <PolicyModal row={row} fires={sky.fires} now={sky.mounted ? sky.now : new Date()} onClose={() => { setOpen(null); fly(null); }} />}
+      {row && <PolicyModal onReplay={row.c.onchain ? startReplay : undefined} row={row} fires={sky.fires} now={sky.mounted ? sky.now : new Date()} onClose={() => { setOpen(null); fly(null); }} />}
     </div>
   );
 }
