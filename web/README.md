@@ -48,6 +48,9 @@ Lo que no cambia en vivo son los insumos de la póliza: la grilla y los focos FI
   - La `FIRMS_MAP_KEY` queda en el servidor: en local se lee de `../.env`; en un deploy va en `FIRMS_MAP_KEY`.
 - **Zonas:** los focos se agrupan por vecindad (celdas de ~20 km). Cada zona muestra detecciones y antigüedad del último foco, y se marca la que toca el Lote 14.
 - **Tabla de sensores:** por satélite, si está pasando sobre el NOA, cuándo vuelve y su último foco reportado.
+- **Click en una zona o un satélite** (en el globo o en la tabla) abre un panel con más detalle.
+  - **Zona:** imagen satelital real de NASA GIBS (NOAA-20 VIIRS), en falso color, que resalta el fuego, o en color real, para los últimos 4 días, con los focos de ese día encima. Datos reales de FIRMS: detecciones por satélite, primera y última, potencia máxima, extensión y links a NASA Worldview y al mapa de FIRMS. Un **cliente simulado** (productor, cultivo, hectáreas y póliza de ejemplo), salvo en el Lote 14, que muestra la póliza real on-chain.
+  - **Satélite:** posición, altura, velocidad, si está en la Anomalía, próxima pasada sobre el NOA y sus focos reportados.
 - **Lo que sigue simulado:** que estos satélites calculen el índice a bordo.
 
 La otra pestaña, "Ventana del job", muestra ORBIT-07 y ORBIT-03 en la ventana de la demo.

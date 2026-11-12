@@ -30,7 +30,7 @@ export function project(lat: number, lon: number, r = 1): Screen {
 export type SatDef = { name: string; norad: number; line1: string; line2: string };
 export type SatKind = "polar" | "geo";
 export type SatNow = {
-  name: string; kind: SatKind; lat: number; lon: number; altKm: number;
+  name: string; norad: number; kind: SatKind; lat: number; lon: number; altKm: number; speedKms: number;
   pos: Screen; track: string; inSaa: boolean; overNoa: boolean;
 };
 
@@ -51,13 +51,14 @@ export const NOA = { w: -68, s: -28, e: -62, n: -21.8 };
 
 const recs = new Map<string, SatRec>();
 
-function geodetic(def: SatDef, when: Date): { lat: number; lon: number; altKm: number } | null {
+function geodetic(def: SatDef, when: Date): { lat: number; lon: number; altKm: number; speedKms: number } | null {
   let rec = recs.get(def.line1);
   if (!rec) recs.set(def.line1, (rec = twoline2satrec(def.line1, def.line2)));
   const pv = propagate(rec, when);
   if (!pv || typeof pv.position === "boolean" || !pv.position) return null;
   const g = eciToGeodetic(pv.position, gstime(when));
-  return { lat: degreesLat(g.latitude), lon: degreesLong(g.longitude), altKm: g.height };
+  const v = pv.velocity && typeof pv.velocity !== "boolean" ? Math.hypot(pv.velocity.x, pv.velocity.y, pv.velocity.z) : 0;
+  return { lat: degreesLat(g.latitude), lon: degreesLong(g.longitude), altKm: g.height, speedKms: v };
 }
 
 /** Posición ahora + traza ±45 min (polares). Los geoestacionarios se marcan en su punto sub-satelital. */
@@ -85,7 +86,7 @@ export function satsNow(defs: SatDef[], now: Date): SatNow[] {
       track = segs.join(" ");
     }
     out.push({
-      name: def.name, kind, lat: g.lat, lon: g.lon, altKm: g.altKm, pos: project(g.lat, g.lon, r), track,
+      name: def.name, norad: def.norad, kind, lat: g.lat, lon: g.lon, altKm: g.altKm, speedKms: g.speedKms, pos: project(g.lat, g.lon, r), track,
       inSaa: kind === "polar" && inSaa(g.lat, g.lon),
       overNoa: g.lat <= NOA.n + 8 && g.lat >= NOA.s - 8 && g.lon >= NOA.w - 10 && g.lon <= NOA.e + 10,
     });
@@ -107,8 +108,8 @@ export function nextPass(def: SatDef, now: Date): Date | null {
 
 export type Fire = { lat: number; lon: number; sat: string; source: string; t: string; frp: number; confidence: string };
 export type Zone = {
-  id: string; lat: number; lon: number; count: number; sats: string[]; last: Date; maxFrp: number;
-  near: string; inLot: boolean; pos: Screen;
+  id: string; lat: number; lon: number; count: number; sats: string[]; first: Date; last: Date; maxFrp: number;
+  near: string; inLot: boolean; pos: Screen; fires: Fire[]; bbox: [number, number, number, number]; extentKm: number;
 };
 
 // localidades de referencia para nombrar las zonas ("cerca de …")
@@ -127,47 +128,46 @@ const km = (a: number, b: number, c: number, d: number) => {
   return 2 * EARTH_KM * Math.asin(Math.sqrt(h));
 };
 
-/** Agrupa focos en celdas de ~0,2° (≈ 20 km) unidas por vecindad. lot = bbox del Lote 14 [w, s, e, n]. */
-export function zones(fires: Fire[], lot: number[], cell = 0.2): Zone[] {
-  const key = (lat: number, lon: number) => `${Math.floor(lat / cell)},${Math.floor(lon / cell)}`;
-  const cells = new Map<string, Fire[]>();
-  for (const f of fires) {
-    const k = key(f.lat, f.lon);
-    cells.set(k, [...(cells.get(k) ?? []), f]);
-  }
-  // unir celdas vecinas (8-conexas) en una zona
-  const seen = new Set<string>();
+/**
+ * Agrupa focos en zonas por distancia: un foco entra a la zona cuyo centro esté a menos de `radiusKm`
+ * (si no, abre una zona nueva). Los focos dentro del Lote 14 (bbox + 3 km) forman siempre su propia zona,
+ * así no se mezclan con incendios vecinos. lot = bbox del Lote 14 [w, s, e, n].
+ */
+export function zones(fires: Fire[], lot: number[], radiusKm = 12): Zone[] {
+  const [lw, ls, le, ln] = lot;
+  const m = 0.03; // ~3 km de margen alrededor del lote
+  const inLot = (f: Fire) => f.lon >= lw - m && f.lon <= le + m && f.lat >= ls - m && f.lat <= ln + m;
   const groups: Fire[][] = [];
-  for (const k of cells.keys()) {
-    if (seen.has(k)) continue;
-    const stack = [k], group: Fire[] = [];
-    seen.add(k);
-    while (stack.length) {
-      const c = stack.pop()!;
-      group.push(...cells.get(c)!);
-      const [i, j] = c.split(",").map(Number);
-      for (let di = -1; di <= 1; di++)
-        for (let dj = -1; dj <= 1; dj++) {
-          const nk = `${i + di},${j + dj}`;
-          if (cells.has(nk) && !seen.has(nk)) seen.add(nk), stack.push(nk);
-        }
-    }
-    groups.push(group);
+  const lotGroup = fires.filter(inLot);
+  if (lotGroup.length) groups.push(lotGroup);
+  const centers: { lat: number; lon: number; g: Fire[] }[] = [];
+  // los más intensos primero: los centros caen sobre el núcleo de cada incendio
+  for (const f of fires.filter((x) => !inLot(x)).sort((a, b) => b.frp - a.frp)) {
+    const c = centers.find((z) => km(z.lat, z.lon, f.lat, f.lon) < radiusKm);
+    if (c) {
+      c.g.push(f);
+      c.lat += (f.lat - c.lat) / c.g.length;
+      c.lon += (f.lon - c.lon) / c.g.length;
+    } else centers.push({ lat: f.lat, lon: f.lon, g: [f] });
   }
-  const [w, s, e, n] = lot;
+  groups.push(...centers.map((c) => c.g));
   return groups
     .map((g, i) => {
       const lat = g.reduce((a, f) => a + f.lat, 0) / g.length;
       const lon = g.reduce((a, f) => a + f.lon, 0) / g.length;
       const [place, d] = PLACES.map(([p, a, b]) => [p, km(lat, lon, a, b)] as const).sort((x, y) => x[1] - y[1])[0];
       return {
-        id: `z${i}`, lat, lon, count: g.length,
+        id: `z${Math.round(lat * 100)}_${Math.round(lon * 100)}`, lat, lon, count: g.length,
         sats: [...new Set(g.map((f) => f.sat))].sort(),
+        first: new Date(Math.min(...g.map((f) => Date.parse(f.t)))),
         last: new Date(Math.max(...g.map((f) => Date.parse(f.t)))),
         maxFrp: Math.max(...g.map((f) => f.frp)),
         near: d < 15 ? place : d < 90 ? `${Math.round(d)} km de ${place}` : `${lat.toFixed(1)}°, ${lon.toFixed(1)}°`,
-        inLot: g.some((f) => f.lon >= w - 0.05 && f.lon <= e + 0.05 && f.lat >= s - 0.05 && f.lat <= n + 0.05),
+        inLot: g === lotGroup,
         pos: project(lat, lon),
+        fires: g,
+        bbox: [Math.min(...g.map((f) => f.lon)), Math.min(...g.map((f) => f.lat)), Math.max(...g.map((f) => f.lon)), Math.max(...g.map((f) => f.lat))] as [number, number, number, number],
+        extentKm: km(Math.min(...g.map((f) => f.lat)), Math.min(...g.map((f) => f.lon)), Math.max(...g.map((f) => f.lat)), Math.max(...g.map((f) => f.lon))),
       };
     })
     .sort((a, b) => Number(b.inLot) - Number(a.inLot) || b.last.getTime() - a.last.getTime() || b.count - a.count);

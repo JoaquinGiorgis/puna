@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { overlay, type Demo } from "@/lib/data";
 import { int } from "@/lib/format";
 import { ago } from "@/lib/sky";
 import { useDemo } from "./LiveProvider";
+import { DetailDrawer, type Selection } from "./DetailDrawer";
 import { useSky } from "./useSky";
 
 const [FW, FH] = overlay.frame;
@@ -56,6 +57,21 @@ export function Constellation() {
   }
   const polar = sky.sats.filter((x) => x.kind === "polar");
 
+  // la selección guarda el id y se resuelve en cada render: el panel sigue al dato en vivo
+  const [selId, setSelId] = useState<{ kind: "zone" | "sat"; id: string } | null>(null);
+  const zoneSel = selId?.kind === "zone" ? sky.zones.find((z) => z.id === selId.id) : undefined;
+  const satSel = selId?.kind === "sat" ? sky.sats.find((x) => x.name === selId.id) : undefined;
+  const sel: Selection = zoneSel
+    ? { kind: "zone", zone: zoneSel }
+    : satSel
+      ? { kind: "sat", sat: satSel, fires: sky.fires.filter((f) => f.sat === satSel.name), pass: sky.passes[satSel.name] ?? null }
+      : null;
+  const pick = (kind: "zone" | "sat", id: string) => ({
+    role: "button" as const, tabIndex: 0, style: { cursor: "pointer" },
+    onClick: () => setSelId({ kind, id }),
+    onKeyDown: (e: KeyboardEvent) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setSelId({ kind, id })),
+  });
+
   return (
     <section
       aria-labelledby="constelacion"
@@ -91,7 +107,7 @@ export function Constellation() {
               const fresh = sky.now.getTime() - z.last.getTime() < 2 * 3600_000;
               const r = 3 + Math.min(9, Math.sqrt(z.count));
               return (
-                <g key={z.id}>
+                <g key={z.id} {...pick("zone", z.id)} aria-label={`Ver detalle de la zona ${z.inLot ? "Lote 14" : z.near}: ${z.count} detecciones`}>
                   {fresh && <circle cx={z.pos.x} cy={z.pos.y} r={r + 5} fill="var(--fire-hot)" opacity="0.3" className="sat-halo" />}
                   <circle cx={z.pos.x} cy={z.pos.y} r={r} fill="var(--fire-hot)" fillOpacity={0.55} stroke={fresh ? "#fff" : "#ffb37a"} strokeWidth={z.inLot ? 2 : 0.8} />
                 </g>
@@ -102,7 +118,7 @@ export function Constellation() {
               <path key={`t-${x.name}`} d={x.track} fill="none" stroke={x.inSaa ? "var(--status-danger)" : "var(--accent-cyan)"} strokeOpacity="0.6" strokeWidth="1.3" strokeDasharray="4 3" />
             ))}
             {polar.filter((x) => x.pos.inFrame).map((x) => (
-              <g key={x.name}>
+              <g key={x.name} {...pick("sat", x.name)} aria-label={`Ver detalle de ${x.name}`}>
                 <circle cx={x.pos.x} cy={x.pos.y} r="11" fill={x.inSaa ? "var(--status-danger)" : "var(--accent-cyan)"} opacity="0.3" className="sat-halo" />
                 <circle cx={x.pos.x} cy={x.pos.y} r="4.5" fill={x.inSaa ? "var(--status-danger)" : "var(--accent-cyan)"} stroke="#fff" strokeWidth="1.2" />
                 <text x={x.pos.x + 9} y={x.pos.y - 7} fontSize="13" fill="#e6edf7" className="font-mono">{x.name}</text>
@@ -113,7 +129,7 @@ export function Constellation() {
             ))}
             {/* geoestacionarios: punto sub-satelital fijo */}
             {sky.sats.filter((x) => x.kind === "geo" && x.pos.visible).map((x) => (
-              <g key={x.name}>
+              <g key={x.name} {...pick("sat", x.name)} aria-label={`Ver detalle de ${x.name}`}>
                 <rect x={x.pos.x - 5} y={x.pos.y - 5} width="10" height="10" fill="#f5b03d" stroke="#fff" strokeWidth="1.2" transform={`rotate(45 ${x.pos.x} ${x.pos.y})`} />
                 <text x={x.pos.x + 10} y={x.pos.y - 6} fontSize="13" fill="#e6edf7" className="font-mono">{x.name}</text>
                 <text x={x.pos.x + 10} y={x.pos.y + 9} fontSize="11.5" fill="#f5c46b" className="font-mono">fijo a 35.786 km · mira el NOA cada 10 min</text>
@@ -190,8 +206,9 @@ export function Constellation() {
             <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-0.5 w-5 border-t border-dashed border-cyan" />Su traza ±45 min</li>
             <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block size-2.5 rounded-full bg-fire" />Zona con fuego (NASA FIRMS, 48 h)</li>
             <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block size-2.5 rotate-45 bg-[#f5b03d]" />Geoestacionario (punto fijo)</li>
+            <li className="pt-0.5 text-[#9fdcf0]">Tocá una zona o un satélite para ver el detalle</li>
           </ul>
-          <div className="glass-dark absolute bottom-4 right-4 hidden w-[310px] rounded-xl px-3 py-2 sm:block">
+          <div className={`glass-dark absolute bottom-4 right-4 hidden w-[310px] rounded-xl px-3 py-2 ${sel ? "" : "sm:block"}`}>
             <table className="w-full font-mono text-[11px]">
               <caption className="pb-0.5 text-left text-[11px] uppercase tracking-wider text-muted">Sensores · último foco en el NOA</caption>
               <tbody>
@@ -201,8 +218,8 @@ export function Constellation() {
                   const mins = pass ? Math.round((pass.getTime() - sky.now.getTime()) / 60_000) : null;
                   const where = x.kind === "geo" ? "fijo, siempre" : x.overNoa ? "▲ pasando ahora" : mins !== null ? `vuelve en ${mins < 90 ? `${mins} min` : `${Math.round(mins / 60)} h`}` : "—";
                   return (
-                    <tr key={x.name} className="whitespace-nowrap">
-                      <td className="pr-2 text-[#e6edf7]">{x.name}</td>
+                    <tr key={x.name} className="cursor-pointer whitespace-nowrap hover:bg-white/10" {...pick("sat", x.name)}>
+                      <td className="pr-2 text-[#e6edf7] underline decoration-white/30 underline-offset-2">{x.name}</td>
                       <td className={`pr-2 ${x.overNoa ? "text-warn" : "text-muted"}`}>{where}</td>
                       <td className="text-right text-muted">{last ? ago(last, sky.now) : "—"}</td>
                     </tr>
@@ -214,7 +231,7 @@ export function Constellation() {
               <caption className="pb-0.5 text-left text-[11px] uppercase tracking-wider text-muted">Zonas con fuego · detecciones · último</caption>
               <tbody>
                 {sky.zones.slice(0, 4).map((z) => (
-                  <tr key={z.id} className="whitespace-nowrap">
+                  <tr key={z.id} className="cursor-pointer whitespace-nowrap hover:bg-white/10" {...pick("zone", z.id)}>
                     <td className={`max-w-[150px] truncate pr-2 ${z.inLot ? "text-fire" : "text-[#e6edf7]"}`} title={z.near}>{z.inLot ? "◉ Lote 14 (Anta)" : `● ${z.near}`}</td>
                     <td className="pr-2 text-right text-muted">{int(z.count)}</td>
                     <td className="text-right text-muted">{ago(z.last, sky.now)}</td>
@@ -225,7 +242,9 @@ export function Constellation() {
             </table>
           </div>
         </>
-      ) : (
+      ) : null}
+      {mode === "vivo" && <DetailDrawer sel={sel} demo={demo} now={sky.now} onClose={() => setSelId(null)} />}
+      {mode === "ventana" && (
         <>
           <ul className="glass-dark absolute bottom-4 left-4 space-y-0.5 rounded-xl px-3 py-2 text-[11px]">
             <li className="flex items-center gap-2"><span aria-hidden="true" className="inline-block h-0.5 w-5 bg-bad" />Traza en la Anomalía (ORBIT-07)</li>
