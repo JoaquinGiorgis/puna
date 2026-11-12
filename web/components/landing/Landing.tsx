@@ -88,8 +88,8 @@ export function Landing() {
         {/* 1 · portada */}
         <section aria-labelledby="hero-t" className="relative mx-auto grid w-full max-w-[1240px] items-center gap-8 px-4 pb-16 pt-12 lg:min-h-[calc(100dvh-80px)] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.2fr)] lg:pt-0">
           <div className="relative z-10 flex flex-col gap-7">
-            <p className="rise flex items-center gap-2 text-[13px] text-[#b0bed1]">
-              <span className="h-px w-8 bg-[#7dd3fc]/60" aria-hidden="true" /> Para aseguradoras agro · sobre Avalanche
+            <p className="rise text-[13px] text-[#b0bed1]">
+              Para aseguradoras agro · sobre Avalanche
             </p>
             <h1 id="hero-t" className="rise max-w-[15ch] text-[44px] font-semibold leading-[1.02] tracking-[-0.035em] [text-wrap:balance] md:text-[66px]" style={{ animationDelay: "60ms" }}>
               Pagá incendios con un índice que otro auditó
