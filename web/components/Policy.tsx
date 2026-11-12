@@ -27,7 +27,7 @@ export function Policy() {
       sub={<>PunaEscrow {short(contracts.escrow)} · job {job.id} · intento {job.attempt}</>}
       aside={<StatusTag tone={tone}>{label}</StatusTag>}
     >
-      <div className="grid gap-5 sm:grid-cols-[minmax(0,210px)_1fr]">
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,132px)_1fr]">
         <figure>
           <div className="relative aspect-square overflow-hidden rounded-xl border border-white/80">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -47,9 +47,8 @@ export function Policy() {
               ))}
             </svg>
           </div>
-          <figcaption className="mt-2 font-mono text-[11px] text-muted">
-            <span className="text-warn">Vista satelital simulada</span> · grilla y {lot.foci.length} focos reales
-            ({lot.source}, {d0.slice(8)}–{d1.slice(8)}/{d1.slice(5, 7)})
+          <figcaption className="mt-1.5 font-mono text-[11px] leading-tight text-muted">
+            <span className="text-warn">Vista simulada</span> · <span title={`${lot.source}, ${d0} a ${d1}`}>{lot.foci.length} focos FIRMS reales</span>
           </figcaption>
         </figure>
 
@@ -57,23 +56,23 @@ export function Policy() {
           <div className="flex flex-wrap items-end gap-x-6 gap-y-1">
             <div>
               <p className="font-mono text-[11px] uppercase tracking-wider text-muted">Índice validado</p>
-              <p className="font-mono text-[40px] leading-none font-semibold text-fire">{pct(job.indexBps)}</p>
+              <p className="font-mono text-[32px] leading-none font-semibold text-fire">{pct(job.indexBps)}</p>
             </div>
             <div>
               <p className="font-mono text-[11px] uppercase tracking-wider text-muted">Disparador</p>
-              <p className="font-mono text-2xl">≥ {pct(job.triggerBps)}</p>
+              <p className="font-mono text-xl">≥ {pct(job.triggerBps)}</p>
             </div>
           </div>
-          <div className="relative mt-4 h-2.5 rounded-full bg-line" role="meter" aria-valuemin={0} aria-valuemax={100}
+          <div className="relative mt-3 h-2 rounded-full bg-line" role="meter" aria-valuemin={0} aria-valuemax={100}
             aria-valuenow={idx} aria-label={`Índice ${pct(job.indexBps)} contra disparador ${pct(job.triggerBps)}`}>
             <div className="h-full rounded-full bg-fire" style={{ width: `${Math.min(idx, 100)}%` }} />
-            <div className="absolute -top-1.5 h-5.5 w-0.5 bg-ink" style={{ left: `${trig}%` }} aria-hidden="true" />
+            <div className="absolute -top-1.5 h-5 w-0.5 bg-ink" style={{ left: `${trig}%` }} aria-hidden="true" />
           </div>
-          <p className="mt-1.5 text-xs text-muted">
+          <p className="mt-1 text-[11px] text-muted">
             {burned} de {lot.cells} celdas quemadas · {idx >= trig ? "supera el disparador: paga" : "no supera el disparador"}
           </p>
 
-          <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+          <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[12.5px]">
             <dt className="text-muted">Indemnización</dt>
             <dd className="text-right font-mono font-semibold text-ok">{avax(job.indemnityWei, 3)}</dd>
             <dt className="text-muted">Beneficiario (productor)</dt>
@@ -81,9 +80,7 @@ export function Policy() {
             <dt className="text-muted">Aseguradora</dt>
             <dd className="text-right"><ExtLink href={addrUrl(chain.explorer, job.insurer)}><Mono>{short(job.insurer)}</Mono></ExtLink></dd>
             <dt className="text-muted">Entrada · modelo</dt>
-            <dd className="text-right font-mono text-xs">{short(job.inputHash)} · {short(job.modelHash)}</dd>
-            <dt className="text-muted">Raíz Merkle</dt>
-            <dd className="text-right font-mono text-xs">{short(job.merkleRoot)}</dd>
+            <dd className="text-right font-mono text-[11px]">{short(job.inputHash)} · {short(job.modelHash)}</dd>
           </dl>
         </div>
       </div>

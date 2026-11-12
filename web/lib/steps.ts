@@ -27,7 +27,7 @@ export function buildSteps(d: Demo): Step[] {
     switch (e.event) {
       case "JobCreated":
         steps.push({ ...base, fn: "createJob", tone: "neutral", label: "Creada",
-          desc: `Póliza creada · indemnización ${avax(String(a.indemnity), 3)} depositada` });
+          desc: `Póliza creada · ${avax(String(a.indemnity), 3)} depositados` });
         break;
       case "NodeAssigned": {
         lastAttemptNode = name(a.agentId);
@@ -35,16 +35,15 @@ export function buildSteps(d: Demo): Step[] {
         const re = Number(a.attempt) > 1;
         steps.push({ ...base, fn: re ? "reassign" : "assignNode", tone: risky ? "warning" : "neutral",
           label: risky ? "Riesgo SAA" : re ? "Reasignado" : "Asignado",
-          desc: `${lastAttemptNode} · saa ${Number(a.saaBps).toLocaleString("es-AR")} bps ≤ máx ${d.job.maxSaaBps.toLocaleString("es-AR")} · intento ${a.attempt}` });
+          desc: `${lastAttemptNode} · saa ${Number(a.saaBps).toLocaleString("es-AR")} bps · intento ${a.attempt}` });
         break;
       }
       case "ResultSubmitted":
         steps.push({ ...base, fn: "submitResult", tone: "warning", label: "Sin auditar",
-          desc: `${lastAttemptNode} declara índice ${pct(Number(a.indexBps))}` });
+          desc: `${lastAttemptNode} declara ${pct(Number(a.indexBps))} y pide auditoría ERC-8004` });
         break;
       case "ValidationRequest":
-        steps.push({ ...base, fn: "validationRequest", tone: "neutral", label: "Pedido ERC-8004",
-          desc: `${lastAttemptNode} pide auditoría al validador nombrado` });
+        // va en la misma tarjeta que submitResult (la tx se cuenta y se verifica igual)
         break;
       case "ValidationResponse": {
         const ok = Number(a.response) >= d.job.minScore;
@@ -54,11 +53,11 @@ export function buildSteps(d: Demo): Step[] {
       }
       case "JobRejected":
         steps.push({ ...base, fn: "settle", tone: "danger", label: "Sin pago",
-          desc: `Rechazado · no se mueve la indemnización · reputación de ${lastAttemptNode} baja` });
+          desc: `No se mueve la indemnización · baja la reputación de ${lastAttemptNode}` });
         break;
       case "PayoutTriggered":
         steps.push({ ...base, fn: "settle → PayoutTriggered", tone: "success", label: "Pagado",
-          desc: `${avax(String(a.amount), 3)} al productor · fee al nodo · reputación +` });
+          desc: `${avax(String(a.amount), 3)} al productor · fee al nodo` });
         break;
       case "NoPayout":
         steps.push({ ...base, fn: "settle → NoPayout", tone: "neutral", label: "Sin pago",

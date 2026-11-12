@@ -13,7 +13,7 @@ const TONE: Record<Tone, { icon: string; cls: string }> = {
 export function StatusTag({ tone, children, className = "" }: { tone: Tone; children: ReactNode; className?: string }) {
   const t = TONE[tone];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${t.cls} ${className}`}>
+    <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${t.cls} ${className}`}>
       <span aria-hidden="true">{t.icon}</span>
       {children}
     </span>
@@ -29,11 +29,11 @@ export function Panel({ title, sub, aside, children, className = "", labelledBy 
   labelledBy: string;
 }) {
   return (
-    <section aria-labelledby={labelledBy} className={`glass rounded-[28px] p-5 ${className}`}>
-      <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
+    <section aria-labelledby={labelledBy} className={`glass rounded-[22px] p-4 ${className}`}>
+      <header className="mb-2 flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 id={labelledBy} className="text-[17px] font-semibold tracking-tight">{title}</h2>
-          {sub && <p className="mt-0.5 font-mono text-xs text-muted">{sub}</p>}
+          <h2 id={labelledBy} className="text-[15px] font-semibold tracking-tight">{title}</h2>
+          {sub && <p className="mt-0.5 font-mono text-[11px] text-muted">{sub}</p>}
         </div>
         {aside}
       </header>

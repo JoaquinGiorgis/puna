@@ -51,49 +51,49 @@ export function Timeline() {
   const live = useLiveCheck();
   const { chain, contracts, job } = demo;
   return (
-    <section aria-labelledby="timeline" className="glass rounded-[28px] p-5">
-      <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <section aria-labelledby="timeline" className="glass rounded-[22px] px-4 py-3">
+      <header className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 id="timeline" className="text-[17px] font-semibold tracking-tight">
+          <h2 id="timeline" className="text-[15px] font-semibold tracking-tight">
             Liquidación del job {job.id} · {chain.name}
           </h2>
-          <p className="mt-0.5 font-mono text-xs text-muted">
-            PunaEscrow {short(contracts.escrow)} · ERC-8004 Validation {short(contracts.validation)} · intento {job.attempt} de{" "}
-            {demo.attempts.length} · estado {STATES.includes(job.state) ? job.state : "—"}
+          <p className="mt-0.5 font-mono text-[11px] text-muted">
+            PunaEscrow {short(contracts.escrow)} · ERC-8004 {short(contracts.validation)} · intento {job.attempt} de {demo.attempts.length} ·{" "}
+            {STATES.includes(job.state) ? job.state : "—"}
           </p>
         </div>
-        <dl className="flex flex-wrap gap-2 text-xs">
-          <div className="glass-raised rounded-full px-3 py-1.5"><dt className="inline text-muted">Transacciones </dt><dd className="inline font-mono">{SUM.txs}</dd></div>
-          <div className="glass-raised rounded-full px-3 py-1.5"><dt className="inline text-muted">Gas total </dt><dd className="inline font-mono">{int(SUM.gas)} · {SUM.fee}</dd></div>
-          <div className="glass-raised rounded-full px-3 py-1.5"><dt className="inline text-muted">De la póliza al pago </dt><dd className="inline font-mono">{int(SUM.seconds)} s</dd></div>
+        <dl className="flex flex-wrap gap-1.5 text-[11px]">
+          <div className="glass-raised rounded-full px-3 py-1.5"><dt className="inline text-muted">Txs </dt><dd className="inline font-mono">{SUM.txs}</dd></div>
+          <div className="glass-raised rounded-full px-3 py-1.5"><dt className="inline text-muted">Gas </dt><dd className="inline font-mono">{int(SUM.gas)} · {SUM.fee}</dd></div>
+          <div className="glass-raised rounded-full px-3 py-1.5"><dt className="inline text-muted">Póliza → pago </dt><dd className="inline font-mono">{int(SUM.seconds)} s</dd></div>
           <div className="glass-raised rounded-full px-3 py-1.5" aria-live="polite">
             <dt className="inline text-muted">En vivo </dt>
             <dd className="inline font-mono">
               {live.status === "checking" && <span className="text-muted">verificando…</span>}
               {live.status === "ok" && (
-                <span className="text-ok"><span aria-hidden="true">✓ </span>{live.confirmed}/{SUM.txs} confirmadas en Fuji</span>
+                <span className="text-ok"><span aria-hidden="true">✓ </span>{live.confirmed}/{SUM.txs} en Fuji</span>
               )}
               {live.status === "offline" && <span className="text-warn"><span aria-hidden="true">▲ </span>sin red: datos guardados</span>}
             </dd>
           </div>
           <div className="glass-raised rounded-full px-3 py-1.5">
-            <ExtLink href={addrUrl(chain.explorer, contracts.escrow)}>Ver contrato</ExtLink>
+            <ExtLink href={addrUrl(chain.explorer, contracts.escrow)}>Contrato</ExtLink>
           </div>
         </dl>
       </header>
 
-      <ol className="relative flex snap-x gap-3 overflow-x-auto pb-2">
+      <ol className="relative flex snap-x gap-2 overflow-x-auto pb-1">
         {STEPS.map((s) => (
           <li key={`${s.tx}-${s.n}`}
-            className={`glass-raised relative flex w-[188px] shrink-0 snap-start flex-col rounded-2xl border-t-[3px] p-3 ${TONE_BORDER[s.tone]}`}>
+            className={`glass-raised relative flex min-w-[140px] flex-1 snap-start flex-col rounded-xl border-t-[3px] p-2 ${TONE_BORDER[s.tone]}`}>
             <div className="flex items-center justify-between">
-              <span className="font-mono text-xs text-muted">{String(s.n).padStart(2, "0")}</span>
+              <span className="font-mono text-[11px] text-muted">{String(s.n).padStart(2, "0")}</span>
               <StatusTag tone={s.tone}>{s.label}</StatusTag>
             </div>
-            <p className="mt-2 font-mono text-[13px] font-semibold break-words">{s.fn}</p>
-            <p className="mt-1 flex-1 text-[12px] leading-snug text-muted">{s.desc}</p>
-            <p className="mt-2 font-mono text-[11px] text-muted">#{s.block} · {hhmmss(s.timestamp)}</p>
-            <ExtLink href={txUrl(chain.explorer, s.tx)} className="mt-0.5 font-mono text-[12px]">{short(s.tx)}</ExtLink>
+            <p className="mt-1.5 font-mono text-[11.5px] leading-tight font-semibold break-words">{s.fn}</p>
+            <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-muted" title={s.desc}>{s.desc}</p>
+            <p className="mt-auto pt-1 font-mono text-[11px] text-muted">{hhmmss(s.timestamp)}</p>
+            <ExtLink href={txUrl(chain.explorer, s.tx)} className="font-mono text-[11px]">{short(s.tx, 6, 3)}</ExtLink>
           </li>
         ))}
       </ol>

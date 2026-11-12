@@ -40,36 +40,35 @@ export function Audit() {
     <Panel
       labelledBy="auditoria"
       title="Auditoría del validador"
-      sub={<>Freivalds C·r ≡ A·(B·r) · mód p = 2³¹−1 · 2 vectores r por capa</>}
-      aside={<StatusTag tone="success">validador {short(demo.job.validator)} · operador independiente</StatusTag>}
+      sub={<>Validador {short(demo.job.validator)}, otro operador · Freivalds C·r ≡ A·(B·r) mód 2³¹−1 · bench {demo.bench.detected}/{demo.bench.faults}, {demo.bench.false_positives} FP</>}
     >
       <div className="glass-raised relative overflow-x-auto rounded-xl">
-        <table className="w-full min-w-[480px] text-sm">
+        <table className="w-full min-w-[440px] text-[12.5px]">
           <caption className="sr-only">Resultado por capa de cada intento</caption>
           <thead>
             <tr className="border-b border-line text-left font-mono text-[11px] uppercase tracking-wider text-muted">
-              <th scope="col" className="px-3 py-2 font-normal">Capa</th>
-              <th scope="col" className="px-3 py-2 font-normal">Intento 1 · {a1 ? nodeName(a1.agentId) : "—"}</th>
-              <th scope="col" className="px-3 py-2 font-normal">Intento 2 · {a2 ? nodeName(a2.agentId) : "—"}</th>
+              <th scope="col" className="px-3 py-1 font-normal">Capa</th>
+              <th scope="col" className="px-3 py-1 font-normal">Intento 1 · {a1 ? nodeName(a1.agentId) : "—"}</th>
+              <th scope="col" className="px-3 py-1 font-normal">Intento 2 · {a2 ? nodeName(a2.agentId) : "—"}</th>
             </tr>
           </thead>
           <tbody>
             {layers.map((l) => (
               <tr key={l} className="border-b border-line/60">
-                <th scope="row" className="px-3 py-1.5 text-left font-mono font-normal">{l}</th>
-                <td className="px-3 py-1.5"><Cell checks={r1.get(l)} /></td>
-                <td className="px-3 py-1.5"><Cell checks={r2.get(l)} /></td>
+                <th scope="row" className="px-3 py-[2px] text-left font-mono font-normal">{l}</th>
+                <td className="px-3 py-[2px]"><Cell checks={r1.get(l)} /></td>
+                <td className="px-3 py-[2px]"><Cell checks={r2.get(l)} /></td>
               </tr>
             ))}
             <tr className="border-b border-line/60">
-              <th scope="row" className="px-3 py-1.5 text-left font-mono font-normal">Hashes y Merkle</th>
-              <td className="px-3 py-1.5"><Cell checks={global.map((n) => g(a1, n)).filter(Boolean) as Check[]} /></td>
-              <td className="px-3 py-1.5"><Cell checks={global.map((n) => g(a2, n)).filter(Boolean) as Check[]} /></td>
+              <th scope="row" className="px-3 py-[2px] text-left font-mono font-normal">Hashes y Merkle</th>
+              <td className="px-3 py-[2px]"><Cell checks={global.map((n) => g(a1, n)).filter(Boolean) as Check[]} /></td>
+              <td className="px-3 py-[2px]"><Cell checks={global.map((n) => g(a2, n)).filter(Boolean) as Check[]} /></td>
             </tr>
             <tr>
-              <th scope="row" className="px-3 py-2 text-left font-semibold">Score ERC-8004</th>
+              <th scope="row" className="px-3 py-1 text-left font-semibold">Score ERC-8004</th>
               {[a1, a2].map((a, i) => (
-                <td key={i} className="px-3 py-2">
+                <td key={i} className="px-3 py-1">
                   {a ? (
                     <StatusTag tone={a.score >= demo.job.minScore ? "success" : "danger"}>
                       <span className="font-mono">{a.score} / 100</span>
@@ -82,23 +81,20 @@ export function Audit() {
         </table>
       </div>
       {a1?.certificate && (
-        <p className="mt-2 text-xs text-muted">
+        <p className="mt-1.5 line-clamp-1 text-[11px] leading-snug text-muted" title={a1?.certificate?.summary}>
           <span className="font-semibold text-bad">Intento 1:</span> {a1.certificate.summary}
         </p>
       )}
 
-      <ul className="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Reputación ERC-8004 de los nodos">
+      <ul className="mt-2 grid gap-2 sm:grid-cols-2" aria-label="Reputación ERC-8004 de los nodos">
         {demo.nodes.map((n) => {
           const avg = n.reputation.average;
           const good = avg !== null && avg >= 50;
           return (
-            <li key={n.name} className="glass-raised rounded-xl px-3 py-2">
-              <p className="flex items-center justify-between font-mono text-sm font-semibold">
-                {n.name}
-                <StatusTag tone={good ? "success" : "danger"}>{good ? "reputación alta" : "reputación baja"}</StatusTag>
-              </p>
-              <p className="mt-1 font-mono text-[11.5px] text-muted">
-                agente {n.agentId} · rep {avg === null ? "—" : int(Math.round(avg))}/100 ({n.reputation.count} calif.) · saa {int(n.saaBps)}
+            <li key={n.name} className="glass-raised rounded-xl px-3 py-1.5">
+              <p className="flex items-center justify-between gap-2 whitespace-nowrap font-mono text-[11.5px]">
+                <span><b>{n.name}</b> <span className="text-muted">rep {avg === null ? "—" : int(Math.round(avg))}/100 · SAA {int(n.saaBps / 100)} %</span></span>
+                <StatusTag tone={good ? "success" : "danger"}>{good ? "alta" : "baja"}</StatusTag>
               </p>
             </li>
           );
