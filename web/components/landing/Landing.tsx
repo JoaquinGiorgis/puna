@@ -11,6 +11,7 @@ import { useSky } from "@/components/useSky";
 import { Globe3D, type GlobeAlert } from "./Globe3D";
 import { NightSky } from "./NightSky";
 import { AlertsMini, AuditMini, GridMini, TxMini } from "./HowCards";
+import { Pains } from "./Pains";
 
 const WINDOW_H = 24;
 
@@ -161,44 +162,17 @@ export function Landing() {
 
         {/* 3 · para aseguradoras */}
         <section id="aseguradoras" aria-labelledby="aseg-t" className="mx-auto w-full max-w-[1240px] scroll-mt-24 px-4 pb-20">
-          <div className="grid gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-            <div className="flex flex-col gap-6">
-              <Label tone="#ffb27a">Para aseguradoras</Label>
-              <h2 id="aseg-t" className="max-w-[20ch] text-[36px] font-semibold leading-[1.08] tracking-[-0.025em] [text-wrap:balance] md:text-[44px]">
-                Paramétricos satelitales para el NOA, listos para la Res. SSN 315
-              </h2>
-              <dl className="grid grid-cols-2 gap-x-8 gap-y-7 pt-2">
-                {([
-                  ["98,9 %", "de las primas agro del país es granizo. El multirriesgo es apenas el 1,1 %.", "SSN, encuesta 2024"],
-                  ["2,5 %", "de las hectáreas aseguradas está en el NOA. Salta: 29.000 ha y ningún siniestro pagado.", "SSN, encuesta 2024"],
-                  ["23/07/2026", "rige la Res. SSN 315: índice nombrado, dato con respaldo, acceso al cálculo y pago en 15 días.", "Marval O'Farrell Mairal"],
-                  ["7.000 ha", "quemó el zonda en Salta en julio de 2026, con un muerto y unas 50 familias afectadas.", "Perfil"],
-                ] as const).map(([v, d, src]) => (
-                  <div key={v} className="border-t border-white/15 pt-3">
-                    <dt className="font-mono text-[26px] font-semibold tabular-nums tracking-tight md:text-[30px]">{v}</dt>
-                    <dd className="mt-1.5 text-[13.5px] leading-snug text-[#c9d4e4]">{d}</dd>
-                    <dd className="mt-1 text-[11px] text-[#9aa9be]">Fuente: {src}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-
-            <div className="lg flex flex-col rounded-[28px] p-6 md:p-7 lg:mt-14">
-              <p className="text-[15px] font-semibold">Qué gana cada uno</p>
-              <dl className="mt-3">
-                {([
-                  ["La aseguradora", "Liquida siniestros sin perito y sin disputas, en una zona casi sin cobertura, con trazabilidad para la SSN.", "nos contrata"],
-                  ["El asegurado", "Cobra en minutos y puede ver con qué dato y qué cuenta le pagaron, o por qué no.", "cobra antes"],
-                  ["El reasegurador", "Ve cada evento y cada pago en la cadena. Menos riesgo de modelo para dar capacidad.", "audita solo"],
-                  ["El operador del satélite", "Cobra su fee únicamente si el cálculo pasa la auditoría, y suma reputación verificable.", "cobra si acierta"],
-                ] as const).map(([who, what, tag]) => (
-                  <div key={who} className="grid gap-1 border-t border-white/10 py-3.5 first:border-t-0">
-                    <dt className="flex items-baseline justify-between gap-3 text-[14.5px] font-semibold">{who}<span className="text-[11.5px] font-normal text-[#9aa9be]">{tag}</span></dt>
-                    <dd className="text-[13.5px] leading-snug text-[#c9d4e4]">{what}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
+          <div className="mx-auto flex max-w-[680px] flex-col items-center gap-4 text-center">
+            <Label tone="#ffb27a">Para aseguradoras</Label>
+            <h2 id="aseg-t" className="text-[36px] font-semibold leading-[1.08] tracking-[-0.025em] [text-wrap:balance] md:text-[44px]">
+              Cuatro problemas del seguro agro que PUNA resuelve
+            </h2>
+            <p className="max-w-[56ch] text-[15.5px] leading-relaxed text-[#c9d4e4] [text-wrap:pretty]">
+              Cómo se hace hoy y qué cambia, con los números del incendio real del Lote 14.
+            </p>
+          </div>
+          <div className="mt-12">
+            <Pains seconds={k.seconds} txs={k.txs} fee={k.fee} indemnity={k.indemnity} />
           </div>
 
           <div className="mt-16">
