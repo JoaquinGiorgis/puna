@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { SAA, satAt, type Fire, type SatDef, type SatNow } from "@/lib/sky";
+import { satAt, type SatDef, type SatNow } from "@/lib/sky";
 
 export type GlobeAlert = { id: string; field: string; lat: number; lon: number; count: number };
 
@@ -55,41 +55,58 @@ function satelliteSlot(name: string, color: number) {
   return g;
 }
 
-/** Contorno de la Anomalía del Atlántico Sur, interpolado sobre la esfera. */
-function saaLine() {
-  const pts: THREE.Vector3[] = [];
-  const ring = [...SAA, SAA[0]];
-  for (let i = 0; i < ring.length - 1; i++) {
-    const [lo1, la1] = ring[i], [lo2, la2] = ring[i + 1];
-    for (let k = 0; k < 12; k++) {
-      const t = k / 12;
-      pts.push(vec(la1 + (la2 - la1) * t, lo1 + (lo2 - lo1) * t, R * 1.004));
-    }
-  }
-  pts.push(pts[0].clone());
-  const line = new THREE.Line(
-    new THREE.BufferGeometry().setFromPoints(pts),
-    new THREE.LineDashedMaterial({ color: 0xff5a4e, dashSize: 0.025, gapSize: 0.018, transparent: true, opacity: 0.85 }),
+/** Halo atmosférico: esfera apenas más grande, brillo Fresnel celeste en el borde. Le da volumen sobre el cielo claro. */
+function atmosphere() {
+  return new THREE.Mesh(
+    new THREE.SphereGeometry(R * 1.12, 64, 64),
+    new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, side: THREE.BackSide, blending: THREE.AdditiveBlending,
+      vertexShader: `varying vec3 vN; varying vec3 vP;
+        void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position,1.0); vP = mv.xyz; gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `varying vec3 vN; varying vec3 vP;
+        void main(){ float f = pow(clamp(-dot(vN, normalize(-vP)), 0.0, 1.0), 2.4); gl_FragColor = vec4(0.55, 0.82, 1.0, 1.0) * f * 0.9; }`,
+    }),
   );
-  line.computeLineDistances();
-  return line;
 }
 
-function dotTexture() {
+/** Baliza de alerta: punto rojo brillante, columna de luz hacia afuera y anillo que late. */
+function glowTexture(inner: string, outer: string) {
   const c = document.createElement("canvas");
   c.width = c.height = 64;
   const x = c.getContext("2d")!;
   const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
-  gr.addColorStop(0, "rgba(255,220,140,1)");
-  gr.addColorStop(0.3, "rgba(255,122,26,0.9)");
-  gr.addColorStop(1, "rgba(255,90,20,0)");
+  gr.addColorStop(0, inner);
+  gr.addColorStop(0.35, outer);
+  gr.addColorStop(1, "rgba(0,0,0,0)");
   x.fillStyle = gr;
   x.fillRect(0, 0, 64, 64);
   return new THREE.CanvasTexture(c);
 }
+const GLOW = typeof document !== "undefined" ? glowTexture("rgba(255,235,225,1)", "rgba(230,40,30,0.9)") : null;
+
+function beacon() {
+  const g = new THREE.Group();
+  const dot = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, depthWrite: false, blending: THREE.AdditiveBlending }));
+  dot.scale.setScalar(0.09);
+  const beam = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.004, 0.012, 0.32, 12, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xff4a3a, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }),
+  );
+  beam.position.y = 0.16;
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.03, 0.036, 48),
+    new THREE.MeshBasicMaterial({ color: 0xff5a4e, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }),
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.name = "ring";
+  const tilt = new THREE.Group(); // el eje Y local apunta hacia afuera de la esfera
+  tilt.add(beam, ring);
+  g.add(dot, tilt);
+  g.userData.tilt = tilt;
+  return g;
+}
 
 type Props = {
-  fires: Fire[];
   sats: SatNow[];
   defs: SatDef[];
   now: Date;
@@ -98,14 +115,13 @@ type Props = {
 };
 
 /**
- * Globo 3D de la landing (three.js). Textura NASA Blue Marble, focos FIRMS en vivo como puntos de calor,
- * alertas (fuego dentro de un campo asegurado) como anclas para el pin HTML, satélites reales por SGP4 con su órbita,
- * y el contorno de la Anomalía del Atlántico Sur. Arrastrable; sin zoom para no secuestrar el scroll.
+ * Globo 3D de la landing (three.js) sobre el cielo claro. Textura NASA Blue Marble con atmósfera,
+ * solo las alertas (fuego dentro de un campo asegurado) como balizas 3D, y satélites reales por SGP4 con su órbita.
+ * Arrastrable; sin zoom para no secuestrar el scroll.
  */
-export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
+export function Globe3D({ sats, defs, now, alerts, onLabels }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const api = useRef<{
-    setFires: (f: Fire[]) => void;
     setAlerts: (a: GlobeAlert[]) => void;
     setSats: (s: SatNow[], d: SatDef[], now: Date) => void;
   } | null>(null);
@@ -137,9 +153,10 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
     controls.addEventListener("start", () => { controls.autoRotate = false; clearTimeout(idle); });
     controls.addEventListener("end", () => { idle = setTimeout(() => (controls.autoRotate = !reduce), 6000); });
 
-    scene.add(new THREE.AmbientLight(0xb8c8e6, 0.8));
-    const sun = new THREE.DirectionalLight(0xffffff, 2.6);
-    sun.position.copy(vec(5, -30, 6));
+    scene.add(new THREE.AmbientLight(0xcfe3f7, 0.55));
+    scene.add(new THREE.HemisphereLight(0xdff1ff, 0x0b2440, 0.35));
+    const sun = new THREE.DirectionalLight(0xfff4e0, 3.1);
+    sun.position.copy(vec(18, -20, 6)).add(new THREE.Vector3(-2.5, 1.5, 0));
     scene.add(sun);
 
     const earthTex = new THREE.TextureLoader().load("/textures/earth-day.jpg");
@@ -147,28 +164,9 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
     earthTex.anisotropy = 8;
     const earth = new THREE.Mesh(
       new THREE.SphereGeometry(R, 96, 96),
-      new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.9, metalness: 0.05, color: 0xe2e8f2 }),
+      new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.75, metalness: 0.05, color: 0xf2f6fb }),
     );
-    scene.add(earth, saaLine());
-
-    // grilla sutil de latitudes/longitudes
-    const grid = new THREE.Group();
-    const gridMat = new THREE.LineBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.08 });
-    for (let la = -60; la <= 60; la += 30) {
-      const pts = Array.from({ length: 73 }, (_, i) => vec(la, -180 + i * 5, R * 1.002));
-      grid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
-    }
-    for (let lo = -180; lo < 180; lo += 30) {
-      const pts = Array.from({ length: 37 }, (_, i) => vec(-90 + i * 5, lo, R * 1.002));
-      grid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
-    }
-    scene.add(grid);
-
-    // focos FIRMS: puntos de calor aditivos
-    const fireGeo = new THREE.BufferGeometry();
-    const fireMat = new THREE.PointsMaterial({ size: 0.013, map: dotTexture(), opacity: 0.85, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true });
-    const firePts = new THREE.Points(fireGeo, fireMat);
-    scene.add(firePts);
+    scene.add(earth, atmosphere());
 
     const alertGroup = new THREE.Group();
     const satGroup = new THREE.Group();
@@ -178,19 +176,14 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
     let alertList: GlobeAlert[] = [];
 
     api.current = {
-      setFires(f) {
-        const arr = new Float32Array(f.length * 3);
-        f.forEach((x, i) => vec(x.lat, x.lon, R * 1.003).toArray(arr, i * 3));
-        fireGeo.setAttribute("position", new THREE.BufferAttribute(arr, 3));
-        fireGeo.computeBoundingSphere();
-      },
       setAlerts(a) {
         alertList = a;
         alertGroup.clear();
         for (const al of a) {
-          // ancla invisible: el pin es el mismo ícono HTML que usa el dashboard
-          const m = new THREE.Object3D();
-          m.position.copy(vec(al.lat, al.lon, R));
+          const m = beacon();
+          const p = vec(al.lat, al.lon, R * 1.004);
+          m.position.copy(p);
+          (m.userData.tilt as THREE.Group).quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p.clone().normalize());
           alertGroup.add(m);
         }
       },
@@ -199,7 +192,7 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
           if (x.kind !== "polar") continue;
           let m = satModels.get(x.name);
           if (!m) {
-            m = satelliteSlot(x.name, x.inSaa ? 0xff5a4e : 0x3dd6f5);
+            m = satelliteSlot(x.name, 0xffffff);
             satModels.set(x.name, m);
             satGroup.add(m);
           }
@@ -207,7 +200,6 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
           m.position.copy(p);
           m.lookAt(0, 0, 0);
           const halo = m.getObjectByName("halo") as THREE.Mesh;
-          (halo.material as THREE.MeshBasicMaterial).color.setHex(x.inSaa ? 0xff5a4e : 0x3dd6f5);
         }
         // órbitas: ±40 min alrededor de ahora, recalculadas una vez por minuto
         trackGroup.clear();
@@ -222,7 +214,7 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
           if (pts.length < 2) continue;
           trackGroup.add(new THREE.Line(
             new THREE.BufferGeometry().setFromPoints(pts),
-            new THREE.LineBasicMaterial({ color: cur.inSaa ? 0xff5a4e : 0x7dd3fc, transparent: true, opacity: 0.35 }),
+            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 }),
           ));
         }
       },
@@ -243,8 +235,17 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
     let raf = 0;
     const tmp = new THREE.Vector3();
     const camDir = new THREE.Vector3();
+    const t0 = performance.now();
     const tick = () => {
       controls.update();
+      if (!reduce) {
+        const k = ((performance.now() - t0) / 1600) % 1;
+        alertGroup.children.forEach((b) => {
+          const ring = (b.userData.tilt as THREE.Group).getObjectByName("ring") as THREE.Mesh;
+          ring.scale.setScalar(1 + k * 2.2);
+          (ring.material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - k);
+        });
+      }
       renderer.render(scene, camera);
       // posiciones en pantalla de las alertas, para las etiquetas de vidrio
       if (labelCb.current && alertList.length) {
@@ -282,7 +283,6 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
     };
   }, []);
 
-  useEffect(() => { api.current?.setFires(fires); }, [fires]);
   useEffect(() => { api.current?.setAlerts(alerts); }, [alerts]);
   const minute = Math.floor(now.getTime() / 60_000);
   useEffect(() => { api.current?.setSats(sats, defs, new Date(minute * 60_000)); },

@@ -11,13 +11,13 @@ type Side = { icon: LucideIcon; label: string };
 type Props = { seconds: number; txs: number; fee: string; indemnity: string };
 
 function Tile({ side, tone }: { side: Side; tone: "bad" | "ok" }) {
-  const c = tone === "bad" ? "#ff8a80" : "#6ee7b7";
+  const c = tone === "bad" ? "#b42318" : "#0b7d55";
   const I = side.icon;
   return (
     <div className="flex h-[64px] flex-1 flex-col items-center justify-center gap-1 rounded-xl border px-1.5 text-center"
-      style={{ borderColor: `${c}40`, background: `${c}12` }}>
+      style={{ borderColor: `${c}33`, background: `${c}10` }}>
       <I size={19} strokeWidth={1.9} style={{ color: c }} aria-hidden="true" />
-      <span className="whitespace-nowrap text-[10.5px] font-medium leading-tight" style={{ color: c }}>{side.label}</span>
+      <span className="whitespace-nowrap text-[11px] font-medium leading-tight" style={{ color: c }}>{tone === "bad" ? "✕ " : "✓ "}{side.label}</span>
     </div>
   );
 }
@@ -26,33 +26,33 @@ function Card({ n, title, today, before, after, fix, fixTxt, link }: {
   n: number; title: string; today: string; before: Side; after: Side; fix: string; fixTxt: string; link?: { href: string; label: string };
 }) {
   return (
-    <li className="lg flex flex-col gap-4 rounded-[24px] p-5">
+    <li className="sky-glass reveal flex flex-col gap-4 rounded-[28px] p-6" style={{ transitionDelay: `${n * 90}ms` }}>
       <div className="flex flex-col gap-1.5">
-        <p className="font-mono text-[11.5px] tabular-nums text-[#9aa9be]">0{n}</p>
-        <h3 className="text-[17px] font-semibold leading-snug tracking-[-0.01em]">{title}</h3>
-        <p className="min-h-[54px] text-[13px] leading-snug text-[#c9d4e4]">
+        <p className="text-[13px] tabular-nums text-[var(--ink-2)]">0{n}</p>
+        <h3 className="text-[20px] font-bold leading-tight tracking-[-0.02em]">{title}</h3>
+        <p className="min-h-[72px] text-[14px] leading-snug text-[var(--ink-2)]">
           {today}
-          {link && <> <a href={link.href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 whitespace-nowrap text-[#7dd3fc] underline-offset-2 hover:underline">{link.label}<ArrowUpRight size={12} aria-hidden="true" /></a></>}
+          {link && <> <a href={link.href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 whitespace-nowrap text-[var(--act)] underline underline-offset-2">{link.label}<ArrowUpRight size={12} aria-hidden="true" /></a></>}
         </p>
       </div>
       <div className="flex items-center gap-2" role="img" aria-label={`Hoy: ${before.label}. Con PUNA: ${after.label}.`}>
         <Tile side={before} tone="bad" />
-        <ArrowRight size={13} className="shrink-0 text-[#9aa9be]" aria-hidden="true" />
+        <ArrowRight size={13} className="shrink-0 text-[var(--ink-2)]" aria-hidden="true" />
         <Tile side={after} tone="ok" />
       </div>
       <div className="mt-auto flex flex-col gap-1">
-        <p className="flex items-center gap-1.5 font-mono text-[20px] font-semibold tabular-nums leading-none text-[#6ee7b7]">
-          <Check size={15} strokeWidth={3} aria-hidden="true" />{fix}
+        <p className="flex items-center gap-2 whitespace-nowrap text-[30px] font-light tabular-nums leading-none tracking-[-0.03em]">
+          <Check size={18} strokeWidth={2.5} className="text-[var(--ok)]" aria-label="Resuelto" />{fix}
         </p>
-        <p className="min-h-[36px] text-[13px] leading-snug text-[#c9d4e4]">{fixTxt}</p>
+        <p className="min-h-[36px] text-[13.5px] leading-snug text-[var(--ink-2)]">{fixTxt}</p>
       </div>
     </li>
   );
 }
 
-export function Pains({ seconds, txs, fee, indemnity }: Props) {
+export function Pains({ seconds, txs, fee, indemnity, inView }: Props & { inView: boolean }) {
   return (
-    <ol className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <ol data-in={inView} className="group/pains relative z-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
       <Card n={1} title="Peritar sin ir al campo"
         today="Cada denuncia necesita un perito que viaje hasta el lote. Son 45.497 siniestros agro por año (SSN 2024)."
         before={{ icon: Car, label: "Viaje al lote" }} after={{ icon: Satellite, label: "Desde el espacio" }}
