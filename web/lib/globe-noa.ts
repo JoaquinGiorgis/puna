@@ -39,3 +39,14 @@ export function clampView(v: View): View {
   const y = BOUNDS.y1 - BOUNDS.y0 <= 2 * hh ? cy : Math.min(BOUNDS.y1 - hh, Math.max(BOUNDS.y0 + hh, v.y));
   return { k, x, y };
 }
+
+/** Punto de un satélite en el globo (en órbita o, si es geoestacionario, su punto bajo él). */
+export function satPoint(x: { lat: number; lon: number; altKm: number; kind: "polar" | "geo" }): Pt {
+  return proj(x.lat, x.lon, x.kind === "geo" ? 1 : 1 + x.altKm / 6371);
+}
+
+/** ¿El satélite cae dentro del área que cubre el mapa (los renders)? */
+export function satOnMap(x: { lat: number; lon: number; altKm: number; kind: "polar" | "geo" }) {
+  const p = satPoint(x);
+  return p.visible && p.x >= BOUNDS.x0 && p.x <= BOUNDS.x1 && p.y >= BOUNDS.y0 && p.y <= BOUNDS.y1;
+}

@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Logo, useDemoGuard } from "@/components/Shell";
 import { ClientPanel, type Filter } from "@/components/cartera/ClientPanel";
 import { GlobeView, type Row } from "@/components/cartera/GlobeView";
 import { SatPanel } from "@/components/cartera/SatPanel";
 import { LEVEL_ICON } from "@/components/icons";
 import { Satellite } from "lucide-react";
-import { HOME, clampView, proj, type View } from "@/lib/globe-noa";
+import { HOME, clampView, proj, satOnMap, satPoint, type View } from "@/lib/globe-noa";
 import { PolicyModal } from "@/components/cartera/PolicyModal";
 import { SatModal } from "@/components/cartera/SatModal";
 import { useSky } from "@/components/useSky";
@@ -30,6 +30,16 @@ export default function Cartera() {
   const [hover, setHover] = useState<string | null>(null);
   const [satHover, setSatHover] = useState<string | null>(null);
   const [satOpen, setSatOpen] = useState<string | null>(null);
+  const [follow, setFollow] = useState<string | null>(null);
+  // seguir un satélite: la vista se centra en él en cada tick del reloj (1 s)
+  const followed = follow ? sky.sats.find((x) => x.name === follow) : undefined;
+  const fp = followed ? satPoint(followed) : null;
+  useEffect(() => {
+    if (!fp) return;
+    if (!followed || !satOnMap(followed)) { setFollow(null); return; }
+    setView((v) => clampView({ k: Math.max(v.k, 1.2), x: fp.x, y: fp.y }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fp?.x, fp?.y]);
   const ready = sky.firesAt !== null || sky.firesError !== null;
 
   const rows: Row[] = useMemo(
@@ -54,7 +64,7 @@ export default function Cartera() {
 
   return (
     <div className="theme-dark fixed inset-0 overflow-hidden bg-[#04070d] text-ink">
-      <GlobeView rows={rows} fires={sky.fires} sats={sky.sats} defs={sky.defs} now={sky.mounted ? sky.now : new Date(0)} selected={selected} view={view} setView={setView} onSelect={openPolicy} satHover={satHover} passes={sky.passes} onSat={setSatOpen} />
+      <GlobeView rows={rows} fires={sky.fires} sats={sky.sats} defs={sky.defs} now={sky.mounted ? sky.now : new Date(0)} selected={selected} view={view} setView={setView} onSelect={openPolicy} satHover={satHover} passes={sky.passes} onSat={setSatOpen} onUserMove={() => setFollow(null)} follow={follow} />
 
       {/* capa de UI flotante: no bloquea el globo salvo en sus tarjetas */}
       <div className="pointer-events-none absolute inset-0 flex flex-col gap-3 p-3 md:p-4">
@@ -76,6 +86,13 @@ export default function Cartera() {
           <button onClick={() => { signOut(); router.push("/"); }} className="rounded-full border border-white/25 bg-white/[0.07] px-3 py-1.5 text-[12px] hover:bg-white/15">Salir</button>
         </header>
 
+        {followed && (
+          <div role="status" className="lg pointer-events-auto flex items-center gap-2 self-start rounded-full py-1.5 pl-3 pr-1.5 text-[12px]">
+            <span aria-hidden="true" className="h-2 w-2 animate-pulse rounded-full bg-[#3dd6f5]" />
+            Siguiendo a <b className="font-semibold">{followed.name}</b> en tiempo real · {followed.speedKms.toLocaleString("es-AR", { maximumFractionDigits: 2 })} km/s
+            <button onClick={() => setFollow(null)} className="rounded-full border border-white/25 bg-white/10 px-2.5 py-0.5 text-[11.5px] hover:bg-white/20">Dejar de seguir</button>
+          </div>
+        )}
         <div className="flex min-h-0 flex-1 flex-col justify-end gap-3 md:flex-row md:items-stretch md:justify-between">
           <div className="hidden min-h-0 flex-col justify-end gap-2.5 md:flex">
             <SatPanel sats={sky.sats} passes={sky.passes} fires={sky.fires} now={sky.mounted ? sky.now : new Date(0)} onHover={setSatHover} onOpen={setSatOpen} />
@@ -113,7 +130,8 @@ export default function Cartera() {
 
       {satOpen && (() => {
         const st = sky.sats.find((x) => x.name === satOpen);
-        return st ? <SatModal sat={st} def={sky.defs.find((d) => d.name === satOpen)} pass={sky.passes[satOpen] ?? null} fires={sky.fires} now={sky.now} onClose={() => setSatOpen(null)} /> : null;
+        return st ? <SatModal sat={st} def={sky.defs.find((d) => d.name === satOpen)} pass={sky.passes[satOpen] ?? null} fires={sky.fires} now={sky.now} onClose={() => setSatOpen(null)}
+          onFollow={satOnMap(st) ? () => { setFollow(st.name); setSatOpen(null); } : undefined} /> : null;
       })()}
       {row && <PolicyModal row={row} fires={sky.fires} now={sky.mounted ? sky.now : new Date()} onClose={() => { setOpen(null); fly(null); }} />}
     </div>

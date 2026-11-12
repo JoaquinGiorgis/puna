@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Satellite, X } from "lucide-react";
+import { Crosshair, Satellite, X } from "lucide-react";
 import { SAT_INFO, tleOrbit } from "@/lib/satinfo";
 import { ago, type Fire, type SatDef, type SatNow } from "@/lib/sky";
 
@@ -11,8 +11,8 @@ const dayHm = (d: Date) => d.toLocaleString("es-AR", { timeZone: tz, day: "2-dig
 const num = (v: number, d = 0) => v.toLocaleString("es-AR", { maximumFractionDigits: d, minimumFractionDigits: d });
 
 /** Ficha de un satélite: foto real, datos de catálogo, órbita del TLE y lo que aportó en las últimas 48 h. */
-export function SatModal({ sat, def, pass, fires, now, onClose }: {
-  sat: SatNow; def?: SatDef; pass: Date | null; fires: Fire[]; now: Date; onClose: () => void;
+export function SatModal({ sat, def, pass, fires, now, onClose, onFollow }: {
+  sat: SatNow; def?: SatDef; pass: Date | null; fires: Fire[]; now: Date; onClose: () => void; onFollow?: () => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const info = SAT_INFO[sat.name];
@@ -53,6 +53,15 @@ export function SatModal({ sat, def, pass, fires, now, onClose }: {
             </div>
             <p className="text-[12.5px] text-muted">{info?.alias} · {info?.operator} · NORAD {sat.norad} · {info?.sensor}</p>
           </div>
+          {onFollow ? (
+            <button onClick={onFollow} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-[12.5px] font-semibold text-[#0e1b2c] hover:bg-white/90">
+              <Crosshair size={14} aria-hidden="true" /> Seguir en el mapa
+            </button>
+          ) : (
+            <span className="rounded-full border border-white/20 px-3 py-2 text-[12px] text-muted">
+              Ahora fuera del mapa{pass ? ` · vuelve ${hm(pass)}` : ""}
+            </span>
+          )}
           <a href={`https://celestrak.org/satcat/table-satcat.php?CATNR=${sat.norad}`} target="_blank" rel="noreferrer"
             className="rounded-full border border-white/30 bg-white/[0.06] px-3 py-2 text-[12.5px] font-medium hover:bg-white/15">Ficha en CelesTrak ↗</a>
           <button data-autofocus onClick={onClose} aria-label="Cerrar satélite" className="grid h-9 w-9 place-items-center rounded-full border border-white/25 bg-white/10 hover:bg-white/20"><X size={16} /></button>

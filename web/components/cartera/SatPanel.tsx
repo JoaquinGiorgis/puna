@@ -2,6 +2,7 @@
 
 import { Satellite } from "lucide-react";
 import { ago, type Fire, type SatNow } from "@/lib/sky";
+import { satOnMap } from "@/lib/globe-noa";
 
 const SENSOR: Record<string, string> = {
   "NOAA-20": "VIIRS · 375 m", "NOAA-21": "VIIRS · 375 m", Terra: "MODIS · 1 km", Aqua: "MODIS · 1 km", "GOES-19": "ABI · cada 10 min",
@@ -50,7 +51,8 @@ export function SatPanel({ sats, passes, fires, now, onHover, onOpen }: {
                 </span>
               </div>
               <p className="truncate pl-[19px] text-[10.5px] text-muted">
-                {x.kind === "geo" ? "mira el NOA siempre" : x.overNoa ? "sobre el NOA ahora" : pass ? `vuelve al NOA ${hm(pass)}` : "—"}
+                {satOnMap(x) ? "en el mapa · " : "fuera del mapa · "}
+                {x.kind === "geo" ? "mira el NOA siempre" : x.overNoa ? "sobre el NOA ahora" : pass ? `vuelve ${hm(pass)}` : "—"}
                 {" · "}{lf ? `último foco ${ago(lf, now)}` : "sin focos en 48 h"}
               </p>
               </button>

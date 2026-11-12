@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
 import { Check } from "lucide-react";
 import { LEVEL_ICON } from "@/components/icons";
-import { BOUNDS, FRAME, clampView, proj, type View } from "@/lib/globe-noa";
+import { BOUNDS, FRAME, clampView, proj, satOnMap, satPoint, type View } from "@/lib/globe-noa";
 import type { Assessment, Client, Level } from "@/lib/portfolio";
-import { SAA, groundTrack, type Fire, type SatDef, type SatNow } from "@/lib/sky";
+import { SAA, satAt, type Fire, type SatDef, type SatNow } from "@/lib/sky";
 
 export type Row = { c: Client; a: Assessment };
 export type { View };
@@ -46,9 +46,9 @@ function Tag({ x, y, dx = 14, dy = -14, k, children }: { x: number; y: number; d
  * misma proyección: focos FIRMS en vivo, trazas y posición SGP4 de satélites reales y un pin por cliente.
  * El SVG usa "slice": llena cualquier pantalla sin deformar. El zoom cambia el viewBox (sin pixelar el SVG).
  */
-export function GlobeView({ rows, fires, sats, defs, now, selected, view, setView, onSelect, satHover = null, passes = {}, onSat }: {
+export function GlobeView({ rows, fires, sats, defs, now, selected, view, setView, onSelect, satHover = null, passes = {}, onSat, onUserMove, follow = null }: {
   rows: Row[]; fires: Fire[]; sats: SatNow[]; defs: SatDef[]; now: Date; selected: string | null; view: View;
-  setView: (f: (v: View) => View) => void; onSelect: (id: string) => void; satHover?: string | null; passes?: Record<string, Date | null>; onSat?: (name: string) => void;
+  setView: (f: (v: View) => View) => void; onSelect: (id: string) => void; satHover?: string | null; passes?: Record<string, Date | null>; onSat?: (name: string) => void; onUserMove?: () => void; follow?: string | null;
 }) {
   const [aspect, setAspect] = useState(1.6);
   useEffect(() => {
@@ -72,7 +72,7 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
   // rueda: zoom hacia el cursor (listener no pasivo para poder frenar el scroll de la página)
   useEffect(() => {
     const el = svg.current; if (!el) return;
-    const wheel = (e: WheelEvent) => { e.preventDefault(); const f = Math.exp(-e.deltaY * 0.0015); setView((v) => zoomAt(f, e.clientX, e.clientY, v)); };
+    const wheel = (e: WheelEvent) => { e.preventDefault(); onUserMove?.(); const f = Math.exp(-e.deltaY * 0.0015); setView((v) => zoomAt(f, e.clientX, e.clientY, v)); };
     el.addEventListener("wheel", wheel, { passive: false });
     return () => el.removeEventListener("wheel", wheel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -90,7 +90,7 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
     const c = ps.reduce((a, p) => ({ x: a.x + p.x / ps.length, y: a.y + p.y / ps.length }), { x: 0, y: 0 });
     const d = drag.current;
     if (!d.moved && Math.hypot(c.x - d.x, c.y - d.y) < 4 && ps.length < 2) return;
-    if (!d.moved) { d.moved = true; svg.current?.setPointerCapture(e.pointerId); }
+    if (!d.moved) { d.moved = true; svg.current?.setPointerCapture(e.pointerId); onUserMove?.(); }
     let v = d.v;
     if (ps.length > 1 && d.dist) v = zoomAt(Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y) / d.dist, d.x, d.y, d.v);
     const { sc } = scaleOf(v);
@@ -114,8 +114,21 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
   const vb = `${view.x - vw / 2} ${view.y - vh / 2} ${vw} ${vh}`;
   const s = 1 / view.k; // tamaño constante en pantalla para marcas y textos
 
-  const tracks = defs.filter((d) => !/GOES/.test(d.name)).flatMap((d) =>
-    groundTrack(d, now, 45, 1).map((seg) => seg.map(([lon, lat]) => proj(lat, lon, 1.02)).filter((p) => p.visible)));
+  // órbita ±45 min a la altura real: lo recorrido (línea) y lo que viene (punteado), cortada donde no se ve
+  const tracks = defs.filter((d) => !/GOES/.test(d.name)).flatMap((d) => {
+    const out: { name: string; future: boolean; pts: string }[] = [];
+    for (const future of [false, true]) {
+      let cur: string[] = [];
+      for (let m = future ? 0 : -45; m <= (future ? 45 : 0); m += 1) {
+        const g = satAt(d, new Date(now.getTime() + m * 60_000));
+        const p = g && proj(g.lat, g.lon, 1 + g.altKm / 6371);
+        if (p && p.visible) cur.push(`${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+        else { if (cur.length > 1) out.push({ name: d.name, future, pts: cur.join(" ") }); cur = []; }
+      }
+      if (cur.length > 1) out.push({ name: d.name, future, pts: cur.join(" ") });
+    }
+    return out;
+  });
   const key = (id: string) => (e: KeyboardEvent) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onSelect(id));
 
   return (
@@ -138,9 +151,12 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
       </g>
 
       {/* trazas de satélites polares (±45 min) */}
-      {tracks.map((seg, i) => seg.length > 1 && (
-        <polyline key={i} points={seg.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")} fill="none" stroke="#3dd6f5" strokeOpacity={0.8} strokeWidth={1.5 * s} strokeDasharray={`${6 * s} ${5 * s}`} />
-      ))}
+      {tracks.map((t, i) => {
+        const on = satHover === t.name || follow === t.name;
+        const red = sats.find((x) => x.name === t.name)?.inSaa;
+        return <polyline key={i} points={t.pts} fill="none" stroke={red ? "#ff5a4e" : "#3dd6f5"} strokeOpacity={on ? 1 : t.future ? 0.75 : 0.4}
+          strokeWidth={(on ? 2.5 : t.future ? 1.5 : 2) * s} strokeDasharray={t.future ? `${6 * s} ${5 * s}` : undefined} />;
+      })}
 
       {/* focos FIRMS en vivo */}
       <g aria-hidden="true">
@@ -172,68 +188,33 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
         return <polygon key={`l${c.id}`} points={pts.map((p) => `${p.x},${p.y}`).join(" ")} fill={PIN[a.level].bg} fillOpacity={0.15} stroke={PIN[a.level].bg} strokeWidth={1.5 * s} strokeDasharray={`${4 * s} ${2 * s}`} />;
       })}
 
-      {/* satélites reales: en su posición si se ven; si no, un indicador en el borde que apunta hacia ellos */}
-      {(() => {
-        const m = 34 * s;
-        // zona útil: sin la barra de arriba ni el panel de clientes (≈ 420 px a la derecha)
-        const x0 = view.x - visW / 2 + m, x1 = view.x + visW / 2 - m - 420 * s, y0 = view.y - visH / 2 + m + 64 * s, y1 = view.y + visH / 2 - m;
-        const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-        const items = sats.map((x) => {
-          const p = proj(x.lat, x.lon, x.kind === "geo" ? 1 : 1 + x.altKm / 6371);
-          const inside = p.visible && p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1;
-          let dx = p.x - cx, dy = p.y - cy;
-          if (!p.visible) { const len = Math.hypot(dx, dy) || 1; dx /= len; dy /= len; }
-          const t = Math.min(dx > 0 ? (x1 - cx) / dx : dx < 0 ? (x0 - cx) / dx : Infinity, dy > 0 ? (y1 - cy) / dy : dy < 0 ? (y0 - cy) / dy : Infinity);
-          const edge = Math.abs(cx + dx * t - x0) < 1 || Math.abs(cx + dx * t - x1) < 1 ? "v" : "h";
-          return { x, p, inside, ex: cx + dx * t, ey: cy + dy * t, ang: (Math.atan2(dy, dx) * 180) / Math.PI, edge };
-        });
-        // separar indicadores que caen juntos sobre el mismo borde
-        const off = items.filter((i) => !i.inside);
-        // borde izquierdo: abajo están los paneles de fuentes y leyenda (~480 px de alto)
-        off.forEach((i) => { if (i.edge === "v" && i.ex < cx && i.ey > y1 - 560 * s) { i.ey = y1 - 560 * s; } });
-        for (const e of ["h", "v"] as const) {
-          const g = off.filter((i) => i.edge === e).sort((a, b) => (e === "h" ? a.ex - b.ex : a.ey - b.ey));
-          const gap = (e === "h" ? 175 : 46) * s;
-          for (let i = 1; i < g.length; i++) {
-            if (e === "h" && g[i].ex - g[i - 1].ex < gap && Math.abs(g[i].ey - g[i - 1].ey) < 1) g[i].ex = g[i - 1].ex + gap;
-            if (e === "v" && g[i].ey - g[i - 1].ey < gap && Math.abs(g[i].ex - g[i - 1].ex) < 1) g[i].ey = g[i - 1].ey + gap;
-          }
-          if (e === "h") {
-            // abajo, a la izquierda están los paneles de fuentes y leyenda (~340 px)
-            g.forEach((i) => { if (i.ey > cy && i.ex < x0 + 340 * s) i.ex = x0 + 340 * s; });
-            for (let i = 1; i < g.length; i++) if (g[i].ex - g[i - 1].ex < gap && Math.abs(g[i].ey - g[i - 1].ey) < 1) g[i].ex = g[i - 1].ex + gap;
-            const over = g.length ? g[g.length - 1].ex + 150 * s - x1 : 0; if (over > 0) g.forEach((i) => { i.ex -= over; });
-          }
-        }
-        return items.map(({ x, p, inside, ex, ey, ang, edge }) => {
-          const flip = !inside && edge === "v" && ex > cx; // borde derecho: etiqueta a la izquierda
-          const color = x.inSaa ? "#ff5a4e" : "#3dd6f5";
-          const hl = satHover === x.name;
-          const pass = passes[x.name];
-          const sub = x.inSaa ? "en la Anomalía" : x.kind === "geo" ? "geoestacionario" : x.overNoa ? "sobre el NOA" : pass ? `vuelve ${pass.toLocaleTimeString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: "2-digit", minute: "2-digit", hour12: false })}` : "";
-          if (inside) return (
-            <g key={x.name} {...satBtn(x.name, sub || "en vista")}>
-              <circle cx={p.x} cy={p.y} r={(hl ? 30 : 24) * s} fill={color} fillOpacity={0.14} stroke={color} strokeOpacity={0.75} strokeWidth={1.2 * s} />
-              <image href="/renders/satA.png" x={p.x - 26 * s} y={p.y - 16 * s} width={52 * s} height={32.5 * s} preserveAspectRatio="xMidYMid meet" />
-              <Tag x={p.x} y={p.y} k={view.k} dx={28} dy={-14}>
-                <span className="block font-mono text-[11px] font-medium text-[#e6edf7]">{x.name}</span>
-                {sub && <span className="block text-[10px]" style={{ color: x.inSaa ? "#ff9b92" : "#c9d4e4" }}>{sub}</span>}
-              </Tag>
-            </g>
-          );
-          return (
-            <g key={x.name} {...satBtn(x.name, p.visible ? "fuera de la vista" : "del otro lado del planeta")} opacity={hl ? 1 : 0.95}>
-              <circle cx={ex} cy={ey} r={(hl ? 19 : 16) * s} fill="#0a1220" fillOpacity={0.8} stroke={color} strokeWidth={1.5 * s} strokeDasharray={`${3 * s} ${2 * s}`} />
-              <image href="/renders/satA.png" x={ex - 14 * s} y={ey - 9 * s} width={28 * s} height={17.5 * s} preserveAspectRatio="xMidYMid meet" />
-              <path d={`M ${ex + 22 * s} ${ey} l ${-5 * s} ${-4 * s} l 0 ${8 * s} z`} fill={color} transform={`rotate(${ang} ${ex} ${ey})`} />
-              <Tag x={ex} y={ey} k={view.k} dx={flip ? -202 : 24} dy={-12}>
-                <span className={`block w-[176px] font-mono text-[11px] font-medium text-[#e6edf7] ${flip ? "text-right" : ""}`}>{x.name}</span>
-                <span className={`block w-[176px] text-[10px] ${flip ? "text-right" : ""}`} style={{ color: x.inSaa ? "#ff9b92" : "#c9d4e4" }}>{p.visible ? "fuera de la vista" : "otro lado del planeta"}{sub ? ` · ${sub}` : ""}</span>
-              </Tag>
-            </g>
-          );
-        });
-      })()}
+      {/* satélites reales anclados a su posición: se mueven solos (SGP4 cada segundo), con flecha de rumbo.
+          Si están del otro lado del planeta no se dibujan: el panel de fuentes dice cuándo vuelven. */}
+      {sats.map((x) => {
+        if (!satOnMap(x)) return null;
+        const p = satPoint(x);
+        const color = x.inSaa ? "#ff5a4e" : "#3dd6f5";
+        const hl = satHover === x.name || follow === x.name;
+        const def = defs.find((d) => d.name === x.name);
+        // rumbo: dónde estará en 1 minuto
+        const ahead = def && x.kind === "polar" ? satAt(def, new Date(now.getTime() + 60_000)) : null;
+        const q = ahead ? satPoint({ ...ahead, kind: "polar" }) : null;
+        const ang = q ? (Math.atan2(q.y - p.y, q.x - p.x) * 180) / Math.PI : null;
+        const pass = passes[x.name];
+        const sub = x.inSaa ? "en la Anomalía" : x.kind === "geo" ? "geoestacionario · fijo" : x.overNoa ? "sobre el NOA ahora" : pass ? `vuelve al NOA ${pass.toLocaleTimeString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: "2-digit", minute: "2-digit", hour12: false })}` : "";
+        return (
+          <g key={x.name} {...satBtn(x.name, sub || "satélite")}>
+            {hl && <circle cx={p.x} cy={p.y} r={34 * s} fill="none" stroke={color} strokeWidth={1.5 * s} strokeDasharray={`${4 * s} ${3 * s}`} />}
+            <circle cx={p.x} cy={p.y} r={(hl ? 27 : 23) * s} fill={color} fillOpacity={0.14} stroke={color} strokeOpacity={0.75} strokeWidth={1.2 * s} />
+            {ang !== null && <path d={`M ${p.x + 33 * s} ${p.y} l ${-8 * s} ${-5.5 * s} l 0 ${11 * s} z`} fill={color} transform={`rotate(${ang} ${p.x} ${p.y})`} />}
+            <image href="/renders/satA.png" x={p.x - 26 * s} y={p.y - 16 * s} width={52 * s} height={32.5 * s} preserveAspectRatio="xMidYMid meet" />
+            <Tag x={p.x} y={p.y} k={view.k} dx={30} dy={-14}>
+              <span className="block font-mono text-[11px] font-medium text-[#e6edf7]">{x.name}{follow === x.name ? " · siguiendo" : ""}</span>
+              {sub && <span className="block text-[10px]" style={{ color: x.inSaa ? "#ff9b92" : "#c9d4e4" }}>{sub}</span>}
+            </Tag>
+          </g>
+        );
+      })}
 
       {/* pines de clientes */}
       {rows.map(({ c, a }) => {

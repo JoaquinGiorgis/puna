@@ -199,3 +199,8 @@ export function groundTrack(def: SatDef, now: Date, minutes = 45, step = 1): [nu
   if (cur.length > 1) segs.push(cur);
   return segs;
 }
+
+/** Posición geodésica de un satélite en un instante (para rumbo y seguimiento). */
+export function satAt(def: SatDef, when: Date) {
+  return geodetic(def, when);
+}
