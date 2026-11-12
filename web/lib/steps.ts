@@ -33,9 +33,13 @@ export function buildSteps(d: Demo): Step[] {
         lastAttemptNode = name(a.agentId);
         const risky = Number(a.saaBps) > POLICY_MAX_SAA;
         const re = Number(a.attempt) > 1;
+        // si había un nodo con menos exposición, la asignación fue forzada (guion de la demo): se dice
+        const safer = d.nodes.filter((n) => n.saaBps <= POLICY_MAX_SAA && n.name !== lastAttemptNode).map((n) => n.name)[0];
         steps.push({ ...base, fn: re ? "reassign" : "assignNode", tone: risky ? "warning" : "neutral",
-          label: risky ? "Riesgo SAA" : re ? "Reasignado" : "Asignado",
-          desc: `${lastAttemptNode} · saa ${Number(a.saaBps).toLocaleString("es-AR")} bps · intento ${a.attempt}` });
+          label: risky ? (safer ? "Forzado" : "Riesgo SAA") : re ? "Reasignado" : "Asignado",
+          desc: risky && safer
+            ? `${lastAttemptNode} en la Anomalía (saa ${Number(a.saaBps).toLocaleString("es-AR")}); la política elegía ${safer}`
+            : `${lastAttemptNode} · saa ${Number(a.saaBps).toLocaleString("es-AR")} bps · intento ${a.attempt}` });
         break;
       }
       case "ResultSubmitted":

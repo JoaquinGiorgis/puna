@@ -1,6 +1,10 @@
 # PUNA — Proof of Untampered Neural Answers
 
-> Cuando el satélite que decide si te pagan el seguro pasa por la Anomalía del Atlántico Sur, un bit dado vuelta te puede costar la cosecha: PUNA hace que un tercero audite el cálculo y el contrato pague solo si la cuenta es correcta.
+> Cuando la IA corre en órbita, a tierra baja solo la respuesta y el operador se certifica a sí mismo. PUNA hace que un tercero audite el cálculo y que el contrato en Avalanche pague solo si la cuenta cierra.
+
+**El problema.** Los datacenters orbitales (Starcloud, Kepler, Axiom; Google y SpaceX en camino) van a vender cómputo de IA. La radiación da vuelta bits sin avisar, sobre todo en la Anomalía del Atlántico Sur: en Orbview-2 (NASA), más del 80 % de los errores ocurrieron ahí, aunque el satélite pasaba menos del 20 % de la órbita. Quien compra ese cómputo recibe solo el resultado y no tiene cómo comprobarlo antes de pagar.
+
+**El caso de ejemplo.** Un seguro paramétrico de incendio: un índice de área quemada calculado en órbita sobre un incendio real de Anta, Salta, decide si el productor cobra.
 
 ![Mission Control: job 7 en Fuji, rechazo de ORBIT-07 y pago tras reasignar a ORBIT-03](docs/design/mission-control.png)
 
@@ -50,6 +54,7 @@ Sin red (datos guardados en `sample-data/`):
 En Fuji (copiá `.env.example` a `.env` y cargá las wallets con AVAX de testnet):
 
 ```bash
+.venv/bin/python scripts/e2e.py --demo --capa 3 --bit 7   # el jurado elige capa y bit (guía: docs/demo-jurado.md)
 .venv/bin/python scripts/e2e.py --demo       # rechazo → reassign → Paid, ~11 txs
 .venv/bin/python scripts/e2e.py              # camino feliz
 .venv/bin/python -m validator.agent          # el validador como servicio que escucha ERC-8004
@@ -102,6 +107,8 @@ docs/        resumen técnico, diseño, ERC-8004, txs, atribución
 - PUNA prueba que el cálculo es correcto, no que la imagen de entrada sea auténtica.
 - Hoy el índice se puede calcular en tierra. Cuando nazca en órbita y baje solo el resultado, sin PUNA no hay forma de auditarlo.
 - Freivalds es probabilístico: una matriz alterada pasa con probabilidad ≤ 1/p² por capa.
-- Somos complementarios a la detección de bit-flips (p. ej. Flipless). Lo que agregamos: verificación por terceros, pago on-chain y ubicación orbital.
+- La CNN es un modelo de juguete con pesos fijos, no entrenada. Freivalds verifica el producto de matrices sea cual sea el modelo.
+- En la demo, el bit-flip lo inyectamos por software y la asignación de ORBIT-07 a la Anomalía es forzada (la política del scheduler elegía ORBIT-03).
+- Somos complementarios a la detección dentro del nodo (p. ej. Flipless). Lo que agregamos: verificación por un tercero, pago on-chain y ubicación orbital.
 
 Atribución de datos, imágenes y software en [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md).

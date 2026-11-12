@@ -1,11 +1,11 @@
 # PUNA — contexto para Claude Code
 
-**PUNA (Proof of Untampered Neural Answers):** seguro paramétrico de incendio para lotes agrícolas del NOA (caña, tabaco, vid).
+**PUNA (Proof of Untampered Neural Answers):** capa de confianza para cómputo orbital vendido a terceros. Caso de ejemplo: seguro paramétrico de incendio para lotes agrícolas del NOA.
 - Un nodo de cómputo orbital calcula la fracción quemada del lote con una CNN entera.
 - Un validador de **otro operador** la audita con Freivalds módulo p = 2³¹−1.
 - `PunaEscrow` en **Avalanche Fuji (chain 43113)** paga la indemnización solo si la auditoría aprueba y el índice supera el disparador.
 
-Los data centers orbitales son el protagonista; el seguro es el primer caso de uso.
+Los data centers orbitales son el protagonista; el seguro es el caso de ejemplo. Encuadre del pitch: "cuando la IA corre en órbita, a tierra baja solo la respuesta y el operador se autocertifica". Datos verificados el 11/11 (Orbview-2 >80 % en la Anomalía, Google ~1/3 M inferencias a 1 inf/s, Suncatcher = 1 satélite con Planet, Flipless con fallas simuladas). La CNN tiene pesos fijos, no entrenada: decirlo antes de que pregunten. Guion del jurado: `docs/demo-jurado.md`.
 
 - **Hackatón:** Argentina Space Hackathon 2026 (Salta, 11–13 nov). Track Avalanche, categoría Agentes × Geoespacial.
 - **Entrega:** viernes 13/11, antes de las 09:00 ART (objetivo 07:30).

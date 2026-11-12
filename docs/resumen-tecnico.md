@@ -42,7 +42,7 @@ Hoy este índice se puede calcular en tierra, y lo decimos nosotros antes que el
 
 ### Matemática
 
-**Modelo:** CNN chica de 3-4 capas cuantizada a enteros (pesos int8, acumulación entera), que clasifica cada celda de la grilla del lote como quemada o no. Índice = celdas quemadas / celdas del lote, en puntos básicos (0-10.000).
+**Modelo:** CNN chica de 4 capas cuantizada a enteros (pesos int8, acumulación entera), que clasifica cada celda de la grilla del lote como quemada o no. **Los pesos son fijos, hechos a mano: no está entrenada.** Es un modelo de juguete; Freivalds verifica el producto de matrices sin depender de qué pesos sean. Índice = celdas quemadas / celdas del lote, en puntos básicos (0-10.000).
 
 **Entrada:** grilla rasterizada desde focos reales de NASA FIRMS (VIIRS, ~375 m) de un incendio en Salta o Jujuy, guardada en `sample-data/`.
 
@@ -155,13 +155,13 @@ Cuando el cómputo orbital se venda como servicio, el cliente no va a tener form
 |---|---|
 | SpaceX (con xAI) | Pidió a la FCC hasta 1 millón de satélites como data centers orbitales; demostradores hacia Q4 2027 y, según su S-1, despliegue desde 2028 |
 | Starcloud (YC, Nvidia) | Puso la primera H100 en órbita en noviembre 2025 |
-| Google, Project Suncatcher | Lanzó cuatro TPUs en órbita el 1 de octubre de 2026; en su ensayo de radiación estima una corrupción silenciosa cada ~3 millones de inferencias |
+| Google, Project Suncatcher | Lanzó un satélite prototipo con TPUs (hecho con Planet, en el Transporter-18 de SpaceX) el 1 de octubre de 2026. Según su paper, en el ensayo de radiación la corrupción silenciosa fue de ~1 evento cada 17 rad: "del orden de 1 cada 3 millones de inferencias, asumiendo 1 inferencia por segundo", que consideran aceptable para inferencia |
 
 **El hueco no es la detección, es la confianza entre partes.** Detectar bit-flips ya está resuelto bastante bien por otros (ver Competencia). Lo que nadie resuelve es que un tercero, sin confiar en el operador, pueda comprobar el resultado antes de pagar.
 
 ### Competencia: Flipless
 
-[Flipless](https://flipless.space/) detecta y repara bit-flips en inferencia de IA mientras corre, para GPUs en órbita. Recalcula cada 16 pasos y compara bit a bit; reporta 0 de 3.296 fallas que cambiaban la respuesta sin detectar (inyectadas por software, H100/H200/B200) y 0 de 10.048 falsas alarmas. Es mucho más avanzado que nosotros en detección.
+[Flipless](https://flipless.space/) protege la inferencia de IA contra bit-flips: cada 16 pasos recalcula la ventana y compara bit a bit. Según su web, frenó 3.296 de 3.296 fallas que cambiaban la respuesta, con 0 de 10.048 falsas alarmas en H100/H200/B200. **Matices verificados el 11/11:** las fallas son inyectadas por software, todavía no hicieron ensayo de haz, los conteos son previos a un arreglo del 8/11 que no re-corrieron, y no vuela en órbita (el cómputo orbital es su mercado objetivo). Aun así, en detección está más avanzado que nosotros.
 
 Su log de fallas lo genera el mismo operador. No competimos en detección; nos diferenciamos en tres cosas:
 
@@ -172,7 +172,7 @@ Su log de fallas lo genera el mismo operador. No competimos en detección; nos d
 | Pago condicionado en la cadena | No | Sí, escrow en Avalanche |
 | Ubicar el trabajo según la órbita (fuera de la Anomalía) | No, reubica después de una falla | Sí, antes de ejecutar |
 
-**Por qué Argentina:** la Anomalía del Atlántico Sur está sobre Sudamérica. En los datos de vuelo del satélite Orbview-2 (705 km), más del 80% de los bit-flips ocurrieron dentro de la Anomalía, aunque el satélite pasa menos del 20% de su órbita ahí ([NASA](https://nepp.nasa.gov/DocUploads/42DD3AD9-E539-4B6C-A2867222EA313B9A/Jul03_Flight.pdf)). La exposición real depende de altitud, inclinación y blindaje.
+**Por qué Argentina:** la Anomalía del Atlántico Sur está sobre Sudamérica. En los datos de vuelo del satélite Orbview-2 (705 km), más del 80% de los bit-flips ocurrieron dentro de la Anomalía, aunque el satélite pasa menos del 20% de su órbita ahí (verificado en el informe de NASA GSFC, sección SEASTAR/Orbview-2: [NASA](https://nepp.nasa.gov/DocUploads/42DD3AD9-E539-4B6C-A2867222EA313B9A/Jul03_Flight.pdf)). La exposición real depende de altitud, inclinación y blindaje.
 
 ## Cómo funciona
 
@@ -321,7 +321,7 @@ No anunciamos ninguna cifra antes de medirla, y no extrapolamos fallas inyectada
 
 | Si preguntan | Respondemos |
 |---|---|
-| "Google estima una corrupción cada ~3 millones de inferencias y la considera aceptable" | Ese número es para su órbita y blindaje; los errores se concentran en la Anomalía, son silenciosos, y a escala de millones de inferencias por día "raro" pasa todos los días |
+| "Google estima una corrupción cada ~3 millones de inferencias y la considera aceptable" | Es por chip, a 1 inferencia por segundo, y para su órbita y blindaje. Con 1 millón de chips son unas 3 corrupciones silenciosas por segundo en la flota, y quien paga por un resultado no sabe cuál le tocó |
 | "Flipless ya detecta bit-flips" | Sí, y mejor que nosotros. Su log lo genera el operador; PUNA agrega verificación por un tercero, pago en la cadena y ubicación según la órbita. Son complementarios |
 | "¿Por qué no una base de datos?" | Porque las partes no confían entre sí: el que ejecuta no puede ser el que certifica |
 | "¿Y si el validador miente?" | Es de otro operador, tiene identidad y reputación propias, y su veredicto queda firmado en la cadena; con más validadores se usa quórum |

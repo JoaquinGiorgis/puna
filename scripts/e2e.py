@@ -3,6 +3,7 @@
 
   .venv/bin/python scripts/e2e.py                 # camino feliz: el scheduler elige por la política → Paid
   .venv/bin/python scripts/e2e.py --demo          # guion: ORBIT-07 en la Anomalía + falla → Rejected
+  .venv/bin/python scripts/e2e.py --demo --capa 3 --bit 5   # el jurado elige la falla (capa 1-4, bit 0-7)
                                                   #        → reassign a ORBIT-03 → Paid
   .venv/bin/python scripts/e2e.py --job 5         # retoma un job (Created o Rejected) con la política
 """
@@ -68,8 +69,15 @@ class Run:
     def assign(self, job_id: int, demo_first: bool = False) -> scheduler.Decision:
         job = onchain.get_job(self.esc, job_id)
         exclude = job["agentId"] if job["stateName"] == "Rejected" else None
+        if demo_first:
+            # se muestra qué haría la política antes de forzar el guion: la asignación forzada es explícita
+            policy = scheduler.decide(scheduler.WINDOW, exclude_agent=exclude)
+            print(f"  política del scheduler → {policy.node.name} ({policy.reason})")
         d = scheduler.decide(scheduler.WINDOW, exclude_agent=exclude, demo_first=demo_first)
-        print(f"  → {d.node.name}: {d.reason}")
+        if demo_first and d.node.name != policy.node.name:
+            print(f"  ▲ ASIGNACIÓN FORZADA PARA LA DEMO → {d.node.name} (saaBps {d.saa_bps}); la auditoría es la red de seguridad")
+        else:
+            print(f"  → {d.node.name}: {d.reason}")
         scheduler.apply(self.w3, self.esc, job_id, d, self.sched)
         return d
 
@@ -105,6 +113,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true", help="guion completo: rechazo → reassign → Paid")
     ap.add_argument("--fault", help="falla para el primer intento (kind:layer:seed[:bits])")
+    ap.add_argument("--capa", type=int, choices=[1, 2, 3, 4], help="el jurado elige la capa del peso corrupto (con --bit)")
+    ap.add_argument("--bit", type=int, choices=range(8), metavar="0-7", help="el jurado elige el bit que se da vuelta (con --capa)")
     ap.add_argument("--job", type=int, help="retomar un job existente (Created o Rejected)")
     ap.add_argument("--value", default="0.02", help="AVAX que deposita la aseguradora")
     ap.add_argument("--compute-fee", default="0.002")
@@ -122,7 +132,12 @@ def main() -> None:
     r.step("2. scheduler orbital")
     d = r.assign(job_id, demo_first=a.demo)
     r.step(f"3. nodo {d.node.name} → 4. validador")
-    r.node_and_validate(job_id, d, a.fault or (DEMO_FAULT if a.demo else None))
+    if (a.capa is None) != (a.bit is None):
+        raise SystemExit("--capa y --bit van juntos")
+    fault = f"weight:{a.capa - 1}:2:{a.bit}" if a.capa else (a.fault or (DEMO_FAULT if a.demo else None))
+    if a.capa:
+        print(f"\n  ★ FALLA ELEGIDA POR EL JURADO: bit {a.bit} de un peso de la capa L{a.capa}\n", flush=True)
+    r.node_and_validate(job_id, d, fault)
     if a.no_settle:
         return
     r.step("5. liquidación")
