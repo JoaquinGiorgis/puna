@@ -24,9 +24,15 @@ export function proj(lat: number, lon: number, r = 1): Pt {
 /** Punto del NOA donde centra la cámara por defecto (Anta, Salta). */
 export const NOA = proj(-25, -63.6);
 
-/** Zona cubierta por los renders: el detallado (0,0)-(1440,900) y el amplio (-720,-450)-(2160,1350). */
-export const BOUNDS = { x0: -720, y0: -450, x1: 2160, y1: 1350 };
-export const K_MIN = 0.5, K_MAX = 2.6;
+/**
+ * Zona cubierta por los renders (misma proyección, tres resoluciones):
+ * detalle 2x (0,0)-(1440,900) · continente 1x WIDE · planeta completo 0,25x BOUNDS (todo el disco + órbitas bajas).
+ */
+export const WIDE = { x0: -720, y0: -450, x1: 2160, y1: 1350 };
+export const BOUNDS = { x0: -2950, y0: -470, x1: 3910, y1: 6390 };
+export const K_MIN = 0.12, K_MAX = 2.6;
+/** Vista con el planeta entero. */
+export const PLANET: View = { k: 0.125, x: (BOUNDS.x0 + BOUNDS.x1) / 2, y: (BOUNDS.y0 + BOUNDS.y1) / 2 };
 export type View = { k: number; x: number; y: number };
 export const HOME: View = { k: 1, x: 720, y: 450 };
 

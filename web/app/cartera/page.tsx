@@ -8,8 +8,8 @@ import { ClientPanel, type Filter } from "@/components/cartera/ClientPanel";
 import { GlobeView, type Row } from "@/components/cartera/GlobeView";
 import { SatPanel } from "@/components/cartera/SatPanel";
 import { LEVEL_ICON } from "@/components/icons";
-import { Satellite } from "lucide-react";
-import { HOME, clampView, proj, satOnMap, satPoint, type View } from "@/lib/globe-noa";
+import { Globe2, Satellite } from "lucide-react";
+import { HOME, PLANET, clampView, proj, satOnMap, satPoint, type View } from "@/lib/globe-noa";
 import { PolicyModal } from "@/components/cartera/PolicyModal";
 import { SatModal } from "@/components/cartera/SatModal";
 import { useSky } from "@/components/useSky";
@@ -120,6 +120,7 @@ export default function Cartera() {
                 <button onClick={() => zoom(1.5)} aria-label="Acercar" className="h-10 w-10 text-[16px] hover:bg-white/10">+</button>
                 <button onClick={() => zoom(1 / 1.5)} aria-label="Alejar" className="h-10 w-10 text-[16px] hover:bg-white/10">−</button>
                 <button onClick={() => fly(null)} aria-label="Volver a la vista del NOA" className="h-10 w-10 text-[15px] hover:bg-white/10">◎</button>
+                <button onClick={() => { setFollow(null); setView(PLANET); }} aria-label="Ver el planeta completo" title="Ver el planeta completo" className="grid h-10 w-10 place-items-center hover:bg-white/10"><Globe2 size={17} aria-hidden="true" /></button>
               </div>
             </div>
             <ClientPanel rows={rows} ready={ready} now={sky.mounted ? sky.now : new Date()} query={query} setQuery={setQuery}

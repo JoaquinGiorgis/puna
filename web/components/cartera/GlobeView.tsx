@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
 import { Check } from "lucide-react";
 import { LEVEL_ICON } from "@/components/icons";
-import { BOUNDS, FRAME, clampView, proj, satOnMap, satPoint, type View } from "@/lib/globe-noa";
+import { BOUNDS, FRAME, WIDE, clampView, proj, satOnMap, satPoint, type View } from "@/lib/globe-noa";
 import type { Assessment, Client, Level } from "@/lib/portfolio";
 import { SAA, satAt, type Fire, type SatDef, type SatNow } from "@/lib/sky";
 
@@ -135,19 +135,20 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
     <svg ref={svg} viewBox={vb} preserveAspectRatio="xMidYMid slice" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
       className={`absolute inset-0 h-full w-full touch-none select-none ${drag.current?.moved ? "cursor-grabbing" : "cursor-grab"}`}
       role="img" aria-label={`Globo con ${rows.length} campos asegurados, ${fires.length} focos de fuego y ${sats.length} satélites en vivo`}>
-      <rect x={-4000} y={-4000} width={12000} height={10000} fill="#04070d" />
+      <rect x={-20000} y={-20000} width={50000} height={50000} fill="#04070d" />
       {/* render amplio (1x) para alejar, y encima el detallado (2x) del cuadro principal: misma proyección */}
-      <image href="/renders/globe-noa-wide.jpg" x={BOUNDS.x0} y={BOUNDS.y0} width={BOUNDS.x1 - BOUNDS.x0} height={BOUNDS.y1 - BOUNDS.y0} preserveAspectRatio="none" />
+      <image href="/renders/globe-noa-disk.jpg" x={BOUNDS.x0} y={BOUNDS.y0} width={BOUNDS.x1 - BOUNDS.x0} height={BOUNDS.y1 - BOUNDS.y0} preserveAspectRatio="none" />
+      <image href="/renders/globe-noa-wide.jpg" x={WIDE.x0} y={WIDE.y0} width={WIDE.x1 - WIDE.x0} height={WIDE.y1 - WIDE.y0} preserveAspectRatio="none" />
       <image href="/renders/globe-noa.jpg" x={0} y={0} width={FRAME.w} height={FRAME.h} preserveAspectRatio="none" />
 
       {/* Anomalía del Atlántico Sur: zona de radiación donde los cálculos en órbita pueden fallar */}
       <g aria-hidden="true">
         <polygon points={SAA_PTS.filter((p) => p.visible).map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")}
           fill="#ff5a4e" fillOpacity={0.06} stroke="#ff5a4e" strokeOpacity={0.85} strokeWidth={1.5 * s} strokeDasharray={`${8 * s} ${5 * s}`} />
-        <Tag x={SAA_LABEL.x} y={SAA_LABEL.y} k={view.k} dx={-110} dy={6}>
+        {view.k >= 0.5 && <Tag x={SAA_LABEL.x} y={SAA_LABEL.y} k={view.k} dx={-110} dy={6}>
           <span className="block text-[12px] font-semibold text-[#ff9b92]">▲ Anomalía del Atlántico Sur</span>
           <span className="block text-[10.5px] text-[#d5deea]">zona de radiación: un cálculo hecho acá puede fallar</span>
-        </Tag>
+        </Tag>}
       </g>
 
       {/* trazas de satélites polares (±45 min) */}
@@ -171,7 +172,7 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
       </g>
 
       {/* ciudades */}
-      {CITIES.map(([n, la, lo]) => {
+      {view.k >= 0.5 && CITIES.map(([n, la, lo]) => {
         const p = proj(la, lo);
         return (
           <g key={n} aria-hidden="true">
@@ -227,7 +228,7 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
             {a.level === "atencion" && <circle cx={p.x} cy={p.y} r={18 * s} fill={pin.bg} fillOpacity={0.25} stroke={pin.bg} strokeWidth={1 * s} className="pin-pulse" style={{ transformBox: "fill-box", transformOrigin: "center" }} />}
             <circle className="ring" cx={p.x} cy={p.y} r={(sel ? 13 : 10.5) * s} fill={pin.bg} stroke={sel ? "#3dd6f5" : "#fff"} strokeWidth={2 * s} />
             {(() => { const I = a.level === "ok" ? Check : LEVEL_ICON[a.level]; return <I x={p.x - 6 * s} y={p.y - 6 * s} width={12 * s} height={12 * s} color={pin.fg} strokeWidth={a.level === "ok" ? 3 : 2.6} />; })()}
-            {(a.level === "atencion" || sel) && (
+            {(a.level === "atencion" || sel) && view.k >= 0.5 && (
               <Tag x={p.x} y={p.y} k={view.k} dx={16} dy={rows.findIndex((r) => r.c.id === c.id) % 2 ? 10 : -48}>
                 <span className="block text-[12px] font-semibold text-[#e6edf7]">{c.field}</span>
                 <span className="block font-mono text-[10.5px]" style={{ color: a.level === "atencion" ? "#ff8a80" : "#c9d4e4" }}>
