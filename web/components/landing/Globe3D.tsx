@@ -18,98 +18,6 @@ function vec(lat: number, lon: number, r = R) {
   return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta));
 }
 
-const NOISE = `
-float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
-float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0-2.0*f);
-  return mix(mix(h21(i), h21(i+vec2(1,0)), u.x), mix(h21(i+vec2(0,1)), h21(i+vec2(1,1)), u.x), u.y); }
-float fbm(vec2 p){ float v = 0.0, a = 0.5; for(int i=0;i<5;i++){ v += a*vnoise(p); p *= 2.07; a *= 0.5; } return v; }`;
-
-/** Material de llama volumétrica: ruido fractal que sube, silueta de lágrima y rampa de temperatura. */
-function flameMaterial(seed: number) {
-  return new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
-    uniforms: { uTime: { value: 0 }, uSeed: { value: seed } },
-    vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
-    fragmentShader: `uniform float uTime; uniform float uSeed; varying vec2 vUv; ${NOISE}
-      void main(){
-        vec2 uv = vUv;
-        float t = uTime*1.7 + uSeed*13.0;
-        float n = fbm(vec2(uv.x*3.2 + uSeed, uv.y*2.6 - t));
-        float n2 = fbm(vec2(uv.x*6.0 - uSeed, uv.y*5.0 - t*1.6));
-        float x = (uv.x - 0.5)*2.0 + (n - 0.5)*0.7*uv.y;
-        float w = mix(0.95, 0.06, pow(uv.y, 0.8));
-        float body = smoothstep(1.0, 0.15, abs(x)/w);
-        float top = smoothstep(0.98, 0.45, uv.y + (n2 - 0.5)*0.45);
-        float flame = body * top * smoothstep(0.0, 0.07, uv.y);
-        float heat = clamp(flame*(1.25 - uv.y*0.9) + (n2 - 0.5)*0.2, 0.0, 1.0);
-        vec3 col = mix(vec3(0.55, 0.06, 0.01), vec3(1.0, 0.42, 0.05), smoothstep(0.1, 0.5, heat));
-        col = mix(col, vec3(1.0, 0.86, 0.45), smoothstep(0.55, 0.9, heat));
-        col = mix(col, vec3(1.0, 0.98, 0.9), smoothstep(0.9, 1.0, heat));
-        gl_FragColor = vec4(col*flame*1.8, flame);
-      }`,
-  });
-}
-
-/** Brasas: partículas que suben y se apagan (todo en el shader de vértices). */
-function embers(seed: number) {
-  const N = 26;
-  const a = new Float32Array(N * 3);
-  for (let i = 0; i < N; i++) { a[i * 3] = Math.random(); a[i * 3 + 1] = Math.random(); a[i * 3 + 2] = Math.random(); }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.BufferAttribute(a, 3));
-  return new THREE.Points(g, new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-    uniforms: { uTime: { value: 0 }, uSeed: { value: seed } },
-    vertexShader: `uniform float uTime; uniform float uSeed; varying float vLife;
-      void main(){
-        float life = fract(position.y + uTime*(0.25 + position.z*0.35) + uSeed);
-        vLife = life;
-        vec3 p = vec3((position.x - 0.5)*0.05 + sin(life*9.0 + position.z*20.0)*0.012, life*0.2, (position.z - 0.5)*0.05);
-        vec4 mv = modelViewMatrix*vec4(p, 1.0);
-        gl_PointSize = (1.0 - life) * 7.0 * (1.0/ -mv.z);
-        gl_Position = projectionMatrix*mv;
-      }`,
-    fragmentShader: `varying float vLife;
-      void main(){ float d = length(gl_PointCoord - 0.5); if(d > 0.5) discard;
-        vec3 c = mix(vec3(1.0, 0.8, 0.4), vec3(1.0, 0.25, 0.02), vLife);
-        gl_FragColor = vec4(c, (1.0 - vLife) * smoothstep(0.5, 0.0, d)); }`,
-  }));
-}
-
-/** Alerta de fuego 3D: llama volumétrica (tres planos cruzados), brasas, resplandor en el suelo y anillo. */
-function fireMarker() {
-  const g = new THREE.Group();
-  const seed = Math.random() * 10;
-  const mat = flameMaterial(seed);
-  const plane = new THREE.PlaneGeometry(0.075, 0.13);
-  plane.translate(0, 0.065, 0);
-  for (let i = 0; i < 3; i++) {
-    const m = new THREE.Mesh(plane, mat);
-    m.rotation.y = (i * Math.PI) / 3;
-    g.add(m);
-  }
-  const em = embers(seed);
-  const glow = new THREE.Mesh(
-    new THREE.CircleGeometry(0.06, 32),
-    new THREE.ShaderMaterial({
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-      vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
-      fragmentShader: "varying vec2 vUv; void main(){ float d = length(vUv - 0.5)*2.0; gl_FragColor = vec4(vec3(1.0,0.35,0.05)*(1.0-d), (1.0-d)*0.8); }",
-    }),
-  );
-  glow.rotation.x = -Math.PI / 2;
-  glow.position.y = 0.002;
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.05, 0.056, 64),
-    new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }),
-  );
-  ring.rotation.x = -Math.PI / 2;
-  ring.name = "ring";
-  g.add(em, glow, ring);
-  g.userData.uniforms = [mat.uniforms, (em.material as THREE.ShaderMaterial).uniforms];
-  return g;
-}
-
 /** Modelos 3D reales de la NASA (NASA 3D Resources, dominio público). NOAA-20/21 usan la plataforma de Suomi NPP. */
 const MODEL_URL: Record<string, string> = {
   "NOAA-20": "/models/suomi-npp.glb", "NOAA-21": "/models/suomi-npp.glb", Aqua: "/models/aqua.glb", Terra: "/models/terra.glb",
@@ -145,19 +53,6 @@ function satelliteSlot(name: string, color: number) {
     g.add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.04), new THREE.MeshStandardMaterial({ color: 0xc9a24a, metalness: 0.8, roughness: 0.4 })));
   });
   return g;
-}
-
-/** Brillo de borde (atmósfera) por fresnel. */
-function atmosphere() {
-  return new THREE.Mesh(
-    new THREE.SphereGeometry(R * 1.035, 64, 64),
-    new THREE.ShaderMaterial({
-      transparent: true, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false,
-      uniforms: { c: { value: new THREE.Color(0x3dd6f5) } },
-      vertexShader: "varying vec3 vN; varying vec3 vP; void main(){ vN = normalize(normalMatrix*normal); vec4 p = modelViewMatrix*vec4(position,1.0); vP = p.xyz; gl_Position = projectionMatrix*p; }",
-      fragmentShader: "uniform vec3 c; varying vec3 vN; varying vec3 vP; void main(){ float f = pow(max(0.0, 0.62 - dot(vN, normalize(-vP))), 2.5); gl_FragColor = vec4(c, clamp(f,0.0,1.0)*0.9); }",
-    }),
-  );
 }
 
 /** Contorno de la Anomalía del Atlántico Sur, interpolado sobre la esfera. */
@@ -204,7 +99,7 @@ type Props = {
 
 /**
  * Globo 3D de la landing (three.js). Textura NASA Blue Marble, focos FIRMS en vivo como puntos de calor,
- * alertas (fuego dentro de un campo asegurado) como llamas 3D, satélites reales por SGP4 con su órbita,
+ * alertas (fuego dentro de un campo asegurado) como anclas para el pin HTML, satélites reales por SGP4 con su órbita,
  * y el contorno de la Anomalía del Atlántico Sur. Arrastrable; sin zoom para no secuestrar el scroll.
  */
 export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
@@ -254,7 +149,7 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
       new THREE.SphereGeometry(R, 96, 96),
       new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.9, metalness: 0.05, color: 0xe2e8f2 }),
     );
-    scene.add(earth, atmosphere(), saaLine());
+    scene.add(earth, saaLine());
 
     // grilla sutil de latitudes/longitudes
     const grid = new THREE.Group();
@@ -293,12 +188,9 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
         alertList = a;
         alertGroup.clear();
         for (const al of a) {
-          const m = fireMarker();
-          const p = vec(al.lat, al.lon, R);
-          m.position.copy(p);
-          m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p.clone().normalize());
-          m.userData.phase = Math.random() * Math.PI * 2;
-          m.scale.setScalar(2.6);
+          // ancla invisible: el pin es el mismo ícono HTML que usa el dashboard
+          const m = new THREE.Object3D();
+          m.position.copy(vec(al.lat, al.lon, R));
           alertGroup.add(m);
         }
       },
@@ -349,20 +241,10 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
     ro.observe(el);
 
     let raf = 0;
-    const t0 = performance.now();
     const tmp = new THREE.Vector3();
     const camDir = new THREE.Vector3();
     const tick = () => {
-      const t = (performance.now() - t0) / 1000;
       controls.update();
-      alertGroup.children.forEach((m) => {
-        for (const u of m.userData.uniforms as { uTime: { value: number } }[]) u.uTime.value = reduce ? 1.5 : t;
-        if (reduce) return;
-        const ph = (t * 0.8 + m.userData.phase) % 1;
-        const ring = m.getObjectByName("ring")!;
-        ring.scale.setScalar(1 + ph * 1.8);
-        ((ring as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = 0.8 * (1 - ph);
-      });
       renderer.render(scene, camera);
       // posiciones en pantalla de las alertas, para las etiquetas de vidrio
       if (labelCb.current && alertList.length) {

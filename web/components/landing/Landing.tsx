@@ -34,8 +34,21 @@ function Label({ children, tone = "#7dd3fc" }: { children: React.ReactNode; tone
 export function Landing() {
   const sky = useSky(demo.lot.bbox, true);
   const [labels, setLabels] = useState<Record<string, { x: number; y: number; visible: boolean }>>({});
-  const steps = useMemo(() => lot14Steps(), []);
   const k = useMemo(() => lot14Kpis(), []);
+  // versión corta del siniestro: fuego, cálculo rechazado, cálculo confirmado y pago
+  const steps = useMemo(() => {
+    const all = lot14Steps();
+    const fire = all.find((x) => x.kind === "fire");
+    const bad = all.find((x) => x.kind === "bad");
+    const okAudit = all.find((x) => x.kind === "ok" && x.title.startsWith("El auditor"));
+    const paid = all.find((x) => x.kind === "ok" && x.title.startsWith("Se pagó"));
+    return [
+      fire && { ...fire, detail: "La NASA vio puntos de calor dentro del lote." },
+      bad && { ...bad, title: "Primer cálculo: error, no se pagó", detail: "El satélite pasó por la Anomalía y entregó 0 %. El auditor lo rechazó." },
+      okAudit && { ...okAudit, title: "Segundo satélite: 37,8 % confirmado", detail: "Otro satélite, lejos de la radiación. El auditor aprobó la cuenta." },
+      paid && { ...paid, title: `Pago al productor: ${k.indemnity}`, detail: `${k.seconds} segundos después de abrir el reclamo.` },
+    ].filter((x): x is NonNullable<typeof x> => Boolean(x));
+  }, [k]);
 
   const alerts: GlobeAlert[] = useMemo(() => {
     if (!sky.mounted) return [];
@@ -113,11 +126,15 @@ export function Landing() {
               const p = labels[al.id];
               if (!p?.visible) return null;
               return (
-                <div key={al.id} className="lg pointer-events-none absolute flex items-center gap-2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[12px]"
-                  style={{ left: p.x + (i % 2 ? 70 : -70), top: p.y, transform: `translate(-50%, calc(-100% - ${44 + i * 38}px))` }}>
-                  <Flame size={13} className="text-[#ff8a3d]" aria-hidden="true" />
-                  <span className="font-semibold">{al.field}</span>
-                  <span className="font-mono text-[11px] tabular-nums text-[#ffb27a]">{al.count} focos</span>
+                <div key={al.id} className="pointer-events-none absolute" style={{ left: p.x, top: p.y }}>
+                  <span aria-hidden="true" className="pin-pulse absolute -left-[18px] -top-[18px] h-9 w-9 rounded-full border border-[#c4352b] bg-[#c4352b]/25" />
+                  <span className="absolute -left-[11px] -top-[11px] grid h-[22px] w-[22px] place-items-center rounded-full border-2 border-white bg-[#c4352b]">
+                    <Flame size={12} strokeWidth={2.6} color="#fff" aria-hidden="true" />
+                  </span>
+                  <div className="lg absolute left-4 whitespace-nowrap rounded-lg px-2 py-1 leading-tight" style={{ top: i % 2 ? 10 : -48 }}>
+                    <span className="block text-[12px] font-semibold text-[#e6edf7]">{al.field}</span>
+                    <span className="block font-mono text-[10.5px] text-[#ff8a80]">! {al.count} focos en el lote</span>
+                  </div>
                 </div>
               );
             })}
@@ -174,7 +191,7 @@ export function Landing() {
                 job {demo.job.id} en Avalanche Fuji <ArrowUpRight size={13} aria-hidden="true" />
               </a>
             </div>
-            <ol className="mt-4 flex flex-col">
+            <ol className="mt-5 flex flex-col">
               {steps.map((s, i) => (
                 <li key={i} className="grid grid-cols-[18px_1fr] gap-x-4">
                   <div className="flex flex-col items-center">
@@ -198,7 +215,7 @@ export function Landing() {
               ))}
             </ol>
             <p className="border-t border-white/10 pt-4 text-[12.5px] text-[#9aa9be]">
-              {k.txs} comprobantes públicos · costo de red {k.fee} · el productor cobró {k.indemnity}
+              {k.txs} comprobantes públicos · costo de red {k.fee}
             </p>
           </div>
         </section>

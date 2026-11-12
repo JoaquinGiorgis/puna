@@ -56,5 +56,4 @@ El ícono de satélite del globo es el render propio de `docs/design/assets/sat.
 - Textura del planeta: NASA Blue Marble (BlueMarble_ShadedRelief_Bathymetry) vía NASA GIBS. Imagen de dominio público de la NASA; se agradece al servicio GIBS (earthdata.nasa.gov/gibs).
 - Fondo: cielo nocturno con un shader GLSL propio (estrellas por capas, Vía Láctea y polvo), sin librerías externas.
 - Satélites 3D: modelos de [NASA 3D Resources](https://github.com/nasa/NASA-3D-Resources) (dominio público): Suomi NPP (usado para NOAA-20 y NOAA-21, que comparten la plataforma), Aqua y Terra. Al de Terra se le quitaron dos texturas externas que no venían en el archivo.
-- Fuego 3D: llama volumétrica con un shader propio (ruido fractal, rampa de temperatura y brasas).
 - Globo 3D: [three.js](https://threejs.org) (MIT).
