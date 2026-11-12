@@ -95,8 +95,9 @@ export function Landing() {
               Resolvé el peritaje de siniestros con auditoría satelital
             </h1>
             <p className="rise max-w-[46ch] text-[17px] leading-relaxed text-[#c9d4e4] [text-wrap:pretty]" style={{ animationDelay: "120ms" }}>
-              Ayudamos a las aseguradoras agro a liquidar incendios, sequías, inundaciones y heladas en minutos, sin mandar un
-              perito al campo. Cada medición satelital llega auditada por un tercero independiente.
+              Ayudamos a las aseguradoras agro a peritar los siniestros de sus clientes desde el espacio. Los satélites se verifican
+              entre ellos y cada medición queda registrada sin posibilidad de cambios, con evidencia lista para la SSN y pago
+              instantáneo del seguro.
             </p>
             <div className="rise flex flex-wrap items-center gap-x-6 gap-y-3" style={{ animationDelay: "180ms" }}>
               <Link href="/ingresar" className={`flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[14.5px] font-semibold text-[#0e1b2c] shadow-[0_8px_30px_-8px_rgba(125,211,252,0.45)] hover:bg-[#dff6fd] ${btn}`}>
