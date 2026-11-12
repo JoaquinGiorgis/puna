@@ -1,5 +1,6 @@
 "use client";
 
+import { Satellite } from "lucide-react";
 import { ago, type Fire, type SatNow } from "@/lib/sky";
 
 const SENSOR: Record<string, string> = {
@@ -38,7 +39,7 @@ export function SatPanel({ sats, passes, fires, now, onHover }: {
             <li key={x.name} onMouseEnter={() => onHover(x.name)} onMouseLeave={() => onHover(null)} title={SENSOR[x.name]}
               className={`rounded-lg border px-2 py-1 ${x.inSaa ? "border-[#ff5a4e]/50 bg-[#ff5a4e]/12" : "border-white/10 bg-white/[0.04]"}`}>
               <div className="flex items-center gap-1.5">
-                <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${x.inSaa ? "bg-[#ff5a4e]" : "bg-[#3dd6f5]"}`} />
+                <Satellite aria-hidden="true" size={13} strokeWidth={2.2} className="shrink-0" color={x.inSaa ? "#ff5a4e" : "#3dd6f5"} />
                 <span className="whitespace-nowrap text-[12px] font-semibold">{x.name}</span>
                 <span className="truncate text-[10.5px] text-muted">{SENSOR[x.name] ?? ""}</span>
                 <span className={`ml-auto shrink-0 whitespace-nowrap rounded-full px-1.5 py-px text-[10px] font-medium ${
@@ -46,7 +47,7 @@ export function SatPanel({ sats, passes, fires, now, onHover }: {
                   {x.kind === "geo" ? "fijo" : x.inSaa ? "▲ en la Anomalía" : "✓ apto"}
                 </span>
               </div>
-              <p className="truncate pl-3.5 text-[10.5px] text-muted">
+              <p className="truncate pl-[19px] text-[10.5px] text-muted">
                 {x.kind === "geo" ? "mira el NOA siempre" : x.overNoa ? "sobre el NOA ahora" : pass ? `vuelve al NOA ${hm(pass)}` : "—"}
                 {" · "}{lf ? `último foco ${ago(lf, now)}` : "sin focos en 48 h"}
               </p>

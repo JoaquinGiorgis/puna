@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
+import { Satellite } from "lucide-react";
+import { LEVEL_ICON } from "@/components/icons";
 import { BOUNDS, FRAME, clampView, proj, type View } from "@/lib/globe-noa";
 import type { Assessment, Client, Level } from "@/lib/portfolio";
 import { SAA, groundTrack, type Fire, type SatDef, type SatNow } from "@/lib/sky";
@@ -44,10 +46,15 @@ function Tag({ x, y, dx = 14, dy = -14, k, children }: { x: number; y: number; d
  * misma proyección: focos FIRMS en vivo, trazas y posición SGP4 de satélites reales y un pin por cliente.
  * El SVG usa "slice": llena cualquier pantalla sin deformar. El zoom cambia el viewBox (sin pixelar el SVG).
  */
-export function GlobeView({ rows, fires, sats, defs, now, selected, view, setView, onSelect, satHover = null }: {
+export function GlobeView({ rows, fires, sats, defs, now, selected, view, setView, onSelect, satHover = null, passes = {} }: {
   rows: Row[]; fires: Fire[]; sats: SatNow[]; defs: SatDef[]; now: Date; selected: string | null; view: View;
-  setView: (f: (v: View) => View) => void; onSelect: (id: string) => void; satHover?: string | null;
+  setView: (f: (v: View) => View) => void; onSelect: (id: string) => void; satHover?: string | null; passes?: Record<string, Date | null>;
 }) {
+  const [aspect, setAspect] = useState(1.6);
+  useEffect(() => {
+    const r = () => setAspect(window.innerWidth / Math.max(1, window.innerHeight));
+    r(); window.addEventListener("resize", r); return () => window.removeEventListener("resize", r);
+  }, []);
   const svg = useRef<SVGSVGElement>(null);
   const viewRef = useRef(view); viewRef.current = view;
   const ptrs = useRef(new Map<number, { x: number; y: number }>());
@@ -96,6 +103,8 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
   };
   const pick = (id: string) => { if (!drag.current?.moved) onSelect(id); };
   const vw = FRAME.w / view.k, vh = FRAME.h / view.k;
+  // con "slice" se ve menos en un eje: el rectángulo visible real, para los indicadores de borde
+  const visW = aspect >= FRAME.w / FRAME.h ? vw : vh * aspect, visH = aspect >= FRAME.w / FRAME.h ? vw / aspect : vh;
   const vb = `${view.x - vw / 2} ${view.y - vh / 2} ${vw} ${vh}`;
   const s = 1 / view.k; // tamaño constante en pantalla para marcas y textos
 
@@ -157,20 +166,67 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
         return <polygon key={`l${c.id}`} points={pts.map((p) => `${p.x},${p.y}`).join(" ")} fill={PIN[a.level].bg} fillOpacity={0.15} stroke={PIN[a.level].bg} strokeWidth={1.5 * s} strokeDasharray={`${4 * s} ${2 * s}`} />;
       })}
 
-      {/* satélites reales en su posición de ahora */}
-      {sats.map((x) => {
-        const p = proj(x.lat, x.lon, x.kind === "geo" ? 1 : 1 + x.altKm / 6371);
-        if (!p.visible) return null;
-        return (
-          <g key={x.name} aria-hidden="true">
-            <circle cx={p.x} cy={p.y} r={(satHover === x.name ? 20 : 13) * s} fill={x.inSaa ? "#ff5a4e" : "#3dd6f5"} fillOpacity={0.22} />
-            <circle cx={p.x} cy={p.y} r={5.5 * s} fill={x.inSaa ? "#ff5a4e" : "#3dd6f5"} stroke="#fff" strokeWidth={2 * s} />
-            <Tag x={p.x} y={p.y} k={view.k} dx={12} dy={-11}>
-              <span className="block font-mono text-[10.5px] text-[#e6edf7]">{x.name}{x.inSaa ? " · en la Anomalía" : x.overNoa ? " · sobre el NOA" : ""}</span>
-            </Tag>
-          </g>
-        );
-      })}
+      {/* satélites reales: en su posición si se ven; si no, un indicador en el borde que apunta hacia ellos */}
+      {(() => {
+        const m = 34 * s;
+        // zona útil: sin la barra de arriba ni el panel de clientes (≈ 420 px a la derecha)
+        const x0 = view.x - visW / 2 + m, x1 = view.x + visW / 2 - m - 420 * s, y0 = view.y - visH / 2 + m + 64 * s, y1 = view.y + visH / 2 - m;
+        const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+        const items = sats.map((x) => {
+          const p = proj(x.lat, x.lon, x.kind === "geo" ? 1 : 1 + x.altKm / 6371);
+          const inside = p.visible && p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1;
+          let dx = p.x - cx, dy = p.y - cy;
+          if (!p.visible) { const len = Math.hypot(dx, dy) || 1; dx /= len; dy /= len; }
+          const t = Math.min(dx > 0 ? (x1 - cx) / dx : dx < 0 ? (x0 - cx) / dx : Infinity, dy > 0 ? (y1 - cy) / dy : dy < 0 ? (y0 - cy) / dy : Infinity);
+          const edge = Math.abs(cx + dx * t - x0) < 1 || Math.abs(cx + dx * t - x1) < 1 ? "v" : "h";
+          return { x, p, inside, ex: cx + dx * t, ey: cy + dy * t, ang: (Math.atan2(dy, dx) * 180) / Math.PI, edge };
+        });
+        // separar indicadores que caen juntos sobre el mismo borde
+        const off = items.filter((i) => !i.inside);
+        for (const e of ["h", "v"] as const) {
+          const g = off.filter((i) => i.edge === e).sort((a, b) => (e === "h" ? a.ex - b.ex : a.ey - b.ey));
+          const gap = (e === "h" ? 175 : 46) * s;
+          for (let i = 1; i < g.length; i++) {
+            if (e === "h" && g[i].ex - g[i - 1].ex < gap && Math.abs(g[i].ey - g[i - 1].ey) < 1) g[i].ex = g[i - 1].ex + gap;
+            if (e === "v" && g[i].ey - g[i - 1].ey < gap && Math.abs(g[i].ex - g[i - 1].ex) < 1) g[i].ey = g[i - 1].ey + gap;
+          }
+          if (e === "h") {
+            // abajo, a la izquierda están los paneles de fuentes y leyenda (~340 px)
+            g.forEach((i) => { if (i.ey > cy && i.ex < x0 + 340 * s) i.ex = x0 + 340 * s; });
+            for (let i = 1; i < g.length; i++) if (g[i].ex - g[i - 1].ex < gap && Math.abs(g[i].ey - g[i - 1].ey) < 1) g[i].ex = g[i - 1].ex + gap;
+            const over = g.length ? g[g.length - 1].ex + 150 * s - x1 : 0; if (over > 0) g.forEach((i) => { i.ex -= over; });
+          }
+        }
+        return items.map(({ x, p, inside, ex, ey, ang, edge }) => {
+          const flip = !inside && edge === "v" && ex > cx; // borde derecho: etiqueta a la izquierda
+          const color = x.inSaa ? "#ff5a4e" : "#3dd6f5";
+          const hl = satHover === x.name;
+          const pass = passes[x.name];
+          const sub = x.inSaa ? "en la Anomalía" : x.kind === "geo" ? "geoestacionario" : x.overNoa ? "sobre el NOA" : pass ? `vuelve ${pass.toLocaleTimeString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: "2-digit", minute: "2-digit", hour12: false })}` : "";
+          if (inside) return (
+            <g key={x.name} aria-hidden="true">
+              <circle cx={p.x} cy={p.y} r={(hl ? 24 : 17) * s} fill={color} fillOpacity={0.18} stroke={color} strokeOpacity={0.6} strokeWidth={1 * s} />
+              <circle cx={p.x} cy={p.y} r={11 * s} fill="#0a1220" fillOpacity={0.85} stroke={color} strokeWidth={1.5 * s} />
+              <Satellite x={p.x - 7 * s} y={p.y - 7 * s} width={14 * s} height={14 * s} color={color} strokeWidth={2.2} />
+              <Tag x={p.x} y={p.y} k={view.k} dx={16} dy={-12}>
+                <span className="block font-mono text-[11px] font-medium text-[#e6edf7]">{x.name}</span>
+                {sub && <span className="block text-[10px]" style={{ color: x.inSaa ? "#ff9b92" : "#c9d4e4" }}>{sub}</span>}
+              </Tag>
+            </g>
+          );
+          return (
+            <g key={x.name} aria-hidden="true" opacity={hl ? 1 : 0.95}>
+              <circle cx={ex} cy={ey} r={(hl ? 14 : 11) * s} fill="#0a1220" fillOpacity={0.85} stroke={color} strokeWidth={1.5 * s} strokeDasharray={`${3 * s} ${2 * s}`} />
+              <Satellite x={ex - 6.5 * s} y={ey - 6.5 * s} width={13 * s} height={13 * s} color={color} strokeWidth={2.2} />
+              <path d={`M ${ex + 16 * s} ${ey} l ${-5 * s} ${-4 * s} l 0 ${8 * s} z`} fill={color} transform={`rotate(${ang} ${ex} ${ey})`} />
+              <Tag x={ex} y={ey} k={view.k} dx={flip ? -196 : 16} dy={-12}>
+                <span className={`block w-[176px] font-mono text-[11px] font-medium text-[#e6edf7] ${flip ? "text-right" : ""}`}>{x.name}</span>
+                <span className={`block w-[176px] text-[10px] ${flip ? "text-right" : ""}`} style={{ color: x.inSaa ? "#ff9b92" : "#c9d4e4" }}>{p.visible ? "fuera de la vista" : "otro lado del planeta"}{sub ? ` · ${sub}` : ""}</span>
+              </Tag>
+            </g>
+          );
+        });
+      })()}
 
       {/* pines de clientes */}
       {rows.map(({ c, a }) => {
@@ -182,7 +238,7 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
             className="cursor-pointer outline-none [&:focus-visible>circle.ring]:stroke-[#3dd6f5]">
             {a.level === "atencion" && <circle cx={p.x} cy={p.y} r={18 * s} fill={pin.bg} fillOpacity={0.25} stroke={pin.bg} strokeWidth={1 * s} className="pin-pulse" style={{ transformBox: "fill-box", transformOrigin: "center" }} />}
             <circle className="ring" cx={p.x} cy={p.y} r={(sel ? 13 : 10.5) * s} fill={pin.bg} stroke={sel ? "#3dd6f5" : "#fff"} strokeWidth={2 * s} />
-            <text x={p.x} y={p.y + 3.4 * s} textAnchor="middle" fontSize={10 * s} fontWeight={700} fill={pin.fg}>{pin.icon}</text>
+            {(() => { const I = LEVEL_ICON[a.level]; return <I x={p.x - 6 * s} y={p.y - 6 * s} width={12 * s} height={12 * s} color={pin.fg} strokeWidth={2.6} />; })()}
             {(a.level === "atencion" || sel) && (
               <Tag x={p.x} y={p.y} k={view.k} dx={16} dy={rows.findIndex((r) => r.c.id === c.id) % 2 ? 10 : -48}>
                 <span className="block text-[12px] font-semibold text-[#e6edf7]">{c.field}</span>

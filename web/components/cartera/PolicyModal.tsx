@@ -85,9 +85,9 @@ export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fir
   const tabs: [Tab, string][] = [["historial", "Qué pasó"], ["transacciones", `Comprobantes · ${txs.length}`], ["auditoria", "Auditoría"]];
 
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center overflow-y-auto bg-[#02050a]/55 p-3 backdrop-blur-[6px] md:p-6" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 z-40 grid place-items-center overflow-y-auto bg-[#02050a]/55 p-3 backdrop-blur-[6px] md:overflow-hidden md:p-5" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div ref={box} role="dialog" aria-modal="true" aria-labelledby="poliza-titulo"
-        className="lg lg-strong theme-dark my-auto flex w-full max-w-[1040px] flex-col gap-4 rounded-[28px] p-4 md:p-6">
+        className="lg lg-strong theme-dark my-auto flex w-full max-w-[1040px] flex-col gap-4 rounded-[28px] p-4 md:max-h-[calc(100dvh-40px)] md:overflow-hidden md:p-6">
         {/* encabezado */}
         <header className="flex flex-wrap items-center gap-3.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -122,8 +122,8 @@ export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fir
         </dl>
 
         {/* cuerpo: las dos columnas se estiran a la misma altura */}
-        <div className="grid items-stretch gap-5 md:grid-cols-[380px_minmax(0,1fr)]">
-          <div className="flex flex-col gap-3">
+        <div className="grid gap-5 md:min-h-0 md:flex-1 md:grid-cols-[380px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
+          <div className="scroll-thin flex flex-col gap-3 md:min-h-0 md:overflow-y-auto md:pr-1">
             <div className="relative">
               {img === "campo" ? (
                 <FieldImage bbox={c.bbox} fires={[...a.inField, ...a.near, ...history]} tone={a.level === "atencion" ? "bad" : a.level === "vigilancia" ? "warn" : a.level === "siniestro" ? "info" : "ok"}
@@ -165,7 +165,7 @@ export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fir
             </section>
           </div>
 
-          <div className="flex min-h-0 min-w-0 flex-col gap-3">
+          <div className="flex min-w-0 flex-col gap-3 md:min-h-0">
             <div role="tablist" aria-label="Detalle de la póliza" className="lg-tile flex w-fit max-w-full flex-wrap gap-1 rounded-full p-[3px]">
               {tabs.map(([t, l]) => (
                 <button key={t} role="tab" aria-selected={tab === t} aria-controls={`panel-${t}`} id={`tab-${t}`} onClick={() => setTab(t)}
@@ -174,7 +174,7 @@ export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fir
             </div>
 
             {tab === "historial" && (
-              <div id="panel-historial" role="tabpanel" aria-labelledby="tab-historial" className="flex flex-1 flex-col gap-3">
+              <div id="panel-historial" role="tabpanel" aria-labelledby="tab-historial" className="scroll-thin flex flex-1 flex-col gap-3 md:min-h-0 md:overflow-y-auto md:pr-1">
                 <Stepper stages={flow.stages} />
                 <div className="flex items-start gap-3">
                   <p className="flex-1 text-[12.5px] leading-snug text-ink">{flow.summary}</p>
@@ -225,15 +225,15 @@ export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fir
             )}
 
             {tab === "transacciones" && (
-              <div id="panel-transacciones" role="tabpanel" aria-labelledby="tab-transacciones" className="flex flex-1 flex-col gap-2">
+              <div id="panel-transacciones" role="tabpanel" aria-labelledby="tab-transacciones" className="flex flex-1 flex-col gap-2 md:min-h-0">
                 {txs.length ? (
                   <>
                     <p className="text-[12px] leading-snug text-[#d5deea]">
                       Cada fila es un registro público en la blockchain de Avalanche. Con el comprobante, cualquiera puede verificar qué pasó y cuándo, sin pedirle nada a la aseguradora.
                     </p>
-                    <div className="lg-tile overflow-x-auto rounded-[14px] p-1">
+                    <div className="lg-tile scroll-thin overflow-auto rounded-[14px] p-1 md:min-h-0 md:flex-1">
                       <table className="w-full min-w-[540px] text-left text-[12px]">
-                        <thead className="text-[11px] text-muted">
+                        <thead className="sticky top-0 z-[1] bg-[#121b29] text-[11px] text-muted">
                           <tr><th className="px-2.5 py-2 font-medium">Hora</th><th className="font-medium">Qué pasó</th><th className="font-medium">Dónde</th><th className="pr-2 font-medium">Comprobante</th></tr>
                         </thead>
                         <tbody>
@@ -263,7 +263,7 @@ export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fir
             )}
 
             {tab === "auditoria" && (
-              <div id="panel-auditoria" role="tabpanel" aria-labelledby="tab-auditoria" className="flex flex-1 flex-col gap-2.5">
+              <div id="panel-auditoria" role="tabpanel" aria-labelledby="tab-auditoria" className="scroll-thin flex flex-1 flex-col gap-2.5 md:min-h-0 md:overflow-y-auto md:pr-1">
                 {k ? (
                   <>
                     <p className="text-[12px] leading-snug text-[#d5deea]">

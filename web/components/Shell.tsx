@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { INSURER, type Level } from "@/lib/portfolio";
+import { LEVEL_ICON } from "./icons";
 import { isSignedIn, signOut } from "@/lib/session";
 
 export function Logo() {
@@ -25,7 +26,7 @@ const LEVEL: Record<Level, { icon: string; label: string; cls: string }> = {
   atencion: { icon: "!", label: "Atención", cls: "bg-[#c4352b] text-white" },
   siniestro: { icon: "◆", label: "Siniestro on-chain", cls: "bg-[#e3eff7] text-[#0369a1]" },
   vigilancia: { icon: "▲", label: "Vigilancia", cls: "bg-[#fbf1df] text-[#9a6200]" },
-  ok: { icon: "✓", label: "Sin novedades", cls: "bg-[#e2f2ea] text-[#0b7d55]" },
+  ok: { icon: "✓", label: "Al día", cls: "bg-[#e2f2ea] text-[#0b7d55]" },
 };
 
 export function LevelBadge({ level, className = "" }: { level: Level | "cargando"; className?: string }) {
@@ -34,7 +35,7 @@ export function LevelBadge({ level, className = "" }: { level: Level | "cargando
   const l = LEVEL[level];
   return (
     <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold ${l.cls} ${className}`}>
-      <span aria-hidden="true" className={level === "atencion" ? "grid h-3.5 w-3.5 place-items-center rounded-full bg-white text-[10px] font-bold text-[#c4352b]" : ""}>{l.icon}</span>
+      {(() => { const I = LEVEL_ICON[level]; return <I aria-hidden="true" size={12} strokeWidth={2.4} className="shrink-0" />; })()}
       {l.label}
     </span>
   );

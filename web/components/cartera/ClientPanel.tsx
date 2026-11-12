@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { LevelBadge } from "@/components/Shell";
+import { ALL_ICON, LEVEL_ICON } from "@/components/icons";
 import { int } from "@/lib/format";
 import { CLIENTS, WATCH_KM, sumInsured, usd, type Level } from "@/lib/portfolio";
 import { ago } from "@/lib/sky";
@@ -9,7 +10,7 @@ import { eoxUrl, frame } from "@/lib/imagery";
 import type { Row } from "./GlobeView";
 
 export type Filter = "todos" | Level;
-const FILTERS: [Filter, string, string][] = [["todos", "", "Todos"], ["atencion", "!", "Atención"], ["vigilancia", "▲", "Vigilancia"], ["ok", "✓", "Sin novedades"]];
+const FILTERS: [Filter, string, string][] = [["todos", "Todos", "Todos los campos"], ["atencion", "Atención", "Atención: fuego en el lote"], ["vigilancia", "Vigilancia", "Vigilancia: fuego a 15 km o menos"], ["ok", "Al día", "Al día: sin novedades"]];
 
 function statusLine({ a }: Row, now: Date) {
   if (a.level === "atencion") return { cls: "text-[#ff8a80] font-medium", t: `${a.inField.length} focos dentro del campo · último ${ago(a.last!, now)}` };
@@ -72,14 +73,18 @@ export function ClientPanel({ rows, ready, now, query, setQuery, filter, setFilt
         )}
       </label>
 
-      <div role="group" aria-label="Filtrar por estado" className="flex flex-wrap gap-1.5">
-        {FILTERS.map(([f, icon, label]) => {
+      <div role="group" aria-label="Filtrar por estado" className="flex gap-0.5 rounded-xl border border-white/15 bg-white/[0.05] p-0.5">
+        {FILTERS.map(([f, label, title]) => {
           const on = filter === f;
           const n = f === "todos" ? rows.length : count(f);
+          const I = f === "todos" ? ALL_ICON : LEVEL_ICON[f];
+          const tint = f === "atencion" ? "text-[#ff8a80]" : f === "vigilancia" ? "text-[#f5c46b]" : f === "ok" ? "text-[#6ee7b7]" : "";
           return (
-            <button key={f} onClick={() => setFilter(f)} aria-pressed={on}
-              className={`rounded-full px-2.5 py-1 text-[12px] font-medium transition ${on ? "bg-white text-[#0e1b2c]" : "border border-white/20 bg-white/[0.07] text-ink hover:bg-white/15"}`}>
-              {icon && <span aria-hidden="true">{icon} </span>}{label}{ready || f === "todos" ? ` ${n}` : ""}
+            <button key={f} onClick={() => setFilter(f)} aria-pressed={on} title={title} aria-label={`${title} (${n})`}
+              className={`flex flex-auto items-center justify-center gap-1 whitespace-nowrap rounded-[10px] px-1.5 py-1.5 text-[11.5px] font-medium transition ${on ? "bg-white text-[#0e1b2c]" : "text-ink hover:bg-white/10"}`}>
+              <I aria-hidden="true" size={13} strokeWidth={2.2} className={`shrink-0 ${on ? "" : tint}`} />
+              <span>{label}</span>
+              {(ready || f === "todos") && <span className={`font-mono text-[10.5px] ${on ? "text-[#4d5d73]" : "text-muted"}`}>{n}</span>}
             </button>
           );
         })}
