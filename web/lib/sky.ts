@@ -49,7 +49,7 @@ export function inSaa(lat: number, lon: number): boolean {
 }
 export const NOA = { w: -68, s: -28, e: -62, n: -21.8 };
 
-const km = (a: number, b: number, c: number, d: number) => {
+export const km = (a: number, b: number, c: number, d: number) => {
   const r = Math.PI / 180;
   const h = Math.sin(((c - a) * r) / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin(((d - b) * r) / 2) ** 2;
   return 2 * EARTH_KM * Math.asin(Math.sqrt(h));

@@ -4,7 +4,7 @@ import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PUNA · Mission Control",
+  title: "PUNA · Cartera de seguros",
   description:
     "Seguro paramétrico de incendio: un nodo orbital calcula el índice, un validador independiente lo audita con Freivalds y PunaEscrow paga en Avalanche Fuji.",
 };

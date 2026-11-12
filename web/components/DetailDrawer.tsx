@@ -32,7 +32,9 @@ function bySat(fires: Fire[]) {
   return [...m.entries()].sort((a, b) => b[1] - a[1]);
 }
 
-function GibsImage({ bbox, fires, now }: { bbox: [number, number, number, number]; fires: Fire[]; now: Date }) {
+export function GibsImage({ bbox, fires, now, outline, initialLayer = "fuego" }: {
+  bbox: [number, number, number, number]; fires: Fire[]; now: Date; outline?: [number, number, number, number]; initialLayer?: keyof typeof LAYERS;
+}) {
   const days = [0, 1, 2, 3].map((d) => ymd(new Date(now.getTime() - d * 86_400_000)));
   // arranca en el día con más focos VIIRS DIURNOS (la imagen es de la pasada de ~13:30 local, 15–20 UTC):
   // si esa pasada vio fuego, el cielo estaba despejado. Si no hay, el día anterior (imagen completa).
@@ -42,7 +44,7 @@ function GibsImage({ bbox, fires, now }: { bbox: [number, number, number, number
     const best = [...days].sort((a, b) => viirsDay(b) - viirsDay(a))[0];
     return viirsDay(best) > 0 ? best : days[1];
   });
-  const [layer, setLayer] = useState<keyof typeof LAYERS>("fuego");
+  const [layer, setLayer] = useState<keyof typeof LAYERS>(initialLayer);
   const [w, s, e, n] = bbox;
   const url =
     `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0` +
@@ -54,6 +56,10 @@ function GibsImage({ bbox, fires, now }: { bbox: [number, number, number, number
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img key={url} src={url} alt={`Imagen satelital real de NOAA-20 VIIRS (${LAYERS[layer].label}) del ${day} sobre la zona`} className="h-full w-full object-cover" />
         <svg viewBox="0 0 1 1" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
+          {outline && (
+            <rect x={(outline[0] - w) / (e - w)} y={(n - outline[3]) / (n - s)} width={(outline[2] - outline[0]) / (e - w)} height={(outline[3] - outline[1]) / (n - s)}
+              fill="none" stroke="#3dd6f5" strokeWidth="0.006" />
+          )}
           {dayFires.map((f, i) => (
             <circle key={i} cx={(f.lon - w) / (e - w)} cy={(n - f.lat) / (n - s)} r="0.008" fill="none" stroke="#ffe066" strokeWidth="0.004" />
           ))}

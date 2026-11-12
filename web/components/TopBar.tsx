@@ -19,7 +19,7 @@ export function TopBar() {
         </div>
       </div>
       <nav aria-label="Ruta" className="text-sm text-muted">
-        Mission Control <span aria-hidden="true">/</span> Póliza Lote 14 <span aria-hidden="true">/</span>{" "}
+        <a href="/cartera" className="hover:underline">Cartera</a> <span aria-hidden="true">/</span> Mission Control <span aria-hidden="true">/</span> Póliza Lote 14 <span aria-hidden="true">/</span>{" "}
         <span className="font-mono text-ink">job {job.id}</span>
       </nav>
       <div className="ml-auto flex flex-wrap items-center gap-2 text-xs">

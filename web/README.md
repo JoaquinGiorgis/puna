@@ -4,6 +4,25 @@ Producción: https://puna-mission-control.vercel.app (Vercel, cuenta personal, p
 
 Next.js 16 (App Router) + Tailwind 4 + viem. Diseño: `docs/design.md` y Figma.
 
+## Rutas
+
+- `/`: login de **demostración** de la aseguradora. No valida credenciales: deja la cookie `puna_demo` y abre la cartera.
+- `/cartera`: la cartera de la aseguradora (`lib/portfolio.ts`): 13 campos del NOA, 12 simulados más el Lote 14 on-chain.
+  - El estado de cada campo se calcula en vivo con los focos NASA FIRMS de 48 h (`/api/fires`):
+    - **Atención**: foco a ≤ 1 km del borde del lote.
+    - **Vigilancia**: foco a ≤ 15 km.
+    - **Siniestro on-chain**: el Lote 14, con su job en PunaEscrow.
+    - **Sin novedades**: el resto.
+  - Cada tarjeta muestra la imagen Sentinel-2 cloudless (EOX, 10 m) con el contorno del lote y los focos.
+- `/cartera/[id]`: la ficha del campo.
+  - Estado y paso siguiente.
+  - Póliza: simulada, salvo el Lote 14.
+  - Imagen nítida del campo (Sentinel-2) o del día (NASA GIBS VIIRS, color real o falso color).
+  - Tabla de focos cercanos.
+- `/mission-control`: la auditoría on-chain del job (lo que antes era `/`).
+
+Simulado: la aseguradora, los productores, sus campos y pólizas. Real: los focos, las distancias, las imágenes y todo lo on-chain.
+
 ```bash
 pnpm --dir web install
 pnpm --dir web dev        # http://localhost:3000

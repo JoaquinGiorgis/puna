@@ -33,3 +33,7 @@
 
 - **Freivalds, R.** (1977), verificación probabilística de productos de matrices.
 - **Flipless** (https://flipless.space), citado como trabajo complementario de detección de bit-flips.
+
+## Sentinel-2 cloudless (EOX)
+
+La ficha de cada campo en la cartera usa el mosaico **Sentinel-2 cloudless 2025** de EOX IT Services GmbH, que contiene datos Copernicus Sentinel modificados. Licencia CC BY-NC-SA 4.0: solo para uso no comercial, como esta demo. Un producto comercial necesita licencia de EOX u otra fuente de imágenes.
