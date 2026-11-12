@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRight, ArrowUpRight, Flame } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Droplets, Flame, Snowflake, Sun } from "lucide-react";
 import { demo } from "@/lib/data";
 import { addrUrl } from "@/lib/format";
 import { lot14Kpis } from "@/lib/policy";
@@ -32,6 +32,13 @@ const HOW = [
   { title: "Otro satélite lo verifica", body: "Otro operador comprueba cada capa de la CNN con el algoritmo de Freivalds: prueba la cuenta con números al azar y, si un solo valor fue alterado, no cierra y no se paga.", fact: "C·r ≡ A·(B·r) mód p" },
   { title: "Se paga el seguro", body: "Si la verificación aprueba y el daño supera el umbral de la póliza, el contrato en Avalanche le paga al productor.", fact: "" },
 ] as const;
+
+const PERILS = [
+  { name: "Incendio", icon: Flame, color: "#ff7a1a", what: "Área quemada y puntos de calor dentro del lote.", src: "NASA FIRMS · VIIRS, MODIS, GOES", live: true },
+  { name: "Sequía", icon: Sun, color: "#f5c26b", what: "Vigor de la vegetación y humedad del suelo.", src: "Sentinel-2 · MODIS · SMAP", live: false },
+  { name: "Inundación", icon: Droplets, color: "#7dd3fc", what: "Superficie del lote cubierta de agua, aun con nubes.", src: "Radar Sentinel-1", live: false },
+  { name: "Helada", icon: Snowflake, color: "#c4b5fd", what: "Temperatura de la superficie durante la noche.", src: "MODIS · VIIRS", live: false },
+];
 
 function Label({ children, tone = "#7dd3fc" }: { children: React.ReactNode; tone?: string }) {
   return <p className="text-[13px] font-medium" style={{ color: tone }}>{children}</p>;
@@ -175,57 +182,73 @@ export function Landing() {
             <Pains seconds={k.seconds} txs={k.txs} fee={k.fee} indemnity={k.indemnity} />
           </div>
 
-          <div className="mt-16">
-            <p className="text-[15px] font-semibold">Qué siniestros mide un satélite</p>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-[13.5px]">
-                <thead className="text-[12px] text-[#9aa9be]">
-                  <tr><th className="py-2 pr-4 font-medium">Riesgo</th><th className="pr-4 font-medium">Qué se mide en el lote</th><th className="pr-4 font-medium">Fuente satelital</th><th className="font-medium">Estado</th></tr>
-                </thead>
-                <tbody className="text-[#c9d4e4]">
-                  {([
-                    ["Incendio", "Área quemada y puntos de calor", "NASA FIRMS: VIIRS, MODIS, GOES", "En la demo, con datos reales", true],
-                    ["Sequía", "Índice de vegetación y humedad del suelo", "Sentinel-2, MODIS, SMAP", "Misma capa, próximo índice", false],
-                    ["Inundación", "Superficie cubierta de agua", "Radar Sentinel-1, también con nubes", "Misma capa, próximo índice", false],
-                    ["Helada", "Temperatura de la superficie de noche", "MODIS, VIIRS", "Misma capa, próximo índice", false],
-                  ] as const).map(([r, what, src, st, live]) => (
-                    <tr key={r} className="border-t border-white/10">
-                      <td className="py-3 pr-4 font-semibold text-white">{r}</td>
-                      <td className="pr-4">{what}</td>
-                      <td className="pr-4 text-[#9aa9be]">{src}</td>
-                      <td className={live ? "font-medium text-[#6ee7b7]" : "text-[#9aa9be]"}>{st}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="mt-24">
+            <div className="mx-auto flex max-w-[640px] flex-col items-center gap-3 text-center">
+              <Label tone="#6ee7b7">Qué siniestros medimos</Label>
+              <h2 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] [text-wrap:balance] md:text-[36px]">
+                Si un satélite lo ve, PUNA lo puede peritar
+              </h2>
             </div>
+            <ul className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {PERILS.map(({ name, icon: I, color, what, src, live }) => (
+                <li key={name} className="lg flex flex-col gap-4 rounded-[24px] p-5">
+                  <div className="relative grid h-[88px] place-items-center overflow-hidden rounded-2xl border border-white/10"
+                    style={{ background: `radial-gradient(80% 90% at 50% 100%, ${color}40, transparent 70%), #05080f99` }}>
+                    <I size={34} strokeWidth={1.6} style={{ color }} aria-hidden="true" />
+                    <span className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10.5px] font-medium ${live ? "bg-[#34d399]/15 text-[#6ee7b7]" : "bg-white/[0.07] text-[#9aa9be]"}`}>
+                      {live ? "En la demo" : "Próximo índice"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <h3 className="text-[17px] font-semibold">{name}</h3>
+                    <p className="text-[13px] leading-snug text-[#c9d4e4]">{what}</p>
+                  </div>
+                  <p className="mt-auto text-[11.5px] text-[#9aa9be]">{src}</p>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          <div className="lg lg-strong mt-12 grid gap-6 overflow-hidden rounded-[32px] p-7 md:grid-cols-[1fr_auto] md:items-end md:p-10">
-            <div>
-              <p className="max-w-[38ch] text-[24px] font-semibold leading-tight tracking-[-0.02em] [text-wrap:balance] md:text-[32px]">
-                Arrancamos con incendios en el NOA. La misma capa mide sequía, inundación o helada: cualquier índice que calcule un satélite.
-              </p>
-              <p className="mt-3 max-w-[60ch] text-[14.5px] text-[#c9d4e4]">
-                Cuando la inteligencia artificial corra en el espacio, alguien va a tener que controlar que no se equivoque antes de que se mueva la plata.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/ingresar" className={`flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[14px] font-semibold text-[#0e1b2c] hover:bg-[#dff6fd] ${btn}`}>
-                Entrar a la demo <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-              <Link href="/mission-control" className={`flex items-center gap-1.5 rounded-full border border-white/25 px-5 py-3 text-[14px] font-medium hover:bg-white/10 ${btn}`}>
-                Auditoría on-chain
-              </Link>
+          <div className="relative mt-24 overflow-hidden rounded-[32px] border border-white/10 p-8 md:p-12"
+            style={{ background: "radial-gradient(60% 120% at 100% 0%, rgba(125,211,252,0.18), transparent 60%), radial-gradient(50% 100% at 0% 100%, rgba(255,122,26,0.14), transparent 60%), rgba(11,18,32,0.75)" }}>
+            <div className="grid items-center gap-10 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+              <div className="flex flex-col gap-5">
+                <h2 className="max-w-[18ch] text-[32px] font-semibold leading-[1.08] tracking-[-0.025em] [text-wrap:balance] md:text-[42px]">
+                  Peritá tu próximo siniestro desde el espacio
+                </h2>
+                <p className="max-w-[46ch] text-[15.5px] leading-relaxed text-[#c9d4e4]">
+                  Mirá la cartera de demo con el incendio real del Lote 14: la alerta, la medición, la auditoría y el pago.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Link href="/ingresar" className={`flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[14.5px] font-semibold text-[#0e1b2c] shadow-[0_8px_30px_-8px_rgba(125,211,252,0.5)] hover:bg-[#dff6fd] ${btn}`}>
+                    Entrar a la demo <ArrowRight size={16} aria-hidden="true" />
+                  </Link>
+                  <Link href={`/mission-control?job=${demo.job.id}`} className={`flex items-center gap-1.5 rounded-full border border-white/25 px-5 py-3 text-[14px] font-medium hover:bg-white/10 ${btn}`}>
+                    Ver una auditoría <ArrowUpRight size={15} aria-hidden="true" />
+                  </Link>
+                </div>
+              </div>
+              <ul className="flex flex-col gap-3" aria-label="Resultados del caso real">
+                {([
+                  ["46 s", "del reclamo al pago", "#6ee7b7", 0],
+                  ["300/300", "fallas detectadas por el auditor", "#7dd3fc", 28],
+                  [`${k.txs}`, "comprobantes públicos en Avalanche", "#ffb27a", 8],
+                ] as const).map(([v, l, c, off]) => (
+                  <li key={l} className="lg flex items-center gap-4 rounded-2xl px-5 py-3.5" style={{ marginLeft: off }}>
+                    <span className="font-mono text-[24px] font-semibold tabular-nums leading-none" style={{ color: c }}>{v === "46 s" ? `${k.seconds} s` : v}</span>
+                    <span className="text-[13px] text-[#c9d4e4]">{l}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="mx-auto w-full max-w-[1240px] px-4 pb-10">
-        <div className="flex flex-col gap-2 border-t border-white/10 pt-5 text-[11.5px] leading-relaxed text-[#9aa9be] md:flex-row md:justify-between md:gap-8">
-          <p className="max-w-[70ch]"><span className="text-[#6ee7b7]">Real:</span> focos NASA FIRMS, órbitas CelesTrak, contrato y transacciones en Avalanche Fuji. <span className="text-[#f5c26b]">Simulado:</span> la aseguradora, los productores y que esos satélites calculen.</p>
-          <p className="md:text-right">Planeta: NASA Blue Marble vía GIBS · Satélites: NASA 3D Resources · Argentina Space Hackathon 2026</p>
+      <footer className="mx-auto w-full max-w-[1240px] px-4 pb-10 pt-6">
+        <div className="flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-5 text-[12px] text-[#9aa9be] md:flex-row md:items-center">
+          <span className="flex items-center gap-2"><Mark /> <span className="font-semibold tracking-[0.2em] text-[#e6edf7]">PUNA</span> · Argentina Space Hackathon 2026</span>
+          <span><span className="text-[#6ee7b7]">Real:</span> focos NASA, órbitas y pagos en Avalanche · <span className="text-[#f5c26b]">Simulado:</span> aseguradora y satélites que calculan</span>
         </div>
       </footer>
     </div>
