@@ -11,7 +11,7 @@ const NAME = /^[0-9a-f]{64}\.(json|npz)$/;
 export async function GET(_req: Request, ctx: { params: Promise<{ name: string }> }) {
   const { name } = await ctx.params;
   if (!NAME.test(name)) return new Response("nombre inválido", { status: 400 });
-  const dir = process.env.ARTIFACTS_DIR ?? path.resolve(process.cwd(), "..", "out", "artifacts");
+  const dir = process.env.ARTIFACTS_DIR ?? path.join(/* turbopackIgnore: true */ process.cwd(), "..", "out", "artifacts");
   try {
     const data = await readFile(path.join(dir, name));
     return new Response(new Uint8Array(data), {

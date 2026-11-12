@@ -21,7 +21,7 @@ const SAT_NAME: Record<string, string> = {
 async function mapKey(): Promise<string | null> {
   if (process.env.FIRMS_MAP_KEY) return process.env.FIRMS_MAP_KEY;
   try {
-    const env = await readFile(path.resolve(process.cwd(), "..", ".env"), "utf8");
+    const env = await readFile(path.join(/* turbopackIgnore: true */ process.cwd(), "..", ".env"), "utf8");
     return /^FIRMS_MAP_KEY=([^\s#]+)/m.exec(env)?.[1] ?? null;
   } catch {
     return null;
