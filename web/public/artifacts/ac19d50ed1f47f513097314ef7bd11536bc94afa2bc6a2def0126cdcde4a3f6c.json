@@ -1,0 +1,92 @@
+{
+  "score": 100,
+  "summary": "Aprobado (16 chequeos): el cálculo corresponde al modelo y a la entrada comprometidos.",
+  "checks": [
+    {
+      "name": "inputHash",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "modelHash",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "L1 conv 3x3·4: Freivalds",
+      "ok": true,
+      "detail": "p=2^31-1, reps=2"
+    },
+    {
+      "name": "L1 conv 3x3·4: requant/ReLU",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "L1 conv 3x3·4: in[i+1]=out[i]",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "L2 conv 3x3·4: Freivalds",
+      "ok": true,
+      "detail": "p=2^31-1, reps=2"
+    },
+    {
+      "name": "L2 conv 3x3·4: requant/ReLU",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "L2 conv 3x3·4: in[i+1]=out[i]",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "L3 conv 1x1·2: Freivalds",
+      "ok": true,
+      "detail": "p=2^31-1, reps=2"
+    },
+    {
+      "name": "L3 conv 1x1·2: requant/ReLU",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "L3 conv 1x1·2: in[i+1]=out[i]",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "L4 lineal → celda: Freivalds",
+      "ok": true,
+      "detail": "p=2^31-1, reps=2"
+    },
+    {
+      "name": "L4 lineal → celda: requant/ReLU",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "outputHash",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "indexBps",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "merkleRoot",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "jobId": 8,
+  "attempt": 2,
+  "agentId": 301,
+  "requestHash": "0x370f62e47437332ca160ef9250bedf995af811a6655da085847fe173632961ef",
+  "escrow": "0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982",
+  "validator": "0xFdce04b21fd0287B895db935f2779c4891e517B4"
+}

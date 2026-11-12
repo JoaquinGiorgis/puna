@@ -78,22 +78,25 @@ const certCache = new Map<string, Certificate | null>();
 
 async function fetchCertificate(uri: string): Promise<Certificate | null> {
   if (certCache.has(uri)) return certCache.get(uri)!;
-  // puna-artifacts://<sha256>.json → /api/artifact/<sha256>.json; el navegador verifica el sha256
+  // puna-artifacts://<sha256>.json → primero la copia estática del deploy (/artifacts/, para Vercel) y
+  // después la ruta que lee out/artifacts en la máquina del validador. El navegador verifica el sha256.
   const m = /^puna-artifacts:\/\/([0-9a-f]{64}\.json)/.exec(uri);
-  const url = m ? `/api/artifact/${m[1]}` : /^https?:\/\//.test(uri) ? uri.split("#")[0] : null;
+  const urls = m ? [`/artifacts/${m[1]}`, `/api/artifact/${m[1]}`] : /^https?:\/\//.test(uri) ? [uri.split("#")[0]] : [];
   let cert: Certificate | null = null;
-  if (url) {
+  for (const url of urls) {
     try {
       const r = await fetch(url);
-      if (r.ok) {
-        const buf = await r.arrayBuffer();
-        const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", buf)))
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join("");
-        if (!m || `${hash}.json` === m[1]) cert = JSON.parse(new TextDecoder().decode(buf)) as Certificate;
+      if (!r.ok) continue;
+      const buf = await r.arrayBuffer();
+      const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", buf)))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      if (!m || `${hash}.json` === m[1]) {
+        cert = JSON.parse(new TextDecoder().decode(buf)) as Certificate;
+        break;
       }
     } catch {
-      cert = null;
+      /* probar la siguiente fuente */
     }
   }
   if (cert) certCache.set(uri, cert); // los fallidos se reintentan en el próximo refresco

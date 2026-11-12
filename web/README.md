@@ -1,5 +1,7 @@
 # web: Mission Control
 
+Producción: https://puna-mission-control.vercel.app (Vercel, cuenta personal, proyecto `puna-mission-control`). Requiere la variable `FIRMS_MAP_KEY`, ya cargada. Los certificados del validador se sirven desde `public/artifacts/`; los de jobs nuevos aparecen en producción recién al copiarlos ahí y redeployar.
+
 Next.js 16 (App Router) + Tailwind 4 + viem. Diseño: `docs/design.md` y Figma.
 
 ```bash
