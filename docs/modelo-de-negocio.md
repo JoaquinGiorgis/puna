@@ -101,30 +101,77 @@ PUNA le vende software y un servicio de verificación a la aseguradora. **No cob
 - **Cobro on-chain como Chainlink Functions:** en la v2, la aseguradora carga un saldo prepago en el contrato y cada auditoría descuenta su fee. La plataforma anual se factura en pesos o dólares, como cualquier software.
 - **Por qué cobramos más que el costo de cómputo:** auditar con Freivalds cuesta casi nada. Lo que se paga es la independencia del validador, la liquidación en 15 días que pide la Res. 315 y la trazabilidad para la SSN y el reasegurador.
 
-### Ejemplo con el Lote 14 de la demo
+### Por qué esos precios: el ancla es lo que la aseguradora ya gasta
 
-- Suma asegurada: 1.370 ha × USD 400/ha = **USD 548.000**. Prima de la aseguradora: 1,8 % = **USD 9.864**.
-- PUNA cobra **USD 411 por la campaña** por monitorear el lote (1.370 ha × 0,30) y **USD 40 por las dos auditorías** del job 7: la que rechazó el cálculo con error y la que aprobó el segundo. Cobra igual por el rechazo que por la aprobación: así el auditor no tiene interés en que se pague.
-- La licencia anual se reparte entre todos los lotes del programa, no se carga a uno solo.
-- Los 11 comprobantes del job 7 en Fuji costaron una fracción ínfima de AVAX. El productor cobró **46 segundos** después de abrir el reclamo.
+Datos de la encuesta agro de la SSN (julio 2023 a junio 2024). Los montos en dólares son conversiones nuestras al mayorista de junio de 2024 (ARS 912).
+
+| Dato real | Valor | Fuente |
+|---|---|---|
+| Hectáreas aseguradas | 23,57 M ha, 188.584 pólizas, 28 aseguradoras agrícolas | SSN 2024 |
+| Primas agro | ARS 357.152 M, unos **USD 392 M**, o sea **USD 16,6 por ha** | SSN 2024 (conversión nuestra) |
+| Siniestros pagados | **45.497** en el año, unos **1,9 por cada 1.000 ha** | SSN 2024 |
+| Inspección | Con granizo (98,9 % de las primas) cada denuncia lleva perito en el campo dentro de los 15 días, a cargo de la aseguradora | Condiciones generales de La Dulce |
+| Gastos | Administración 12,8 % y adquisición 13,6 % de las primas; combined ratio **121,5 %**: el ramo pierde plata | SSN 2024 |
+| Referencia internacional | En EE. UU. el Estado le reconoce a la aseguradora un **6 % de la prima** como gasto de liquidación en la cobertura catastrófica | USDA RMA, vía CRS |
+| NOA y Chaco | 819.000 ha aseguradas, unos USD 8 M de prima (USD 9,9 por ha), el 2,1 % de las primas del país | SSN 2024 |
+
+**La regla de precio:** PUNA tiene que costar **menos que el gasto de liquidar con perito**. Apuntamos a que el total quede entre el **3 % y el 5 % de la prima** del programa, por debajo del 6 % que usa como referencia el sistema de EE. UU. y muy por debajo del 12,8 % que hoy se va en administración. Dato que falta y se mide en el piloto: cuánto cobra un perito por inspección en Argentina; no lo encontramos publicado.
+
+### Ejemplo real 1: la plata que se movió en el job 7 (Fuji)
+
+La aseguradora depositó 0,02 AVAX: 0,015 de indemnización, 0,002 para el satélite que calcule y 0,003 para hasta tres auditorías.
+
+| Quién | Por qué | Cobró |
+|---|---|---|
+| Productor | 37,8 % quemado auditado supera el disparador del 30 % | 0,015 AVAX |
+| ORBIT-03 | Su cálculo pasó la auditoría | 0,002 AVAX |
+| ORBIT-07 | Su cálculo no pasó (score 49) | 0 |
+| Validador | Dos auditorías, una rechazó y otra aprobó: cobra lo mismo en las dos | 0,002 AVAX |
+| Aseguradora | Recupera la auditoría que no se usó | 0,001 AVAX |
+
+Costo de red de las 11 transacciones: casi nulo. En la v1 PUNA no cobra; el fee de plataforma entra en la v2.
+
+### Ejemplo real 2: un programa de 100.000 ha en Santiago del Estero
+
+Con los datos de la SSN para esa provincia (358.000 ha aseguradas, ARS 3.890 M de prima, unos USD 11,9 por ha):
+
+| Concepto | Cálculo | Monto |
+|---|---|---|
+| Prima del programa | 100.000 ha × USD 11,9 | USD 1.190.000 |
+| Siniestros esperados | 100.000 ha × 1,9 por cada 1.000 ha | unos 193 (232 auditorías, contando reintentos) |
+| Licencia anual, incluye 100 auditorías | Fijo | USD 15.000 |
+| Monitoreo | 100.000 ha × USD 0,30 | USD 30.000 |
+| Auditorías fuera del cupo | 132 × USD 20 | USD 2.640 |
+| **PUNA total** | | **USD 47.640, el 4 % de la prima** |
+
+Contra eso, la aseguradora deja de mandar perito a unos 190 siniestros para decidir si se dispara el pago, y cumple de entrada el acceso al cálculo y el plazo de 15 días de la Res. SSN 315.
 
 ### Lo que ya hace el contrato y lo que falta
 
-- **Ya hace:** el fee del validador es fijo por intento y se paga apruebe o rechace. Ese es el principio de herramienta, y es el mismo que usamos para cobrar la auditoría.
-- **Falta (v2):** el saldo prepago de auditorías, el pago en USDC y que el fee de PUNA se descuente sin depender del resultado.
+- **Ya hace:** el fee del validador es fijo por intento y se paga apruebe o rechace. Es el mismo principio con el que cobramos la auditoría.
+- **Falta (v2):** el saldo prepago de auditorías, el pago en USDC y el fee de PUNA descontado sin depender del resultado.
 
-## 5. Tamaño del mercado
+## 5. Proyección a 3 años
 
-| Nivel | Qué es | Tamaño | Fuente o supuesto |
+**Supuestos:** precios de la tabla de planes; 1,9 siniestros por cada 1.000 ha (SSN 2024) y 1,2 auditorías por siniestro; costos de un equipo chico en Argentina (3 a 6 personas) más infraestructura: USD 120.000, 220.000 y 320.000 por año. Los datos satelitales que usamos hoy (FIRMS, Sentinel) son gratuitos y auditar con Freivalds cuesta casi nada, así que el costo es casi todo equipo.
+
+| Escenario | 2027 | 2028 | 2029 |
 |---|---|---|---|
-| **TAM** | Primas de seguros paramétricos en el mundo; mercado al que se le venden herramientas | USD 15–21 B en 2025, con un crecimiento de 8–13 % anual | GMI, MRFR (ver el informe de mercado) |
-| **SAM** | Hectáreas agrícolas aseguradas en Argentina, todas candidatas a un índice satelital auditado | 23,6 M ha × USD 0,30 ≈ **USD 7 M por campaña** en monitoreo, más licencias y auditorías | SSN 2024 para las hectáreas; el precio es supuesto |
-| **SOM a 3 años** | Tres aseguradoras y una provincia: unas 600.000 ha en el NOA y el Chaco y unas 3.000 auditorías al año | 4 licencias × 15.000 + 600.000 × 0,30 + 3.000 × 20 ≈ **USD 300.000 por año** | Supuesto nuestro |
+| **Conservador** | Piloto pago, sin programa · **USD 10.000** | 1 aseguradora, 80.000 ha · **USD 40.700** | 2 aseguradoras, 200.000 ha · **USD 101.300** |
+| **Base** | Piloto + 1 programa de 50.000 ha · **USD 40.300** | 3 aseguradoras, 200.000 ha · **USD 117.300** | 4 aseguradoras + 1 provincia, 500.000 ha · **USD 266.200** |
+| **Optimista** | 2 programas, 120.000 ha · **USD 77.600** | 5 aseguradoras, 500.000 ha · **USD 263.200** | 7 aseguradoras + 2 provincias, 1,2 M ha · **USD 590.600** |
+| Costos | USD 120.000 | USD 220.000 | USD 320.000 |
 
-- **Lo que agranda el mercado:**
-  - La misma capa sirve para cualquier índice que calcule un satélite: sequía, inundación, helada y, fuera del agro, carga, energía o infraestructura.
-  - Cuando exista el cómputo orbital a escala (SpaceX, Google Suncatcher, Starcloud), los operadores van a necesitar verificar sus resultados. Ahí PUNA cobra por auditoría, como hoy, pero con muchos más trabajos.
-- **Conviene decirlo así:** el agro argentino es la cabeza de playa, no el techo.
+- **Lectura honesta:** en el escenario base, PUNA no cubre sus costos en 3 años solo con agro en el norte argentino (resultado 2029: unos USD −54.000). El punto de equilibrio llega cerca de las **600.000 ha** bajo PUNA. Es el 2,5 % de las hectáreas aseguradas del país, pero más que todo el NOA y el Chaco juntos.
+- **El precio queda entre 3 % y 5 % de la prima** en todos los escenarios, como apunta la regla de precio.
+- **Qué tiene que pasar para el base:** que el piloto muestre que el índice coincide con el perito y que una aseguradora del top 10 (el top 10 tiene el 90 % de las primas) lo lleve a su programa. Una provincia como tomadora (exenta de aprobación previa por la Res. 315) acelera el año 3.
+- **Para crecer de verdad** hay que salir del incendio en el NOA: sequía en la zona núcleo (Córdoba ya tiene un piloto provincial de hasta 500.000 ha), otros países (Brasil, Paraguay) y, cuando llegue, el cómputo orbital, donde los operadores satelitales pagan por auditoría.
+
+| Nivel | Qué es | Tamaño | Fuente |
+|---|---|---|---|
+| **TAM** | Primas de seguros paramétricos en el mundo | USD 15–21 B en 2025, +8–13 % anual | GMI, MRFR (informe de mercado) |
+| **SAM** | Seguro agrícola argentino, a USD 0,30 por ha más licencias | 23,57 M ha ≈ **USD 7 M de monitoreo por campaña**, más licencias y auditorías | SSN 2024; precio supuesto |
+| **SOM a 3 años** | Escenario base | **500.000 ha, unos USD 266.000 por año** | Cálculo de arriba |
 
 ## 6. Competencia y alternativas
 
@@ -173,6 +220,8 @@ PUNA le vende software y un servicio de verificación a la aseguradora. **No cob
 - **Cliente:** aseguradoras agro con licencia en el NOA. Después, provincias y quienes financian la campaña.
 - **Beneficiario:** el productor, que cobra en minutos y puede verificar por qué.
 - **Qué vendemos:** que el índice que dispara el pago esté bien calculado, auditado por un tercero y liquidado on-chain.
-- **Cómo cobramos:** como herramienta, no como socio. Piloto USD 10.000, licencia de USD 10.000 a 25.000 al año, USD 0,30 por hectárea por campaña y USD 20 por auditoría (supuestos). Cobramos lo mismo apruebe o rechace.
+- **Cómo cobramos:** como herramienta, no como socio. Piloto USD 10.000, licencia de USD 10.000 a 25.000 al año, USD 0,30 por hectárea por campaña y USD 20 por auditoría (supuestos). Cobramos lo mismo apruebe o rechace. Total: entre 3 % y 5 % de la prima, por debajo del 6 % de gasto de liquidación de referencia.
+- **Ejemplo:** un programa de 100.000 ha en Santiago del Estero paga unos USD 47.600 al año, el 4 % de su prima.
+- **Proyección (base):** USD 40.000 en 2027, 117.000 en 2028 y 266.000 en 2029. El equilibrio llega cerca de las 600.000 ha; para crecer más hay que sumar sequía, otros países y cómputo orbital.
 - **Mercado:** 23,6 M ha aseguradas en Argentina. La cabeza de playa es el NOA, donde casi nadie asegura el incendio.
 - **Por qué ahora:** la Res. SSN 315/2026 (julio de 2026), los incendios de Salta (julio de 2026) y la llegada del cómputo orbital (2026–2028).
