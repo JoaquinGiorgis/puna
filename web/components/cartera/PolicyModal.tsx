@@ -7,8 +7,9 @@ import { FieldImage } from "@/components/FieldImage";
 import { LevelBadge } from "@/components/Shell";
 import { demo } from "@/lib/data";
 import { addrUrl, int, pct, short, txUrl } from "@/lib/format";
+import { Stepper } from "./Stepper";
 import { frame } from "@/lib/imagery";
-import { lot14Kpis, policyHistory, policyTxs, type StepKind } from "@/lib/policy";
+import { lot14Kpis, policyHistory, policyStages, policyTxs, type Stage, type StepKind } from "@/lib/policy";
 import { distToField, sumInsured, usd } from "@/lib/portfolio";
 import type { Fire } from "@/lib/sky";
 import type { Row } from "./GlobeView";
@@ -44,7 +45,9 @@ export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fir
   const box = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<Tab>("historial");
   const [img, setImg] = useState<"campo" | "dia">("campo");
-  const steps = useMemo(() => policyHistory(c, a, now), [c, a, now]);
+  const [techOn, setTechOn] = useState(false);
+  const steps = useMemo(() => policyHistory(c, a), [c, a]);
+  const flow = useMemo(() => policyStages(c, a), [c, a]);
   const txs = useMemo(() => policyTxs(c), [c]);
   const k = c.onchain ? lot14Kpis() : null;
   const history = c.onchain ? lot14Fires() : [];
@@ -67,19 +70,19 @@ export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fir
 
   const kpis: [string, string, string, string][] = k
     ? [
-        ["Índice validado", pct(k.indexBps), "text-[#ff9a3d]", `disparador ≥ ${pct(k.triggerBps)} · ${k.indexBps >= k.triggerBps ? "supera" : "no supera"}`],
-        ["Indemnización", k.indemnity, "text-[#6ee7b7]", `${k.state === "Paid" ? "pagada" : k.state} · ${k.paidAt} ART`],
+        ["Área quemada (verificada)", pct(k.indexBps), "text-[#ff9a3d]", `supera el ${pct(k.triggerBps)} pactado`],
+        ["Pago al productor", k.indemnity, "text-[#6ee7b7]", `${k.state === "Paid" ? "pagado" : k.state} · ${k.paidAt}`],
         ["Suma asegurada", usd(sumInsured(c)), "text-ink", `prima ${usd(sumInsured(c) * 0.018)} · campaña 2026/27`],
-        ["De la póliza al pago", `${k.seconds} s`, "text-ink", `${k.txs} txs · ${int(k.gas)} gas`],
+        ["Del reclamo al pago", `${k.seconds} s`, "text-ink", `${k.txs} comprobantes · costo de red ${k.fee}`],
       ]
     : [
-        ["Índice", a.level === "atencion" ? "pendiente" : "—", "text-ink", a.level === "atencion" ? "falta pedir el índice verificado" : "sin siniestro abierto"],
-        ["Focos en el lote · 48 h", int(a.inField.length), a.inField.length ? "text-[#ff8a80]" : "text-ink", a.near.length ? `${a.near.length} más a ≤ 15 km` : "ninguno a ≤ 15 km"],
+        ["Área quemada", a.inField.length ? "sin medir" : "—", "text-ink", a.inField.length ? "falta medir y auditar" : "no hay siniestro abierto"],
+        ["Puntos de calor en el lote", int(a.inField.length), a.inField.length ? "text-[#ff8a80]" : "text-ink", `últimas 48 h${a.near.length ? ` · ${a.near.length} más a ≤ 15 km` : ""}`],
         ["Suma asegurada", usd(sumInsured(c)), "text-ink", `prima ${usd(sumInsured(c) * 0.018)} · campaña 2026/27`],
-        ["Disparador", `≥ ${c.triggerPct} %`, "text-ink", "del lote quemado, verificado"],
+        ["Paga si se quema", `> ${c.triggerPct} %`, "text-ink", "del lote, medido y auditado"],
       ];
 
-  const tabs: [Tab, string][] = [["historial", `Historial · ${steps.length}`], ["transacciones", `Transacciones · ${txs.length}`], ["auditoria", `Auditoría · ${k ? k.attempts.length : 0} intentos`]];
+  const tabs: [Tab, string][] = [["historial", "Qué pasó"], ["transacciones", `Comprobantes · ${txs.length}`], ["auditoria", "Auditoría"]];
 
   return (
     <div className="fixed inset-0 z-40 grid place-items-center overflow-y-auto bg-[#02050a]/55 p-3 backdrop-blur-[6px] md:p-6" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -140,8 +143,7 @@ export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fir
             </div>
             {img === "campo" && (
               <p className="text-[11px] leading-snug text-muted">
-                Sentinel-2 cloudless (EOX) · contorno del lote asegurado
-                {c.onchain ? ` · ${demo.lot.foci.length} focos VIIRS del 8 al 11/11 y de las últimas 48 h` : a.inField.length + a.near.length ? " · focos NASA FIRMS de 48 h" : ""}. Es un mosaico sin nubes: muestra el campo, no el día de hoy.
+                Imagen Sentinel-2 sin nubes (no es de hoy) · contorno del lote{c.onchain || a.inField.length + a.near.length ? " · puntos naranjas: fuego visto por la NASA" : ""}
               </p>
             )}
             <section aria-labelledby="poliza-datos" className="lg-tile flex flex-1 flex-col gap-1.5 rounded-[14px] px-3.5 py-3">
@@ -172,84 +174,124 @@ export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fir
             </div>
 
             {tab === "historial" && (
-              <ol id="panel-historial" role="tabpanel" aria-labelledby="tab-historial" className="flex flex-1 flex-col justify-between">
-                {steps.map((s, i) => {
-                  const st = STEP[s.kind];
-                  return (
-                    <li key={i} className="flex gap-3">
-                      <div className="flex flex-col items-center">
-                        <span aria-hidden="true" className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-[10px] font-bold"
-                          style={{ background: st.bg, color: st.fg, border: s.kind === "pending" ? "1.5px dashed #c9d4e4" : undefined }}>{st.icon}</span>
-                        {i < steps.length - 1 && <span aria-hidden="true" className="w-0.5 flex-1 bg-white/20" />}
-                      </div>
-                      <div className="min-w-0 flex-1 pb-2.5">
-                        <div className="flex items-baseline gap-2">
-                          <p className={`min-w-0 flex-1 text-[13px] font-semibold ${st.title}`}>{s.title}</p>
-                          {s.when && <span className="shrink-0 font-mono text-[11px] text-muted">{s.when}</span>}
+              <div id="panel-historial" role="tabpanel" aria-labelledby="tab-historial" className="flex flex-1 flex-col gap-3">
+                <Stepper stages={flow.stages} />
+                <div className="flex items-start gap-3">
+                  <p className="flex-1 text-[12.5px] leading-snug text-ink">{flow.summary}</p>
+                  <button onClick={() => setTechOn((v) => !v)} aria-pressed={techOn}
+                    className="shrink-0 rounded-full border border-white/20 px-2.5 py-1 text-[11px] text-[#d5deea] hover:bg-white/10">
+                    {techOn ? "Ocultar detalle técnico" : "Ver detalle técnico"}
+                  </button>
+                </div>
+                <ol className="flex flex-col">
+                  {steps.map((s, i) => {
+                    const st = STEP[s.kind];
+                    return (
+                      <li key={i} className="flex gap-3">
+                        <div className="flex flex-col items-center">
+                          <span aria-hidden="true" className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-[10px] font-bold"
+                            style={{ background: st.bg, color: st.fg, border: s.kind === "pending" ? "1.5px dashed #c9d4e4" : undefined }}>{st.icon}</span>
+                          {i < steps.length - 1 && <span aria-hidden="true" className="w-0.5 flex-1 bg-white/20" />}
                         </div>
-                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-                          <p className="min-w-0 flex-1 text-[11.5px] text-muted">{s.detail}</p>
-                          {s.txs.length > 0 && <span className="flex gap-1">{s.txs.map((h) => <TxChip key={h} hash={h} />)}</span>}
+                        <div className="min-w-0 flex-1 pb-2.5">
+                          <div className="flex items-baseline gap-2">
+                            <p className={`min-w-0 flex-1 text-[13px] font-semibold ${st.title}`}>{s.title}</p>
+                            {s.when && <span className="shrink-0 font-mono text-[11px] text-muted">{s.when}</span>}
+                          </div>
+                          <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[12px] leading-snug text-[#d5deea]">{s.detail}</p>
+                              {techOn && s.tech && <p className="font-mono text-[10.5px] text-muted">{s.tech}</p>}
+                            </div>
+                            {techOn && s.txs.length > 0 && <span className="flex gap-1">{s.txs.map((h) => <TxChip key={h} hash={h} />)}</span>}
+                          </div>
                         </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
+                      </li>
+                    );
+                  })}
+                </ol>
+                {!c.onchain && (
+                  <section aria-labelledby="como-se-paga" className="lg-tile mt-auto rounded-[14px] px-3.5 py-3">
+                    <h3 id="como-se-paga" className="text-[12.5px] font-semibold">Cómo se paga un siniestro</h3>
+                    <ol className="mt-1.5 grid gap-1 text-[11.5px] leading-snug text-[#d5deea]">
+                      <li><span className="font-mono text-muted">1.</span> <b className="font-medium text-ink">Fuego detectado:</b> los satélites de la NASA ven puntos de calor dentro del lote.</li>
+                      <li><span className="font-mono text-muted">2.</span> <b className="font-medium text-ink">Medición:</b> una computadora en órbita calcula qué parte del lote se quemó.</li>
+                      <li><span className="font-mono text-muted">3.</span> <b className="font-medium text-ink">Auditoría:</b> un auditor de otra empresa rehace la cuenta; si no coincide, no se paga.</li>
+                      <li><span className="font-mono text-muted">4.</span> <b className="font-medium text-ink">Pago:</b> si se quemó más del {c.triggerPct} %, el contrato paga solo, sin trámites.</li>
+                    </ol>
+                  </section>
+                )}
+              </div>
             )}
 
             {tab === "transacciones" && (
               <div id="panel-transacciones" role="tabpanel" aria-labelledby="tab-transacciones" className="flex flex-1 flex-col gap-2">
                 {txs.length ? (
                   <>
-                    <div className="lg-tile flex-1 overflow-x-auto rounded-[14px] p-1">
-                      <table className="w-full min-w-[520px] text-left text-[12px]">
-                        <thead className="text-[11px] text-muted"><tr><th className="px-2.5 py-2 font-medium">Hora (ART)</th><th className="font-medium">Evento</th><th className="font-medium">Registro</th><th className="font-medium">Gas</th><th className="font-medium">Tx</th></tr></thead>
+                    <p className="text-[12px] leading-snug text-[#d5deea]">
+                      Cada fila es un registro público en la blockchain de Avalanche. Con el comprobante, cualquiera puede verificar qué pasó y cuándo, sin pedirle nada a la aseguradora.
+                    </p>
+                    <div className="lg-tile overflow-x-auto rounded-[14px] p-1">
+                      <table className="w-full min-w-[540px] text-left text-[12px]">
+                        <thead className="text-[11px] text-muted">
+                          <tr><th className="px-2.5 py-2 font-medium">Hora</th><th className="font-medium">Qué pasó</th><th className="font-medium">Dónde</th><th className="pr-2 font-medium">Comprobante</th></tr>
+                        </thead>
                         <tbody>
                           {txs.map((t) => (
                             <tr key={t.hash} className={t.tone === "bad" ? "bg-[#ff5a4e]/15" : t.tone === "ok" ? "bg-[#34d399]/15" : ""}>
-                              <td className="rounded-l-[10px] px-2.5 py-2 font-mono">{t.when}</td>
-                              <td className={`font-medium ${t.tone === "bad" ? "text-[#ff8a80]" : t.tone === "ok" ? "text-[#6ee7b7]" : ""}`}>{t.tone === "bad" ? "✕ " : t.tone === "ok" ? "✓ " : ""}{t.event}</td>
-                              <td className="font-mono">{t.contract}</td>
-                              <td className="font-mono">{int(t.gas)}</td>
-                              <td className="rounded-r-[10px] pr-2"><TxChip hash={t.hash} /></td>
+                              <td className="rounded-l-[10px] px-2.5 py-1.5 align-top font-mono">{t.when}</td>
+                              <td className="py-1.5 pr-2">
+                                <span className={`block font-medium ${t.tone === "bad" ? "text-[#ff8a80]" : t.tone === "ok" ? "text-[#6ee7b7]" : ""}`}>{t.tone === "bad" ? "✕ " : t.tone === "ok" ? "✓ " : ""}{t.what}</span>
+                                <span className="block font-mono text-[10.5px] text-muted">{t.tech}</span>
+                              </td>
+                              <td className="py-1.5 pr-2 align-top text-[11.5px] text-[#d5deea]">{t.where}</td>
+                              <td className="rounded-r-[10px] py-1.5 pr-2 align-top"><TxChip hash={t.hash} /></td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
                     <p className="flex flex-wrap justify-between gap-2 text-[11.5px] text-muted">
-                      <span>{txs.length} transacciones · {int(txs.reduce((s, t) => s + t.gas, 0))} gas · {demo.chain.name}</span>
-                      <a className="font-medium text-[#7dd3fc] hover:underline" href={addrUrl(demo.chain.explorer, demo.contracts.escrow)} target="_blank" rel="noreferrer">Ver en Snowtrace ↗</a>
+                      <span>{txs.length} comprobantes · costo de red {k?.fee} · {demo.chain.name}</span>
+                      <a className="font-medium text-[#7dd3fc] hover:underline" href={addrUrl(demo.chain.explorer, demo.contracts.escrow)} target="_blank" rel="noreferrer">Ver el contrato en Snowtrace ↗</a>
                     </p>
                   </>
                 ) : (
-                  <Empty title="Todavía no hay transacciones" body="Esta póliza de demo no está en PunaEscrow. Cuando se pide el índice, el contrato registra la póliza, la asignación al nodo, la auditoría y el pago, y cada paso aparece acá con su enlace a Snowtrace." />
+                  <Empty title="Todavía no hay comprobantes" body="Esta póliza de demo no está en la blockchain. Cuando se abre un reclamo, cada paso (reservar el pago, medir, auditar y pagar) queda registrado acá con un comprobante público." />
                 )}
               </div>
             )}
 
             {tab === "auditoria" && (
               <div id="panel-auditoria" role="tabpanel" aria-labelledby="tab-auditoria" className="flex flex-1 flex-col gap-2.5">
-                {k ? k.attempts.map((at) => {
-                  const okA = at.outcome !== "Rejected";
-                  const node = demo.nodes.find((n) => n.agentId === at.agentId);
-                  return (
-                    <section key={at.attempt} className={`flex-1 rounded-[14px] border px-3.5 py-3 ${okA ? "border-[#34d399]/40 bg-[#34d399]/10" : "border-[#ff5a4e]/45 bg-[#ff5a4e]/10"}`}>
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <h3 className={`text-[13px] font-semibold ${okA ? "text-[#6ee7b7]" : "text-[#ff8a80]"}`}>{okA ? "✓" : "✕"} Intento {at.attempt} · {node?.name} · score {at.score}</h3>
-                        <span className="font-mono text-[11.5px] text-muted">índice declarado {pct(at.indexBps)}</span>
-                      </div>
-                      <ul className="mt-2 grid gap-1 text-[11.5px] sm:grid-cols-2">
-                        {(at.certificate?.checks ?? []).map((ch) => (
-                          <li key={ch.name} className={ch.ok ? "text-muted" : "font-medium text-[#ff8a80]"}><span aria-hidden="true">{ch.ok ? "✓ " : "✕ "}</span>{ch.name}</li>
-                        ))}
-                        {!at.certificate && <li className="text-muted">El detalle por capa está en Mission Control.</li>}
-                      </ul>
-                    </section>
-                  );
-                }) : (
-                  <Empty title="Sin auditorías" body="La auditoría corre cuando se pide el índice: un validador de otro operador revisa cada capa del cálculo con Freivalds y publica el score en ERC-8004." />
+                {k ? (
+                  <>
+                    <p className="text-[12px] leading-snug text-[#d5deea]">
+                      Un auditor de otra empresa rehace la cuenta paso a paso. <span className="text-[#6ee7b7]">✓</span> el paso coincide · <span className="text-[#ff8a80]">✕</span> no coincide. Si algo no coincide, no se paga.
+                    </p>
+                    {k.attempts.map((at) => {
+                      const okA = at.outcome !== "Rejected";
+                      const nd = demo.nodes.find((n) => n.agentId === at.agentId);
+                      return (
+                        <section key={at.attempt} className={`rounded-[14px] border px-3.5 py-3 ${okA ? "border-[#34d399]/40 bg-[#34d399]/10" : "border-[#ff5a4e]/45 bg-[#ff5a4e]/10"}`}>
+                          <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <h3 className={`text-[13px] font-semibold ${okA ? "text-[#6ee7b7]" : "text-[#ff8a80]"}`}>
+                              {okA ? "✓" : "✕"} Intento {at.attempt} · {nd?.name}: {okA ? "cuenta correcta" : "error encontrado"} ({at.score}/100)
+                            </h3>
+                            <span className="text-[11.5px] text-muted">resultado entregado: {pct(at.indexBps)} quemado</span>
+                          </div>
+                          <ul className="mt-2 grid gap-1 font-mono text-[11px] sm:grid-cols-2">
+                            {(at.certificate?.checks ?? []).map((ch) => (
+                              <li key={ch.name} className={ch.ok ? "text-muted" : "font-medium text-[#ff8a80]"}><span aria-hidden="true">{ch.ok ? "✓ " : "✕ "}</span>{ch.name}</li>
+                            ))}
+                            {!at.certificate && <li className="text-muted">El detalle por paso está en Mission Control.</li>}
+                          </ul>
+                        </section>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <Empty title="Todavía no hay auditorías" body="Cuando se mide el área quemada, un auditor de otra empresa rehace la cuenta paso a paso. Si algo no coincide, el contrato no paga." />
                 )}
               </div>
             )}
