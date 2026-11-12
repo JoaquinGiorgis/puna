@@ -49,7 +49,7 @@ La indemnización es binaria: se paga entera si el índice supera el 30 %. Con e
 | Si preguntan | Respondemos |
 |---|---|
 | ¿Con qué entrenaron la red? | No está entrenada: son pesos fijos hechos a mano, un modelo de juguete. Freivalds verifica el producto de matrices sin importar qué pesos sean; con una red real funciona igual. |
-| ¿Por qué el validador no recalcula todo? | Acá podría, porque la grilla es chica. Con modelos reales en órbita, la entrada cruda no baja a tierra y recalcular cuesta lo mismo que el cómputo original. Freivalds verifica en O(n²) en vez de O(n³). |
+| ¿Por qué el validador no recalcula todo? | Acá podría, porque la grilla es chica, y lo decimos. Con capas de tamaño real, verificar le gana incluso al recálculo más optimizado: lo medimos, con n = 6144 son 0,34 s contra 0,63 s, y la ventaja crece porque verificar es O(n²) y recalcular O(n³) (`bench/README.md`). Además, recalcular en float no es exacto bit a bit; Freivalds en enteros sí. |
 | ¿Por qué el scheduler mandó el trabajo a la Anomalía? | No lo haría: su política elegía ORBIT-03 y lo forzamos para mostrar la red de seguridad. En producción, la auditoría cubre los casos que el scheduler no puede evitar. |
 | ¿El bit-flip lo causa la Anomalía? | En la demo lo inyectamos nosotros. En vuelo real (Orbview-2, NASA), más del 80 % de los errores ocurrieron dentro de la Anomalía, aunque el satélite pasaba ahí menos del 20 % de la órbita. |
 | ¿Quién audita al auditor? | Los compromisos (Merkle, hashes) y el certificado son públicos: cualquiera puede re-auditar. El validador tiene identidad y reputación en ERC-8004. El próximo paso es un quórum de validadores. |

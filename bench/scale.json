@@ -1,0 +1,56 @@
+{
+  "machine": "arm64 Darwin",
+  "reps_freivalds": 2,
+  "p": 2147483647,
+  "rows": [
+    {
+      "n": 256,
+      "verify_s": 0.0005873330010217614,
+      "recompute_int_s": 0.016277958999125985,
+      "recompute_f32_blas_s": 3.900000228895806e-05,
+      "x_vs_int": 27.715042353839856,
+      "x_vs_f32": 0.06640185758523903
+    },
+    {
+      "n": 512,
+      "verify_s": 0.00217641700146487,
+      "recompute_int_s": 0.2267954169983568,
+      "recompute_f32_blas_s": 0.0002687919986783527,
+      "x_vs_int": 104.20586534919953,
+      "x_vs_f32": 0.12350206715782786
+    },
+    {
+      "n": 1024,
+      "verify_s": 0.008576416999858338,
+      "recompute_int_s": 2.172567916000844,
+      "recompute_f32_blas_s": 0.0026047089995699935,
+      "x_vs_int": 253.3188295341434,
+      "x_vs_f32": 0.30370596481176426
+    },
+    {
+      "n": 2048,
+      "verify_s": 0.03453366599933361,
+      "recompute_int_s": 75.32198170899937,
+      "recompute_f32_blas_s": 0.021717708001233405,
+      "x_vs_int": 2181.1174553681285,
+      "x_vs_f32": 0.6288851001701495
+    },
+    {
+      "n": 4096,
+      "verify_s": 0.1401,
+      "recompute_int_s": null,
+      "recompute_f32_blas_s": 0.1928,
+      "x_vs_int": null,
+      "x_vs_f32": 1.38
+    },
+    {
+      "n": 6144,
+      "verify_s": 0.3395,
+      "recompute_int_s": null,
+      "recompute_f32_blas_s": 0.628,
+      "x_vs_int": null,
+      "x_vs_f32": 1.85
+    }
+  ],
+  "note": "n>=4096 sin rec\u00e1lculo entero (tardar\u00eda ~10 min); medido aparte con el mismo freivalds_fast"
+}
