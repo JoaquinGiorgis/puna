@@ -15,7 +15,7 @@
 | | |
 |---|---|
 | **Demo en vivo** | **[puna-mission-control.vercel.app](https://puna-mission-control.vercel.app)**: login demo → cartera de la aseguradora con badges de atención según focos NASA FIRMS en vivo → ficha de cada campo. La auditoría on-chain está en [`/mission-control`](https://puna-mission-control.vercel.app/mission-control) |
-| Contrato | **PunaEscrow** [`0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982`](https://testnet.snowtrace.io/address/0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982) en Avalanche Fuji (43113), verificado |
+| Contrato | **PunaEscrow** [`0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982`](https://testnet.snowtrace.io/address/0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982) en Avalanche Fuji (43113), código verificado en Snowtrace/Routescan · [explorer de Avalanche](https://explorer-test.avax.network/c-chain/address/0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982) |
 | Demo on-chain | Job 7: [rechazo](https://testnet.snowtrace.io/tx/0x15914187dcdd71b61d6c8687f1ff9137722878a59faf72b29cd473e888dd089e) → [reasignación](https://testnet.snowtrace.io/tx/0x0994322995664806a636988d6702dd1b524570523069e5edb8bff9b0afe30ee3) → [pago](https://testnet.snowtrace.io/tx/0xba0727e9691b788e74a1e1c7054a6613413d537dd43749fa3442973c814ddd6b). Todas las txs en [`docs/txs.md`](docs/txs.md) |
 | Video | [pendiente, #22] |
 | Deck | [pendiente de compartir] |
@@ -34,12 +34,23 @@
 - La falla de la demo (1 bit en un peso de L3) da **0 %** y el validador la rechaza con **score 49**.
 - Benchmark: **300/300** fallas detectadas y **0/300** falsos positivos ([`bench/README.md`](bench/README.md)).
 
+## Por qué blockchain
+
+| Pregunta del track | Respuesta |
+|---|---|
+| ¿Quién desconfía de quién? | La aseguradora y el productor no confían en el operador del nodo orbital, que es quien calcula el índice y cobra por hacerlo. |
+| ¿Qué evento dispara algo on-chain? | El validador de otro operador responde en ERC-8004 Validation; `settle` lee ese score y el índice, y paga o no. |
+| ¿Qué pasa si el dato miente? | Si el nodo entrega un índice adulterado, Freivalds lo detecta, el score baja de 80, `settle` deja el job en `Rejected` sin mover la indemnización, la reputación del nodo baja y el trabajo se reasigna. El dato de entrada (FIRMS) queda fijado por `inputHash`. |
+| ¿Quién paga o cobra, y cuánto? | La aseguradora deposita indemnización + fees. El productor cobra la indemnización (0,015 AVAX en la demo), el nodo cobra el fee de cómputo solo si pasa la auditoría y el validador cobra por cada intento auditado. |
+
+Sin la cadena, el pago dependería de la palabra del operador o de una base de datos de la aseguradora. Con ella, las reglas, el depósito y la reputación son públicos y nadie las cambia a mitad del siniestro.
+
 ## Correr
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 .venv/bin/pytest -q                     # 35 tests: modelo entero, Freivalds, Merkle, fallas, órbita, scheduler, validador
-cd contracts && forge test              # 13 tests del escrow, incluido el guion de la demo
+cd contracts && forge test              # 16 tests del escrow: guion de la demo y límites conocidos
 ```
 
 Sin red (datos guardados en `sample-data/`):
@@ -87,7 +98,7 @@ La web lee datos reales exportados de la cadena. Al abrirse, verifica en vivo co
 | Reputation | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | El escrow deja feedback en cada `settle` |
 | Validation | `0x8004Cb1BF31DAf7788923b405b754f57acEB4272` | Confirmado en H0 (no figura en el README oficial) |
 
-Firmas verificadas contra los ABIs de Routescan: [`docs/erc8004.md`](docs/erc8004.md).
+Firmas verificadas contra los ABIs de Routescan: [`docs/erc8004.md`](docs/erc8004.md). Revisión técnica de todo lo de Avalanche (contrato, scripts, web) y límites conocidos: [`docs/revision-avalanche.md`](docs/revision-avalanche.md).
 
 ## Estructura
 

@@ -75,7 +75,8 @@ def send(w: Web3, label: str, fn, acct, value: int = 0):
     """Firma y manda la tx; imprime hash y link. Corta si revierte."""
     tx = fn.build_transaction({
         "from": acct.address,
-        "nonce": w.eth.get_transaction_count(acct.address),
+        # "pending": la RPC pública balancea entre nodos y uno atrasado puede devolver un nonce viejo
+        "nonce": w.eth.get_transaction_count(acct.address, "pending"),
         "chainId": CHAIN_ID,
         "value": value,
     })

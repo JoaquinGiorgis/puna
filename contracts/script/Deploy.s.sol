@@ -5,12 +5,13 @@ import {Script, console2} from "forge-std/Script.sol";
 import {PunaEscrow} from "../src/PunaEscrow.sol";
 
 /// forge script script/Deploy.s.sol --rpc-url fuji --broadcast --verify
+/// Desplegado y verificado (Routescan): 0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982. Congelado: no redesplegar.
 /// Variables en .env (nunca en el repo): DEPLOYER_PK, SCHEDULER_ADDR, VALIDATOR_ADDR, VALIDATOR_FEE_WEI
 contract Deploy is Script {
     // ERC-8004 en Avalanche testnet (Fuji) — github.com/erc-8004/erc-8004-contracts
     address constant IDENTITY = 0x8004A818BFB912233c491871b3d84c89A494BD9e;
     address constant REPUTATION = 0x8004B663056A597Dffe9eCcC1965A193B7388713;
-    // Validation no figura en el README para Avalanche testnet: confirmar en H0 (scripts/smoke_erc8004.py)
+    // Validation no figura en el README oficial para Avalanche testnet; confirmado en H0 (docs/erc8004.md)
     address constant VALIDATION = 0x8004Cb1BF31DAf7788923b405b754f57acEB4272;
 
     function run() external returns (PunaEscrow escrow) {
