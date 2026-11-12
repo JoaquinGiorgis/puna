@@ -45,16 +45,28 @@ export function GibsImage({ bbox, fires, now, outline, initialLayer = "fuego" }:
     return viirsDay(best) > 0 ? best : days[1];
   });
   const [layer, setLayer] = useState<keyof typeof LAYERS>(initialLayer);
-  const [w, s, e, n] = bbox;
+  const [w, s, e, n] = bbox.map((v) => Math.round(v * 1000) / 1000); // redondeado: más aciertos en la caché de GIBS
+  // GIBS a veces responde 504 la primera vez que arma un recuadro nuevo; reintentamos hasta 3 veces
+  const [img, setImg] = useState({ key: "", tries: 0, state: "loading" as "loading" | "ok" | "failed" });
   const url =
     `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0` +
     `&LAYERS=${LAYERS[layer].id}&CRS=EPSG:4326&BBOX=${s},${w},${n},${e}&WIDTH=600&HEIGHT=600&FORMAT=image/jpeg&TIME=${day}`;
+  const cur = img.key === url ? img : { key: url, tries: 0, state: "loading" as const };
+  const src = cur.tries ? `${url}&r=${cur.tries}` : url;
   const dayFires = fires.filter((f) => f.t.slice(0, 10) === day);
   return (
     <figure>
       <div className="relative aspect-square overflow-hidden rounded-lg border border-white/15 bg-black">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img key={url} src={url} alt={`Imagen satelital real de NOAA-20 VIIRS (${LAYERS[layer].label}) del ${day} sobre la zona`} className="h-full w-full object-cover" />
+        {cur.state !== "ok" && (
+          <p className="absolute inset-0 grid place-items-center p-4 text-center text-[11.5px] text-[#c9d4e4]">
+            {cur.state === "failed" ? "NASA GIBS no devolvió la imagen de este día. Probá otro día o capa." : cur.tries ? `NASA GIBS está tardando, reintento ${cur.tries}…` : "Cargando imagen de NASA GIBS…"}
+          </p>
+        )}
+        <img key={src} src={src}
+          onLoad={() => setImg({ ...cur, state: "ok" })}
+          onError={() => setImg({ ...cur, tries: cur.tries + 1, state: cur.tries >= 3 ? "failed" : "loading" })}
+          style={{ opacity: cur.state === "ok" ? 1 : 0 }} alt={`Imagen satelital real de NOAA-20 VIIRS (${LAYERS[layer].label}) del ${day} sobre la zona`} className="h-full w-full object-cover" />
         <svg viewBox="0 0 1 1" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
           {outline && (
             <rect x={(outline[0] - w) / (e - w)} y={(n - outline[3]) / (n - s)} width={(outline[2] - outline[0]) / (e - w)} height={(outline[3] - outline[1]) / (n - s)}
