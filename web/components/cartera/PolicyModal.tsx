@@ -8,14 +8,15 @@ import { LevelBadge } from "@/components/Shell";
 import { demo } from "@/lib/data";
 import { addrUrl, int, pct, short, txUrl } from "@/lib/format";
 import { Stepper } from "./Stepper";
-import { Play } from "lucide-react";
+import { BadgeCheck, Building2, Clock, Landmark, Play, ShieldCheck, User, Users, Wallet } from "lucide-react";
+import { INSURED, LEGAL_DAYS, RES315_SOURCE, UVA_1M_USD, type Insured } from "@/lib/insured";
 import { frame } from "@/lib/imagery";
 import { lot14Kpis, policyHistory, policyStages, policyTxs, type Stage, type StepKind } from "@/lib/policy";
 import { distToField, sumInsured, usd } from "@/lib/portfolio";
 import type { Fire } from "@/lib/sky";
 import type { Row } from "./GlobeView";
 
-type Tab = "historial" | "transacciones" | "auditoria";
+type Tab = "historial" | "asegurado" | "normativa" | "transacciones" | "auditoria";
 const STEP: Record<StepKind, { bg: string; fg: string; icon: string; title: string }> = {
   fire: { bg: "#ff7a1a", fg: "#fff", icon: "◉", title: "text-ink" },
   info: { bg: "#3dd6f5", fg: "#04121c", icon: "→", title: "text-ink" },
@@ -52,6 +53,7 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
   const txs = useMemo(() => policyTxs(c), [c]);
   const k = c.onchain ? lot14Kpis() : null;
   const history = c.onchain ? lot14Fires() : [];
+  const ins = INSURED[c.id];
 
   // foco atrapado + Escape
   useEffect(() => {
@@ -73,17 +75,17 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
     ? [
         ["Área quemada (verificada)", pct(k.indexBps), "text-[#ff9a3d]", `supera el ${pct(k.triggerBps)} pactado`],
         ["Pago al productor", k.indemnity, "text-[#6ee7b7]", `${k.state === "Paid" ? "pagado" : k.state} · ${k.paidAt}`],
-        ["Suma asegurada", usd(sumInsured(c)), "text-ink", `prima ${usd(sumInsured(c) * 0.018)} · campaña 2026/27`],
-        ["Del reclamo al pago", `${k.seconds} s`, "text-ink", `${k.txs} comprobantes · costo de red ${k.fee}`],
+        ["Suma asegurada", usd(sumInsured(c)), "text-ink", `prima ${usd(sumInsured(c) * (ins?.premium.pct ?? 1.8) / 100)} · campaña 2026/27`],
+        ["Del reclamo al pago", `${k.seconds} s`, "text-ink", `plazo legal: ${LEGAL_DAYS} días · costo de red ${k.fee}`],
       ]
     : [
         ["Área quemada", a.inField.length ? "sin medir" : "—", "text-ink", a.inField.length ? "falta medir y auditar" : "no hay siniestro abierto"],
         ["Puntos de calor en el lote", int(a.inField.length), a.inField.length ? "text-[#ff8a80]" : "text-ink", `últimas 48 h${a.near.length ? ` · ${a.near.length} más a ≤ 15 km` : ""}`],
-        ["Suma asegurada", usd(sumInsured(c)), "text-ink", `prima ${usd(sumInsured(c) * 0.018)} · campaña 2026/27`],
+        ["Suma asegurada", usd(sumInsured(c)), "text-ink", `prima ${usd(sumInsured(c) * (ins?.premium.pct ?? 1.8) / 100)} · campaña 2026/27`],
         ["Paga si se quema", `> ${c.triggerPct} %`, "text-ink", "del lote, medido y auditado"],
       ];
 
-  const tabs: [Tab, string][] = [["historial", "Qué pasó"], ["transacciones", `Comprobantes · ${txs.length}`], ["auditoria", "Auditoría"]];
+  const tabs: [Tab, string][] = [["historial", "Qué pasó"], ["asegurado", "Asegurado"], ["normativa", "Res. SSN 315"], ["transacciones", `Comprobantes · ${txs.length}`], ["auditoria", "Auditoría"]];
 
   return (
     <div className="fixed inset-0 z-40 grid place-items-center overflow-y-auto bg-[#02050a]/55 p-3 backdrop-blur-[6px] md:overflow-hidden md:p-5" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -101,7 +103,7 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
               {c.onchain && <LevelBadge level="siniestro" />}
               {!c.onchain && <span className="rounded-full bg-[#fbf1df] px-2.5 py-0.5 text-[11.5px] font-semibold text-[#9a6200]"><span aria-hidden="true">▲ </span>Póliza simulada</span>}
             </div>
-            <p className="text-[12.5px] text-muted">{c.place} · {c.crop} · {int(c.ha)} ha · póliza {c.policy}{c.onchain ? " en Avalanche Fuji" : ""}</p>
+            <p className="text-[12.5px] text-muted">{ins ? `${ins.name} · ` : ""}{c.place} · {c.crop} · {int(c.ha)} ha · póliza {c.policy}{c.onchain ? " en Avalanche Fuji" : ""}</p>
           </div>
           {onReplay && (
             <button onClick={onReplay} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-[12.5px] font-semibold text-[#0e1b2c] hover:bg-white/90">
@@ -158,15 +160,17 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
                 <dt className="text-muted">Cobertura</dt><dd className="text-right">Incendio paramétrico</dd>
                 <dt className="text-muted">Índice</dt><dd className="text-right">Área quemada, verificada por PUNA</dd>
                 <dt className="text-muted">Vigencia</dt><dd className="text-right">01/09/2026 al 31/05/2027</dd>
-                <dt className="text-muted">Productor</dt>
+                <dt className="text-muted">Asegurado</dt>
                 <dd className="text-right">{c.onchain
                   ? <a className="font-mono text-[11.5px] text-[#7dd3fc] underline-offset-2 hover:underline" href={addrUrl(demo.chain.explorer, demo.job.beneficiary)} target="_blank" rel="noreferrer">simulado · {short(demo.job.beneficiary)} ↗</a>
-                  : "simulado"}</dd>
+                  : ins ? `${ins.name} (ficticio)` : "simulado"}</dd>
                 <dt className="text-muted">Contrato</dt>
                 <dd className="text-right">{c.onchain
                   ? <a className="font-mono text-[11.5px] text-[#7dd3fc] underline-offset-2 hover:underline" href={addrUrl(demo.chain.explorer, demo.contracts.escrow)} target="_blank" rel="noreferrer">PunaEscrow {short(demo.contracts.escrow)} ↗</a>
                   : "se crea al pedir el índice"}</dd>
                 <dt className="text-muted">Validador</dt><dd className="text-right">agente de otro operador · ERC-8004</dd>
+                <dt className="text-muted">Se paga en</dt><dd className="text-right">{c.onchain ? <>AVAX testnet hoy · <span className="text-[#7dd3fc]">USDC en producción</span></> : "pesos o USDC"}</dd>
+                <dt className="text-muted">Plazo de pago</dt><dd className="text-right">{c.onchain && k ? `${k.seconds} s · ` : ""}máximo {LEGAL_DAYS} días (Res. SSN 315)</dd>
               </dl>
             </section>
           </div>
@@ -227,6 +231,18 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
                     </ol>
                   </section>
                 )}
+              </div>
+            )}
+
+            {tab === "asegurado" && ins && (
+              <div id="panel-asegurado" role="tabpanel" aria-labelledby="tab-asegurado" className="scroll-thin flex flex-1 flex-col gap-2.5 md:min-h-0 md:overflow-y-auto md:pr-1">
+                <InsuredPanel ins={ins} ha={c.ha} />
+              </div>
+            )}
+
+            {tab === "normativa" && (
+              <div id="panel-normativa" role="tabpanel" aria-labelledby="tab-normativa" className="scroll-thin flex flex-1 flex-col gap-2.5 md:min-h-0 md:overflow-y-auto md:pr-1">
+                <Res315Panel sum={sumInsured(c)} triggerPct={c.triggerPct} seconds={c.onchain && k ? k.seconds : null} onchain={c.onchain} />
               </div>
             )}
 
@@ -315,5 +331,130 @@ function Empty({ title, body }: { title: string; body: string }) {
       <p className="mx-auto max-w-[44ch] text-[12px] text-muted">{body}</p>
       <Link href="/mission-control" className="mt-2 text-[12.5px] font-medium text-[#7dd3fc] hover:underline">Ver un job real en Mission Control ↗</Link>
     </div>
+  );
+}
+
+const KIND_ICON: Record<Insured["kind"], typeof User> = {
+  "Persona humana": User, "Sociedad anónima": Building2, SRL: Building2, Cooperativa: Users, "Sociedad de hecho": Users,
+};
+
+function Row({ l, children }: { l: string; children: React.ReactNode }) {
+  return (<><dt className="text-muted">{l}</dt><dd className="min-w-0 text-right">{children}</dd></>);
+}
+
+function InsuredPanel({ ins, ha }: { ins: Insured; ha: number }) {
+  const Icon = KIND_ICON[ins.kind];
+  return (
+    <>
+      <p className="rounded-[12px] border border-[#f5b03d]/40 bg-[#f5b03d]/10 px-3 py-2 text-[11.5px] leading-snug text-[#f8d58f]">
+        <span aria-hidden="true">▲ </span>Datos ficticios para la demo: personas, empresas, CUIT, teléfonos y bancos son inventados y van enmascarados.
+      </p>
+      <section className="lg-tile flex items-start gap-3 rounded-[14px] px-3.5 py-3">
+        <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10"><Icon size={18} /></span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-semibold leading-tight">{ins.name}</p>
+          <p className="text-[11.5px] text-muted">{ins.kind} · CUIT <span className="font-mono">{ins.cuit}</span> · {ins.tax}</p>
+          <p className="mt-1 text-[12px] text-[#d5deea]">{ins.activity}</p>
+        </div>
+        <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#34d399]/15 px-2 py-0.5 text-[11px] font-medium text-[#6ee7b7]"><BadgeCheck size={12} aria-hidden="true" /> KYC ok</span>
+      </section>
+      <div className="grid gap-2.5 lg:grid-cols-2">
+        <section aria-labelledby="ins-contacto" className="lg-tile rounded-[14px] px-3.5 py-3">
+          <h3 id="ins-contacto" className="text-[12.5px] font-semibold">Contacto</h3>
+          <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+            <Row l="Persona">{ins.contact.name}</Row>
+            <Row l="Rol">{ins.contact.role}</Row>
+            <Row l="Teléfono"><span className="font-mono text-[11.5px]">{ins.contact.phone}</span></Row>
+            <Row l="Correo"><span className="font-mono text-[11.5px]">{ins.contact.email}</span></Row>
+            <Row l="Domicilio">{ins.address}</Row>
+          </dl>
+        </section>
+        <section aria-labelledby="ins-campo" className="lg-tile rounded-[14px] px-3.5 py-3">
+          <h3 id="ins-campo" className="text-[12.5px] font-semibold">Explotación</h3>
+          <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+            <Row l="Tenencia">{ins.tenure}</Row>
+            <Row l="Superficie total">{ins.totalHa.toLocaleString("es-AR")} ha</Row>
+            <Row l="Asegurada acá">{ha.toLocaleString("es-AR")} ha ({Math.round((ha / ins.totalHa) * 100)} %)</Row>
+            <Row l="Cliente desde">{ins.since} · {ins.seasons} {ins.seasons === 1 ? "campaña" : "campañas"}</Row>
+            <Row l="Siniestros previos">{ins.claims}</Row>
+          </dl>
+        </section>
+        <section aria-labelledby="ins-cobro" className="lg-tile rounded-[14px] px-3.5 py-3">
+          <h3 id="ins-cobro" className="flex items-center gap-1.5 text-[12.5px] font-semibold"><Wallet size={13} aria-hidden="true" /> Cobro y prima</h3>
+          <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+            <Row l="Medio">{ins.payout.method}</Row>
+            <Row l="Destino">{ins.payout.href
+              ? <a href={ins.payout.href} target="_blank" rel="noreferrer" className="font-mono text-[11.5px] text-[#7dd3fc] hover:underline">{short(ins.payout.detail)} ↗<span className="sr-only"> (abre Snowtrace)</span></a>
+              : <span className="font-mono text-[11.5px]">{ins.payout.detail}</span>}</Row>
+            <Row l="Prima">{ins.premium.pct.toLocaleString("es-AR")} % de la suma · {ins.premium.plan}</Row>
+            {ins.lender && <Row l="Endoso">{ins.lender}</Row>}
+          </dl>
+        </section>
+        <section aria-labelledby="ins-control" className="lg-tile rounded-[14px] px-3.5 py-3">
+          <h3 id="ins-control" className="flex items-center gap-1.5 text-[12.5px] font-semibold"><ShieldCheck size={13} aria-hidden="true" /> Control</h3>
+          <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+            <Row l="Identidad">{ins.kyc}</Row>
+            <Row l="Asesor">{ins.broker.name} · <span className="font-mono text-[11px]">{ins.broker.license}</span></Row>
+          </dl>
+        </section>
+      </div>
+      <p className="lg-tile rounded-[14px] px-3.5 py-2.5 text-[12px] leading-snug text-[#d5deea]"><b className="font-medium text-ink">Nota del suscriptor:</b> {ins.notes}</p>
+    </>
+  );
+}
+
+type Req = { ok: boolean | "pend"; title: string; how: string };
+
+function Res315Panel({ sum, triggerPct, seconds, onchain }: { sum: number; triggerPct: number; seconds: number | null; onchain: boolean }) {
+  const exempt = sum > UVA_1M_USD;
+  const reqs: Req[] = [
+    { ok: true, title: "Índice y disparador definidos en la póliza", how: `Área quemada del lote, medida por satélite. Paga si supera el ${triggerPct} %.` },
+    { ok: true, title: "Proveedor de datos y uno de respaldo", how: "NASA FIRMS (VIIRS en NOAA-20 y NOAA-21). Respaldo: MODIS en Terra y Aqua, y GOES-19." },
+    { ok: true, title: "Acceso del asegurado a los datos y al cálculo", how: "El índice, la auditoría y el pago quedan en registros públicos de Avalanche. El asegurado los puede revisar sin pedirle nada a la aseguradora." },
+    { ok: true, title: "Riesgo de base informado", how: "El índice mide qué parte del lote se quemó, no el daño de cada planta. Puede pagar aunque la pérdida real sea menor, o no pagar si el fuego quedó por debajo del disparador." },
+    { ok: "pend", title: "Frecuencia histórica del disparador", how: "Pendiente: backtesting con el archivo de FIRMS desde 2012." },
+    { ok: "pend", title: "Estudio de factibilidad con actuario independiente", how: "Pendiente para presentar el plan a la SSN." },
+    { ok: true, title: `Pago dentro de los ${LEGAL_DAYS} días corridos`, how: seconds != null ? `Este siniestro se pagó ${seconds} segundos después de abrir el reclamo.` : "El contrato paga apenas el auditor aprueba, en minutos." },
+    { ok: exempt ? true : "pend", title: exempt ? "Sin aprobación previa: suma mayor a 1.000.000 UVA" : "Aprobación del plan por la SSN", how: exempt ? "Alcanza con avisar a la SSN dentro de los 30 días." : `La suma asegurada (USD ${Math.round(sum).toLocaleString("es-AR")}) no llega a 1.000.000 UVA (≈ USD 1,35 M). Si el tomador fuera una provincia o un municipio, no haría falta.` },
+  ];
+  const days = seconds != null ? seconds / 86_400 : null;
+  return (
+    <>
+      <p className="text-[12px] leading-snug text-[#d5deea]">
+        Desde el 23/07/2026 la SSN regula los seguros paramétricos (Res. 315/2026). Así cumple cada punto esta póliza:
+      </p>
+      {days != null && (
+        <section aria-label="Plazo de pago" className="rounded-[14px] border border-[#34d399]/40 bg-[#34d399]/10 px-3.5 py-3">
+          <div className="flex items-baseline justify-between gap-2 text-[12px]">
+            <span className="flex items-center gap-1.5 font-semibold text-[#6ee7b7]"><Clock size={13} aria-hidden="true" /> Pagado en {seconds} segundos</span>
+            <span className="text-muted">límite legal: {LEGAL_DAYS} días</span>
+          </div>
+          <div className="mt-2 h-2 w-full rounded-full bg-white/15" role="img" aria-label={`Se usó ${(days / LEGAL_DAYS * 100).toFixed(3)} % del plazo legal`}>
+            <div className="h-2 rounded-full bg-[#34d399]" style={{ width: `${Math.max(1, (days / LEGAL_DAYS) * 100)}%` }} />
+          </div>
+          <p className="mt-1 text-[11px] text-muted">Una póliza tradicional de incendio de la cartera tardó 41 días en pagar (dato ficticio).</p>
+        </section>
+      )}
+      <ul className="grid gap-1.5">
+        {reqs.map((r) => (
+          <li key={r.title} className="lg-tile flex gap-2.5 rounded-[12px] px-3 py-2">
+            <span aria-hidden="true" className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${r.ok === true ? "bg-[#34d399] text-[#04140d]" : "border border-dashed border-[#f5b03d] text-[#f5b03d]"}`}>{r.ok === true ? "✓" : "…"}</span>
+            <div className="min-w-0">
+              <p className="text-[12.5px] font-medium">{r.title} <span className={`ml-1 text-[11px] font-normal ${r.ok === true ? "text-[#6ee7b7]" : "text-[#f5b03d]"}`}>{r.ok === true ? "cumple" : "pendiente"}</span></p>
+              <p className="text-[11.5px] leading-snug text-[#d5deea]">{r.how}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <section className="lg-tile flex gap-2.5 rounded-[12px] px-3 py-2">
+        <Landmark size={16} className="mt-0.5 shrink-0 text-[#7dd3fc]" aria-hidden="true" />
+        <p className="text-[11.5px] leading-snug text-[#d5deea]">
+          <b className="font-medium text-ink">Moneda del pago.</b> {onchain ? "Hoy la demo paga en AVAX de testnet (Fuji)." : "Esta póliza de ejemplo pagaría en pesos o USDC."} En producción paga una aseguradora con licencia, en pesos o en USDC sobre Avalanche. La Res. 315 no habla de blockchain ni de pagos en cripto; PUNA es la capa que mide, audita y dispara el pago.
+        </p>
+      </section>
+      <p className="text-[10.5px] text-muted">
+        Resumen propio de la Res. SSN 315/2026 a partir de <a href={RES315_SOURCE} target="_blank" rel="noreferrer" className="text-[#7dd3fc] hover:underline">Marval O&apos;Farrell Mairal ↗</a>. No es asesoramiento legal.
+      </p>
+    </>
   );
 }

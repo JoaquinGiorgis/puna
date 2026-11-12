@@ -1,5 +1,6 @@
 "use client";
 
+import { INSURED } from "@/lib/insured";
 import { useEffect, useRef } from "react";
 import { LevelBadge } from "@/components/Shell";
 import { ALL_ICON, LEVEL_ICON } from "@/components/icons";
@@ -37,7 +38,7 @@ export function ClientPanel({ rows, ready, now, query, setQuery, filter, setFilt
   const count = (l: Level) => rows.filter((r) => r.a.level === l).length;
   const q = query.trim().toLowerCase();
   const shown = rows.filter((r) => (filter === "todos" || r.a.level === filter) &&
-    (!q || `${r.c.field} ${r.c.place} ${r.c.policy} ${r.c.crop}`.toLowerCase().includes(q)));
+    (!q || `${r.c.field} ${r.c.place} ${r.c.policy} ${r.c.crop} ${INSURED[r.c.id]?.name ?? ""} ${INSURED[r.c.id]?.contact.name ?? ""}`.toLowerCase().includes(q)));
   const att = rows.filter((r) => r.a.level === "atencion");
   const totalUsd = CLIENTS.reduce((s, c) => s + sumInsured(c), 0);
 
