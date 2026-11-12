@@ -4,17 +4,15 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowRight, ArrowUpRight, Flame } from "lucide-react";
 import { demo } from "@/lib/data";
-import { addrUrl, txUrl } from "@/lib/format";
-import { lot14Kpis, lot14Steps, type StepKind } from "@/lib/policy";
+import { addrUrl } from "@/lib/format";
+import { lot14Kpis } from "@/lib/policy";
 import { assess, CLIENTS } from "@/lib/portfolio";
 import { useSky } from "@/components/useSky";
 import { Globe3D, type GlobeAlert } from "./Globe3D";
 import { NightSky } from "./NightSky";
+import { AlertsMini, AuditMini, GridMini, TxMini } from "./HowCards";
 
 const WINDOW_H = 24;
-const tz = "America/Argentina/Buenos_Aires";
-const hm = (d: Date) => d.toLocaleTimeString("es-AR", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false });
-const DOT: Record<StepKind, string> = { fire: "#ff7a1a", info: "#7dd3fc", warn: "#f5b03d", bad: "#ff5a4e", ok: "#34d399", pending: "#9aa9be" };
 
 const btn = "transition duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7dd3fc] focus-visible:ring-offset-2 focus-visible:ring-offset-[#05080f]";
 
@@ -27,6 +25,13 @@ function Mark() {
   );
 }
 
+const HOW = [
+  { title: "Se detecta el siniestro", body: "La NASA registra focos de calor dentro del lote asegurado y la cartera lo marca en rojo. El reclamo se abre solo, sin denuncia.", fact: "Fuente: NASA FIRMS" },
+  { title: "Un satélite mide el daño", body: "Una CNN (red neuronal convolucional) recorre la imagen con filtros chicos, zona por zona, y marca cada celda del lote como quemada o sana.", fact: "Lote 14 · grilla de 12 × 12" },
+  { title: "Otro satélite lo verifica", body: "Un auditor de otro operador comprueba cada capa de la CNN con el algoritmo de Freivalds. Si una cuenta no cierra, no se paga.", fact: "C·r ≡ A·(B·r) mód p" },
+  { title: "Se paga el seguro", body: "Si la verificación aprueba y el daño supera el umbral de la póliza, el contrato en Avalanche le paga al productor.", fact: "" },
+] as const;
+
 function Label({ children, tone = "#7dd3fc" }: { children: React.ReactNode; tone?: string }) {
   return <p className="text-[13px] font-medium" style={{ color: tone }}>{children}</p>;
 }
@@ -35,21 +40,7 @@ export function Landing() {
   const sky = useSky(demo.lot.bbox, true);
   const [labels, setLabels] = useState<Record<string, { x: number; y: number; visible: boolean }>>({});
   const k = useMemo(() => lot14Kpis(), []);
-  // versión corta del siniestro: fuego, cálculo rechazado, cálculo confirmado y pago
-  const steps = useMemo(() => {
-    const all = lot14Steps();
-    const fire = all.find((x) => x.kind === "fire");
-    const bad = all.find((x) => x.kind === "bad");
-    const okAudit = all.find((x) => x.kind === "ok" && x.title.startsWith("El auditor"));
-    const paid = all.find((x) => x.kind === "ok" && x.title.startsWith("Se pagó"));
-    return [
-      fire && { ...fire, detail: "La NASA vio puntos de calor dentro del lote." },
-      bad && { ...bad, title: "Primer cálculo: error, no se pagó", detail: "El satélite pasó por la Anomalía y entregó 0 %. El auditor lo rechazó." },
-      okAudit && { ...okAudit, title: "Segundo satélite: 37,8 % confirmado", detail: "Otro satélite, lejos de la radiación. El auditor aprobó la cuenta." },
-      paid && { ...paid, title: `Pago al productor: ${k.indemnity}`, detail: `${k.seconds} segundos después de abrir el reclamo.` },
-    ].filter((x): x is NonNullable<typeof x> => Boolean(x));
-  }, [k]);
-
+  const pct = `${(k.indexBps / 100).toLocaleString("es-AR", { maximumFractionDigits: 1 })} %`;
   const alerts: GlobeAlert[] = useMemo(() => {
     if (!sky.mounted) return [];
     const t = Date.now();
@@ -60,7 +51,6 @@ export function Landing() {
     }).filter((x): x is GlobeAlert => x !== null);
   }, [sky.fires, sky.mounted]);
 
-  const inSaa = sky.sats.filter((s) => s.inSaa).map((s) => s.name);
 
   return (
     <div className="theme-dark relative min-h-dvh text-ink">
@@ -107,18 +97,6 @@ export function Landing() {
                 o mirá un siniestro real, paso a paso <ArrowUpRight size={15} className="transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
               </Link>
             </div>
-            <dl className="rise lg grid max-w-[540px] grid-cols-3 divide-x divide-white/10 rounded-2xl py-3.5" style={{ animationDelay: "240ms" }}>
-              {([
-                [`${k.seconds} s`, "del reclamo al pago", "job 7, Avalanche Fuji"],
-                ["300/300", "errores detectados", "pruebas del auditor"],
-                ["15 días", "plazo de la Res. SSN 315", "lo cumplimos en minutos"],
-              ] as const).map(([v, l, s]) => (
-                <div key={l} className="flex flex-col-reverse gap-1 px-4">
-                  <dt className="text-[12px] leading-snug text-[#c9d4e4]">{l}<span className="block text-[11px] text-[#9aa9be]">{s}</span></dt>
-                  <dd className="font-mono text-[19px] font-semibold tabular-nums leading-none tracking-tight md:text-[24px]">{v}</dd>
-                </div>
-              ))}
-            </dl>
           </div>
 
           <div className="relative h-[440px] md:h-[600px] lg:h-[min(800px,calc(100dvh-90px))]">
@@ -139,86 +117,83 @@ export function Landing() {
                 </div>
               );
             })}
-            <div className="lg absolute bottom-3 left-3 w-[min(320px,calc(100%-24px))] rounded-xl p-3 text-[12px]" aria-live="polite">
-              <p className="flex items-center gap-2 font-semibold"><span className="relative flex h-2 w-2" aria-hidden="true"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#34d399] opacity-60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-[#34d399]" /></span> En vivo</p>
-              {sky.firesAt || sky.firesError ? (
-                <>
-                  <p className="mt-1 text-[#c9d4e4]">
-                    {sky.firesAt ? <>NASA FIRMS · <b className="font-mono font-semibold tabular-nums text-ink">{sky.fires.length.toLocaleString("es-AR")}</b> focos en el NOA · {hm(sky.firesAt)}</> : "FIRMS no responde: queda la última lectura"}
-                  </p>
-                  <p className="mt-0.5 text-[#c9d4e4]"><span className="font-mono tabular-nums text-[#ff8a3d]">{alerts.length}</span> {alerts.length === 1 ? "campo asegurado" : "campos asegurados"} con fuego adentro · {WINDOW_H} h</p>
-                  {inSaa.length > 0 && <p className="mt-0.5 text-[#ff9b92]">▲ {inSaa.join(", ")} en la Anomalía: no recibe cálculos</p>}
-                </>
-              ) : (
-                <div className="mt-2 grid gap-1.5" aria-label="Cargando datos en vivo"><span className="h-2.5 w-4/5 animate-pulse rounded bg-white/10" /><span className="h-2.5 w-3/5 animate-pulse rounded bg-white/10" /></div>
-              )}
-            </div>
-            <p className="absolute bottom-3 right-3 hidden text-right text-[10.5px] leading-snug text-[#9aa9be] sm:block">
-              Arrastrá para girar<br />Satélites: modelos NASA, tamaño exagerado
-            </p>
           </div>
         </section>
 
-        {/* 2 · cómo funciona: el siniestro real del Lote 14 */}
-        <section id="como" aria-labelledby="como-t" className="mx-auto grid w-full max-w-[1240px] scroll-mt-24 gap-12 px-4 pb-24 pt-20 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-          <div className="flex flex-col gap-6 lg:sticky lg:top-28 lg:self-start">
+        {/* 2 · cómo funciona: cuatro pasos, con los datos del Lote 14 */}
+        <section id="como" aria-labelledby="como-t" className="mx-auto w-full max-w-[1240px] scroll-mt-24 px-4 pb-24 pt-20">
+          <div className="mx-auto flex max-w-[640px] flex-col items-center gap-4 text-center">
             <Label>Cómo funciona</Label>
-            <h2 id="como-t" className="max-w-[18ch] text-[36px] font-semibold leading-[1.08] tracking-[-0.025em] [text-wrap:balance] md:text-[44px]">
-              Del diseño y del dato ya se ocupa alguien. Del cálculo, nadie.
+            <h2 id="como-t" className="text-[36px] font-semibold leading-[1.08] tracking-[-0.025em] [text-wrap:balance] md:text-[44px]">
+              Del siniestro al pago, en cuatro pasos
             </h2>
-            <p className="max-w-[48ch] text-[15.5px] leading-relaxed text-[#c9d4e4] [text-wrap:pretty]">
-              Cuando el índice lo calcula un satélite de otra empresa, el operador se certifica a sí mismo. Y arriba nuestro está la
-              Anomalía del Atlántico Sur, donde la radiación cambia bits sin avisar.
+            <p className="max-w-[52ch] text-[15.5px] leading-relaxed text-[#c9d4e4] [text-wrap:pretty]">
+              Así peritamos un incendio real en Anta, Salta. Quien mide el daño nunca es quien lo controla.
             </p>
-            <dl className="grid max-w-[480px] text-[13.5px]">
+          </div>
+
+          <ol className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {HOW.map((st, i) => (
+              <li key={st.title} className="lg group relative flex flex-col rounded-[24px] p-5 transition duration-300 hover:-translate-y-1">
+                <div className="relative h-[176px] overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220]/80 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.8)]">
+                  {i === 0 && <AlertsMini fires={sky.fires} ready={Boolean(sky.firesAt || sky.firesError)} />}
+                  {i === 1 && <GridMini pct={pct} trigger={`${(k.triggerBps / 100).toLocaleString("es-AR", { minimumFractionDigits: 1 })} %`} />}
+                  {i === 2 && <AuditMini />}
+                  {i === 3 && <TxMini explorer={demo.chain.explorer} />}
+                </div>
+                <p className="mt-5 font-mono text-[12px] tabular-nums text-[#9aa9be]">Paso {i + 1}</p>
+                <h3 className="mt-1 truncate text-[18px] font-semibold leading-snug tracking-[-0.01em]">{st.title}</h3>
+                <p className="mt-2 min-h-[115px] text-[14px] leading-relaxed text-[#c9d4e4] [text-wrap:pretty]">{st.body}</p>
+                <p className="mt-auto flex pt-4 text-[12px] text-[#9aa9be]">
+                  <span className="max-w-full truncate whitespace-nowrap rounded-md bg-white/[0.06] px-2 py-1 font-mono tabular-nums text-[#e6edf7]">{i === 3 ? `${k.indemnity} · en ${k.seconds} s` : st.fact}</span>
+                </p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="lg mt-6 grid gap-6 rounded-[28px] p-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:p-8">
+            <div className="flex flex-col gap-3">
+              <Label>Nuestro núcleo: la verificación matemática</Label>
+              <h3 className="max-w-[24ch] text-[26px] font-semibold leading-[1.12] tracking-[-0.02em] [text-wrap:balance] md:text-[30px]">
+                El auditor no opina ni confía: comprueba la cuenta
+              </h3>
+              <p className="max-w-[56ch] text-[15px] leading-relaxed text-[#c9d4e4] [text-wrap:pretty]">
+                Cada capa de la CNN es una multiplicación de matrices. Rehacerla entera es caro, así que el auditor usa el
+                <b className="font-semibold text-white"> algoritmo de Freivalds (1977)</b>: multiplica ambos lados por números al azar que el
+                satélite no conoce de antemano y compara. Si alguien alteró un solo número, los dos lados dan distinto y el auditor
+                señala la capa exacta. Todo en aritmética entera módulo 2³¹−1, sin redondeos.
+              </p>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="font-mono text-[17px] text-[#7dd3fc]">C · r ≡ A · (B · r)  <span className="text-[13px] text-[#9aa9be]">mód 2³¹−1</span></p>
+                <dl className="mt-3 grid grid-cols-[22px_1fr] gap-x-2 gap-y-1 text-[13px] text-[#c9d4e4]">
+                  <dt className="font-mono text-white">A</dt><dd>lo que entra a la capa, a partir de la imagen</dd>
+                  <dt className="font-mono text-white">B</dt><dd>los pesos del modelo, fijados en el contrato antes del siniestro</dd>
+                  <dt className="font-mono text-white">C</dt><dd>el resultado que entregó el satélite</dd>
+                  <dt className="font-mono text-white">r</dt><dd>números al azar que elige el auditor</dd>
+                </dl>
+              </div>
+            </div>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-5 self-center">
               {([
-                ["Diseño", "¿El índice representa la pérdida?", "actuarios"],
-                ["Dato", "¿Llegó el dato correcto?", "oráculos, Chainlink"],
-                ["Cálculo", "¿La cuenta se hizo bien?", "PUNA"],
-              ] as const).map(([r, q, who], i) => (
-                <div key={r} className={`grid grid-cols-[84px_1fr_auto] items-baseline gap-3 border-t border-white/10 py-2.5 ${i === 2 ? "text-white" : "text-[#c9d4e4]"}`}>
-                  <dt className={`font-medium ${i === 2 ? "text-[#7dd3fc]" : ""}`}>{r}</dt>
-                  <dd>{q}</dd>
-                  <dd className={`text-[12px] ${i === 2 ? "rounded bg-[#7dd3fc]/15 px-1.5 py-0.5 font-semibold text-[#7dd3fc]" : "text-[#9aa9be]"}`}>{who}</dd>
+                ["300/300", "errores provocados que detectó, incluidos los de radiación"],
+                ["0", "falsos positivos: nunca rechazó una cuenta correcta"],
+                ["< 1 en 10¹⁸", "probabilidad de que una cuenta alterada pase la prueba"],
+                ["Capa 3", "dónde estaba el error del caso real, señalado por el auditor"],
+              ] as const).map(([v, l]) => (
+                <div key={v} className="flex flex-col gap-1 border-t border-white/10 pt-3">
+                  <dt className="order-2 text-[12.5px] leading-snug text-[#c9d4e4]">{l}</dt>
+                  <dd className="order-1 font-mono text-[22px] font-semibold tabular-nums leading-none">{v}</dd>
                 </div>
               ))}
             </dl>
           </div>
 
-          <div className="lg rounded-[28px] p-5 md:p-7">
-            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-white/10 pb-4">
-              <p className="text-[15px] font-semibold">Ejemplo real: incendio en el Lote 14, Anta (Salta)</p>
-              <a href={addrUrl(demo.chain.explorer, demo.contracts.escrow)} target="_blank" rel="noreferrer" className={`flex items-center gap-1 rounded text-[12.5px] text-[#7dd3fc] hover:text-white ${btn}`}>
-                job {demo.job.id} en Avalanche Fuji <ArrowUpRight size={13} aria-hidden="true" />
-              </a>
-            </div>
-            <ol className="mt-5 flex flex-col">
-              {steps.map((s, i) => (
-                <li key={i} className="grid grid-cols-[18px_1fr] gap-x-4">
-                  <div className="flex flex-col items-center">
-                    <span aria-hidden="true" className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-[#05080f]" style={{ background: DOT[s.kind] }} />
-                    {i < steps.length - 1 && <span aria-hidden="true" className="w-px flex-1 bg-white/12" />}
-                  </div>
-                  <div className="pb-5">
-                    <div className="flex flex-wrap items-baseline gap-x-3">
-                      <p className={`text-[14.5px] font-semibold ${s.kind === "bad" ? "text-[#ff8a80]" : s.kind === "ok" ? "text-[#6ee7b7]" : ""}`}>{s.title}</p>
-                      <span className="font-mono text-[11.5px] tabular-nums text-[#9aa9be]">{s.when}</span>
-                    </div>
-                    <p className="mt-0.5 max-w-[60ch] text-[13.5px] leading-snug text-[#c9d4e4]">{s.detail}</p>
-                    {s.txs[0] && (
-                      <a href={txUrl(demo.chain.explorer, s.txs[s.txs.length - 1])} target="_blank" rel="noreferrer"
-                        className={`mt-1 inline-flex items-center gap-1 rounded font-mono text-[11.5px] text-[#7dd3fc] hover:text-white ${btn}`}>
-                        comprobante {s.txs[s.txs.length - 1].slice(0, 10)}… <ArrowUpRight size={12} aria-hidden="true" />
-                      </a>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-            <p className="border-t border-white/10 pt-4 text-[12.5px] text-[#9aa9be]">
-              {k.txs} comprobantes públicos · costo de red {k.fee}
-            </p>
-          </div>
+          <p className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-center text-[13px] text-[#9aa9be]">
+            <span>Incendio y órbitas reales; satélites y operadores simulados.</span>
+            <a href={addrUrl(demo.chain.explorer, demo.contracts.escrow)} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1 rounded text-[#7dd3fc] hover:text-white ${btn}`}>
+              Ver los comprobantes en Avalanche <ArrowUpRight size={13} aria-hidden="true" />
+            </a>
+          </p>
         </section>
 
         {/* 3 · para aseguradoras */}
