@@ -125,7 +125,7 @@ export default function Cartera() {
             <span className="block text-[11px] text-muted">{INSURER.user}</span>
           </span>
           <Alerts rows={rows} ready={ready} now={sky.mounted ? sky.now : new Date()} onOpen={openPolicy} />
-          <button onClick={() => { signOut(); router.push("/"); }} className="rounded-full border border-white/25 bg-white/[0.07] px-3 py-1.5 text-[12px] hover:bg-white/15">Salir</button>
+          <button onClick={() => { signOut(); router.push("/ingresar"); }} className="rounded-full border border-white/25 bg-white/[0.07] px-3 py-1.5 text-[12px] hover:bg-white/15">Salir</button>
         </header>
 
         {followed && (

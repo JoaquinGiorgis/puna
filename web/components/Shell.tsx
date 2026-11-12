@@ -47,7 +47,7 @@ export function useDemoGuard() {
   const [ok, setOk] = useState(false);
   useEffect(() => {
     if (isSignedIn()) setOk(true);
-    else router.replace("/");
+    else router.replace("/ingresar");
   }, [router]);
   return ok;
 }
@@ -59,7 +59,7 @@ export function AppShell({ children, crumbs }: { children: ReactNode; crumbs?: R
   const [ok, setOk] = useState(false);
   useEffect(() => {
     if (isSignedIn()) setOk(true);
-    else router.replace("/");
+    else router.replace("/ingresar");
   }, [router]);
 
   const nav = [
@@ -90,7 +90,7 @@ export function AppShell({ children, crumbs }: { children: ReactNode; crumbs?: R
               <p className="font-medium">{INSURER.name}</p>
               <p className="text-[11px] text-muted">{INSURER.user}</p>
             </div>
-            <button onClick={() => { signOut(); router.push("/"); }} className="glass-raised rounded-full px-3 py-1 text-[12px]">Salir</button>
+            <button onClick={() => { signOut(); router.push("/ingresar"); }} className="glass-raised rounded-full px-3 py-1 text-[12px]">Salir</button>
           </div>
         </div>
       </header>

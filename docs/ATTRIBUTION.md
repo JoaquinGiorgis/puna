@@ -51,3 +51,8 @@ Ilustraciones oficiales de dominio público, de NASA y NOAA, obtenidas en Wikime
 | GOES-19 | [GOES-R Spacecraft Art (serie GOES-R)](https://commons.wikimedia.org/wiki/File:GOES-R_Spacecraft_Art_on_Side_Front_Left_(14213075849).png) | NOAA/Lockheed Martin |
 
 El ícono de satélite del globo es el render propio de `docs/design/assets/sat.py` (`web/public/renders/satA.png`).
+
+## Landing
+- Textura del planeta: NASA Blue Marble (BlueMarble_ShadedRelief_Bathymetry) vía NASA GIBS. Imagen de dominio público de la NASA; se agradece al servicio GIBS (earthdata.nasa.gov/gibs).
+- Fondo animado: componentes `Aurora` y `FilmGrain` de [shaders.com](https://shaders.com) (paquete `shaders`, licencia MIT), con telemetría desactivada.
+- Globo 3D: [three.js](https://threejs.org) (MIT).

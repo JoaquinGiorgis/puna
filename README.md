@@ -14,7 +14,7 @@
 
 | | |
 |---|---|
-| **Demo en vivo** | **[puna-mission-control.vercel.app](https://puna-mission-control.vercel.app)**: login demo → cartera de la aseguradora con badges de atención según focos NASA FIRMS en vivo → ficha de cada campo. La auditoría on-chain está en [`/mission-control`](https://puna-mission-control.vercel.app/mission-control) |
+| **Demo en vivo** | **[puna-mission-control.vercel.app](https://puna-mission-control.vercel.app)**: landing para aseguradoras con globo 3D y alertas FIRMS en vivo → login demo → cartera de la aseguradora con badges de atención según focos NASA FIRMS en vivo → ficha de cada campo. La auditoría on-chain está en [`/mission-control`](https://puna-mission-control.vercel.app/mission-control) |
 | Contrato | **PunaEscrow** [`0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982`](https://testnet.snowtrace.io/address/0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982) en Avalanche Fuji (43113), código verificado en Snowtrace/Routescan · [explorer de Avalanche](https://explorer-test.avax.network/c-chain/address/0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982) |
 | Demo on-chain | Job 7: [rechazo](https://testnet.snowtrace.io/tx/0x15914187dcdd71b61d6c8687f1ff9137722878a59faf72b29cd473e888dd089e) → [reasignación](https://testnet.snowtrace.io/tx/0x0994322995664806a636988d6702dd1b524570523069e5edb8bff9b0afe30ee3) → [pago](https://testnet.snowtrace.io/tx/0xba0727e9691b788e74a1e1c7054a6613413d537dd43749fa3442973c814ddd6b). Todas las txs en [`docs/txs.md`](docs/txs.md) |
 | Video | [pendiente, #22] |
