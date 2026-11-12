@@ -33,3 +33,4 @@ Se completa en cada hito. Explorer: https://testnet.snowtrace.io
 | H4 | Demo job 7: validationRequest ORBIT-03 | [0x0bc70463…](https://testnet.snowtrace.io/tx/0x0bc70463012f21c3230a3c036d33438c76af7a2d297bcaa12f63c4513b82f0fa) |  |
 | H4 | Demo job 7: validationResponse score 100 | [0xc94ad8fe…](https://testnet.snowtrace.io/tx/0xc94ad8fe383654790d032092f831638351a32c5c19c84fb0e9a31319311d2f96) |  |
 | H4 | Demo job 7: settle → **Paid** | [0xba0727e9…](https://testnet.snowtrace.io/tx/0xba0727e9691b788e74a1e1c7054a6613413d537dd43749fa3442973c814ddd6b) | productor +0,015 AVAX |
+| H5 | Job 6: refund tras el deadline (aseguradora) | [0x87195ab2…](https://testnet.snowtrace.io/tx/0x87195ab2cab9f7873c90d523441c3209a5d6b7c6a162266421773bc5c3b10e0f) | `Created` → `Refunded`, vuelven 0,005 AVAX; el escrow queda en 0 |

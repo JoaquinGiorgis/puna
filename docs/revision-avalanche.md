@@ -29,10 +29,10 @@ Revisamos todo lo que toca Avalanche contra la guía del track (avalanche-track.
 | ABI de los scripts y de la web | Comparadas con `contracts/out` | `onchain/abi` y `web/lib/abi` idénticas |
 | Firmas ERC-8004 | Smoke test H0 contra los proxies de Fuji ([`erc8004.md`](erc8004.md)) | Coinciden. Validation está desplegado aunque no figure en el README oficial |
 | Reputación | `getSummary(agente, [escrow], "puna", "")` | ORBIT-07 (300): 5 feedbacks, promedio 0. ORBIT-03 (301): 8 feedbacks, promedio 100 |
-| Estado de los jobs | `getJob(1..10)` | 8 `Paid`, 1 `Refunded`, y el job 6 en `Created` con el deadline vencido |
+| Estado de los jobs | `getJob(1..10)` | 8 `Paid` y 2 `Refunded`. El escrow quedó con saldo 0 |
 | Tests | `forge test` · `pytest -q` | 16/16 y 35/35 |
 
-El job 6 fue la prueba de `SaaTooHigh` y retiene 0,005 AVAX. Cualquiera puede llamar `refund(6)`, que se los devuelve a la aseguradora y además deja un `Refunded` real on-chain.
+El job 6 (la prueba de `SaaTooHigh`) tenía 0,005 AVAX trabados. Se liberaron con [`refund(6)`](https://testnet.snowtrace.io/tx/0x87195ab2cab9f7873c90d523441c3209a5d6b7c6a162266421773bc5c3b10e0f) el 12/11, y quedó un `Refunded` real on-chain.
 
 ## Revisión del contrato
 
@@ -69,6 +69,5 @@ El job 6 fue la prueba de `SaaTooHigh` y retiene 0,005 AVAX. Cualquiera puede ll
 
 ## Pendientes que requieren una acción
 
-- `refund(6)` para liberar los 0,005 AVAX trabados. Es opcional y cualquier wallet con gas lo puede hacer.
 - El video y el deck. El deck tiene que incluir la slide «por qué blockchain». Se puede tomar de la sección del README.
 - Hacer público el repo, si el reglamento lo pide.
