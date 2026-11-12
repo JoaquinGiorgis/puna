@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
-import { Satellite } from "lucide-react";
+import { Check, Satellite } from "lucide-react";
 import { LEVEL_ICON } from "@/components/icons";
 import { BOUNDS, FRAME, clampView, proj, type View } from "@/lib/globe-noa";
 import type { Assessment, Client, Level } from "@/lib/portfolio";
@@ -238,7 +238,7 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
             className="cursor-pointer outline-none [&:focus-visible>circle.ring]:stroke-[#3dd6f5]">
             {a.level === "atencion" && <circle cx={p.x} cy={p.y} r={18 * s} fill={pin.bg} fillOpacity={0.25} stroke={pin.bg} strokeWidth={1 * s} className="pin-pulse" style={{ transformBox: "fill-box", transformOrigin: "center" }} />}
             <circle className="ring" cx={p.x} cy={p.y} r={(sel ? 13 : 10.5) * s} fill={pin.bg} stroke={sel ? "#3dd6f5" : "#fff"} strokeWidth={2 * s} />
-            {(() => { const I = LEVEL_ICON[a.level]; return <I x={p.x - 6 * s} y={p.y - 6 * s} width={12 * s} height={12 * s} color={pin.fg} strokeWidth={2.6} />; })()}
+            {(() => { const I = a.level === "ok" ? Check : LEVEL_ICON[a.level]; return <I x={p.x - 6 * s} y={p.y - 6 * s} width={12 * s} height={12 * s} color={pin.fg} strokeWidth={a.level === "ok" ? 3 : 2.6} />; })()}
             {(a.level === "atencion" || sel) && (
               <Tag x={p.x} y={p.y} k={view.k} dx={16} dy={rows.findIndex((r) => r.c.id === c.id) % 2 ? 10 : -48}>
                 <span className="block text-[12px] font-semibold text-[#e6edf7]">{c.field}</span>
