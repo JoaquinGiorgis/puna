@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Landing } from "@/components/landing/Landing";
 
 export const metadata: Metadata = {
-  title: "PUNA · Índices paramétricos auditados para aseguradoras",
-  description: "Un satélite mide el daño en el lote (incendio, sequía, inundación o helada), otra empresa rehace la cuenta y el contrato en Avalanche paga solo si coincide.",
+  title: "PUNA · Peritaje satelital para aseguradoras agro",
+  description: "Ayudamos a las aseguradoras agro a resolver el peritaje de siniestros con auditoría satelital: un satélite mide el daño, otro independiente audita la medición y se liquida en minutos.",
 };
 
 export default function Home() {

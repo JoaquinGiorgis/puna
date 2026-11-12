@@ -76,7 +76,7 @@ export function Landing() {
           <ul className="ml-4 hidden gap-1 text-[13px] text-[#d5deea] md:flex">
             <li><a href="#como" className={`rounded-full px-3 py-1.5 hover:bg-white/10 hover:text-white ${btn}`}>Cómo funciona</a></li>
             <li><a href="#aseguradoras" className={`rounded-full px-3 py-1.5 hover:bg-white/10 hover:text-white ${btn}`}>Para aseguradoras</a></li>
-            <li><Link href="/mission-control" className={`rounded-full px-3 py-1.5 hover:bg-white/10 hover:text-white ${btn}`}>Auditoría on-chain</Link></li>
+            <li><Link href="/mission-control" className={`rounded-full px-3 py-1.5 hover:bg-white/10 hover:text-white ${btn}`}>Ver una auditoría</Link></li>
           </ul>
           <Link href="/ingresar" className={`ml-auto flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#0e1b2c] hover:bg-[#dff6fd] ${btn}`}>
             Entrar a la demo <ArrowRight size={14} aria-hidden="true" />
@@ -89,27 +89,27 @@ export function Landing() {
         <section aria-labelledby="hero-t" className="relative mx-auto grid w-full max-w-[1240px] items-center gap-8 px-4 pb-16 pt-12 lg:min-h-[calc(100dvh-80px)] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.2fr)] lg:pt-0">
           <div className="relative z-10 flex flex-col gap-7">
             <p className="rise text-[13px] text-[#b0bed1]">
-              Para aseguradoras agro · sobre Avalanche
+              Peritaje satelital para aseguradoras agro
             </p>
-            <h1 id="hero-t" className="rise max-w-[19ch] text-[40px] font-semibold leading-[1.04] tracking-[-0.035em] [text-wrap:balance] md:text-[56px]" style={{ animationDelay: "60ms" }}>
-              Siniestros medidos por satélite, auditados antes de pagar
+            <h1 id="hero-t" className="rise max-w-[17ch] text-[40px] font-semibold leading-[1.04] tracking-[-0.035em] [text-wrap:balance] md:text-[56px]" style={{ animationDelay: "60ms" }}>
+              Resolvé el peritaje de siniestros con auditoría satelital
             </h1>
             <p className="rise max-w-[46ch] text-[17px] leading-relaxed text-[#c9d4e4] [text-wrap:pretty]" style={{ animationDelay: "120ms" }}>
-              Incendio, sequía, inundación o helada: un satélite mide el daño en el lote. Una empresa distinta rehace la cuenta.
-              El contrato paga solo si coincide, y cada paso queda a la vista de la SSN y de tu reasegurador.
+              Un satélite mide el daño en el lote. Otro, de un operador independiente, audita esa medición. Si coincide, liquidás
+              en minutos y sin mandar a nadie al campo, con evidencia lista para la SSN y tu reasegurador.
             </p>
             <div className="rise flex flex-wrap items-center gap-x-6 gap-y-3" style={{ animationDelay: "180ms" }}>
               <Link href="/ingresar" className={`flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[14.5px] font-semibold text-[#0e1b2c] shadow-[0_8px_30px_-8px_rgba(125,211,252,0.45)] hover:bg-[#dff6fd] ${btn}`}>
                 Ver la cartera de demo <ArrowRight size={16} aria-hidden="true" />
               </Link>
               <Link href={`/mission-control?job=${demo.job.id}`} className={`group flex items-center gap-1 rounded text-[14px] font-medium text-[#7dd3fc] hover:text-white ${btn}`}>
-                o mirá un siniestro real on-chain <ArrowUpRight size={15} className="transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
+                o mirá un siniestro real, paso a paso <ArrowUpRight size={15} className="transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
               </Link>
             </div>
             <dl className="rise lg grid max-w-[540px] grid-cols-3 divide-x divide-white/10 rounded-2xl py-3.5" style={{ animationDelay: "240ms" }}>
               {([
                 [`${k.seconds} s`, "del reclamo al pago", "job 7, Avalanche Fuji"],
-                ["300/300", "fallas detectadas", "benchmark del validador"],
+                ["300/300", "errores detectados", "pruebas del auditor"],
                 ["15 días", "plazo de la Res. SSN 315", "lo cumplimos en minutos"],
               ] as const).map(([v, l, s]) => (
                 <div key={l} className="flex flex-col-reverse gap-1 px-4">
