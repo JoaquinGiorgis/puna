@@ -11,6 +11,13 @@ const art = (d: Date) =>
   d.toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
 
+/** lat/lon → píxel de mundo Web Mercator al zoom 9 (256 px por tile). */
+function merc(lat: number, lon: number) {
+  const size = 256 * 2 ** 9;
+  const r = (lat * Math.PI) / 180;
+  return { x: ((lon + 180) / 360) * size, y: ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * size };
+}
+
 // Capas de NASA GIBS (sin key). Falso color M11-I2-I1: el fuego activo y las cicatrices de quemado resaltan.
 const LAYERS = {
   fuego: { id: "VIIRS_NOAA20_CorrectedReflectance_BandsM11-I2-I1", label: "Falso color (fuego)" },
@@ -45,36 +52,36 @@ export function GibsImage({ bbox, fires, now, outline, initialLayer = "fuego" }:
     return viirsDay(best) > 0 ? best : days[1];
   });
   const [layer, setLayer] = useState<keyof typeof LAYERS>(initialLayer);
-  const [w, s, e, n] = bbox.map((v) => Math.round(v * 1000) / 1000); // redondeado: más aciertos en la caché de GIBS
-  // GIBS a veces responde 504 la primera vez que arma un recuadro nuevo; reintentamos hasta 3 veces
-  const [img, setImg] = useState({ key: "", tries: 0, state: "loading" as "loading" | "ok" | "failed" });
-  const url =
-    `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0` +
-    `&LAYERS=${LAYERS[layer].id}&CRS=EPSG:4326&BBOX=${s},${w},${n},${e}&WIDTH=600&HEIGHT=600&FORMAT=image/jpeg&TIME=${day}`;
-  const cur = img.key === url ? img : { key: url, tries: 0, state: "loading" as const };
-  const src = cur.tries ? `${url}&r=${cur.tries}` : url;
+  // Tiles WMTS de GIBS (pre-renderizados y en CDN; el WMS arma cada recuadro a pedido y puede tardar >20 s).
+  // Todo se dibuja en píxeles de mundo Web Mercator al zoom 9 (~300 m/px, la resolución de VIIRS).
+  const [w, s, e, n] = bbox;
+  const p0 = merc(n, w), p1 = merc(s, e);
+  const cx = (p0.x + p1.x) / 2, cy = (p0.y + p1.y) / 2;
+  const half = Math.max(p1.x - p0.x, p1.y - p0.y) / 2;
+  const vb = { x: cx - half, y: cy - half, size: 2 * half };
+  const tiles: { x: number; y: number }[] = [];
+  for (let ty = Math.floor(vb.y / 256); ty <= Math.floor((vb.y + vb.size) / 256); ty++)
+    for (let tx = Math.floor(vb.x / 256); tx <= Math.floor((vb.x + vb.size) / 256); tx++) tiles.push({ x: tx, y: ty });
+  const tileUrl = (t: { x: number; y: number }) =>
+    `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${LAYERS[layer].id}/default/${day}/GoogleMapsCompatible_Level9/9/${t.y}/${t.x}.jpg`;
   const dayFires = fires.filter((f) => f.t.slice(0, 10) === day);
   return (
     <figure>
       <div className="relative aspect-square overflow-hidden rounded-lg border border-white/15 bg-black">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {cur.state !== "ok" && (
-          <p className="absolute inset-0 grid place-items-center p-4 text-center text-[11.5px] text-[#c9d4e4]">
-            {cur.state === "failed" ? "NASA GIBS no devolvió la imagen de este día. Probá otro día o capa." : cur.tries ? `NASA GIBS está tardando, reintento ${cur.tries}…` : "Cargando imagen de NASA GIBS…"}
-          </p>
-        )}
-        <img key={src} src={src}
-          onLoad={() => setImg({ ...cur, state: "ok" })}
-          onError={() => setImg({ ...cur, tries: cur.tries + 1, state: cur.tries >= 3 ? "failed" : "loading" })}
-          style={{ opacity: cur.state === "ok" ? 1 : 0 }} alt={`Imagen satelital real de NOAA-20 VIIRS (${LAYERS[layer].label}) del ${day} sobre la zona`} className="h-full w-full object-cover" />
-        <svg viewBox="0 0 1 1" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
-          {outline && (
-            <rect x={(outline[0] - w) / (e - w)} y={(n - outline[3]) / (n - s)} width={(outline[2] - outline[0]) / (e - w)} height={(outline[3] - outline[1]) / (n - s)}
-              fill="none" stroke="#3dd6f5" strokeWidth="0.006" />
-          )}
-          {dayFires.map((f, i) => (
-            <circle key={i} cx={(f.lon - w) / (e - w)} cy={(n - f.lat) / (n - s)} r="0.008" fill="none" stroke="#ffe066" strokeWidth="0.004" />
+        <p className="absolute inset-0 grid place-items-center text-[11.5px] text-[#c9d4e4]">Cargando imagen de NASA GIBS…</p>
+        <svg viewBox={`${vb.x} ${vb.y} ${vb.size} ${vb.size}`} className="absolute inset-0 h-full w-full" role="img"
+          aria-label={`Imagen satelital real de NOAA-20 VIIRS (${LAYERS[layer].label}) del ${day} sobre la zona`}>
+          {tiles.map((t) => (
+            <image key={`${layer}${day}${t.x}_${t.y}`} href={tileUrl(t)} x={t.x * 256} y={t.y * 256} width={256} height={256} preserveAspectRatio="none" />
           ))}
+          {outline && (() => {
+            const o0 = merc(outline[3], outline[0]), o1 = merc(outline[1], outline[2]);
+            return <rect x={o0.x} y={o0.y} width={o1.x - o0.x} height={o1.y - o0.y} fill="none" stroke="#3dd6f5" strokeWidth={vb.size * 0.006} />;
+          })()}
+          {dayFires.map((f, i) => {
+            const q = merc(f.lat, f.lon);
+            return <circle key={i} cx={q.x} cy={q.y} r={vb.size * 0.008} fill="none" stroke="#ffe066" strokeWidth={vb.size * 0.004} />;
+          })}
         </svg>
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
@@ -93,7 +100,7 @@ export function GibsImage({ bbox, fires, now, outline, initialLayer = "fuego" }:
         ))}
       </div>
       <figcaption className="mt-1 font-mono text-[11px] text-muted">
-        Imagen real NASA GIBS · NOAA-20 VIIRS · {day} · <span className="text-[#ffe066]">○</span> {dayFires.length} focos FIRMS de ese día. Las nubes pueden tapar la zona: probá otro día.
+        Imagen real NASA GIBS · NOAA-20 VIIRS · {day} · <span className="text-[#ffe066]">○</span> {dayFires.length} focos FIRMS de ese día. Resolución ~375 m: muestra fuego, humo y nubes del día, no el detalle del lote. Si las nubes tapan la zona, probá otro día.
       </figcaption>
     </figure>
   );
