@@ -30,14 +30,27 @@ La página lee la cadena desde el navegador y se actualiza sola:
 
 - **Qué job muestra:** sigue al último job del escrow (`nextJobId − 1`). Con `?job=N` fija uno.
 - **Cada cuánto:** refresca cada 4 s mientras el job está en curso y cada 15 s cuando ya cerró. Si corrés `scripts/e2e.py --demo`, el timeline, la auditoría y los nodos avanzan paso a paso, unos segundos detrás de la cadena.
-- **Eventos:** salen de dos fuentes que se combinan:
-  - el indexador de Routescan, para el historial completo, filtrando por `jobId` y `requestHash` (va con ~1 min de atraso);
-  - `eth_getLogs` directo a la RPC sobre los últimos 200 bloques, para tener lo más reciente sin atraso.
-- **Estado y reputación:** `getJob` y `getSummary` vía viem, con publicnode como RPC principal y la de Avalanche de respaldo.
+- **Eventos:** `eth_getLogs` directo a la RPC (publicnode acepta rangos de ~25.000 bloques), filtrando el escrow por `jobId` y el Validation Registry por `requestHash`. Es la fuente primaria. Probamos el indexador de Routescan y lo descartamos: tenía huecos (al job 8 le faltaban 4 de sus 7 eventos una hora después).
+- **Estado y reputación:** `getJob` y `getSummary` vía viem, contra publicnode. La RPC de Avalanche no sirve desde el navegador: limita por IP con 429 y responde sin CORS.
 - **Certificados:** la ruta `/api/artifact/<sha256>.json` sirve los que publicó el validador local, y el navegador verifica el sha256. En un host sin esos archivos, por ejemplo Vercel, se ven el score y el estado pero no el detalle por capa.
 - **Sin red:** se queda con lo último que leyó o con la foto exportada, y lo indica en la barra superior.
 
-Lo que no cambia en vivo son los insumos: la grilla y los focos FIRMS del Lote 14, las órbitas de la ventana y el benchmark.
+Lo que no cambia en vivo son los insumos de la póliza: la grilla y los focos FIRMS del Lote 14, las órbitas de la ventana del job y el benchmark.
+
+## Cielo en vivo (pestaña "● En vivo" del globo)
+
+- **Satélites reales en su posición de ahora:** NOAA-20, NOAA-21, Terra, Aqua (polares) y GOES-19 (geoestacionario).
+  - TLE de CelesTrak vía `/api/tle`, con caché de 2 h y respaldo en `lib/tle/snapshot.json`.
+  - SGP4 en el navegador con `satellite.js`; la posición se recalcula cada segundo.
+  - Cada polar muestra su traza ±45 min y si está dentro de la Anomalía (el mismo polígono que usa `saaBps`).
+- **Focos de fuego en vivo:** NASA FIRMS sobre el NOA vía `/api/fires`, de hoy y ayer en UTC.
+  - Fuentes: GOES-19 y Meteosat cada 10 min, más VIIRS y MODIS en cada pasada; caché de 5 min.
+  - La `FIRMS_MAP_KEY` queda en el servidor: en local se lee de `../.env`; en un deploy va en `FIRMS_MAP_KEY`.
+- **Zonas:** los focos se agrupan por vecindad (celdas de ~20 km). Cada zona muestra detecciones y antigüedad del último foco, y se marca la que toca el Lote 14.
+- **Tabla de sensores:** por satélite, si está pasando sobre el NOA, cuándo vuelve y su último foco reportado.
+- **Lo que sigue simulado:** que estos satélites calculen el índice a bordo.
+
+La otra pestaña, "Ventana del job", muestra ORBIT-07 y ORBIT-03 en la ventana de la demo.
 
 La RPC pública de Avalanche limita por IP y devuelve 429. Si la demo y la página corren en la misma máquina, conviene que los scripts usen otra RPC:
 `FUJI_RPC_URL=https://avalanche-fuji-c-chain-rpc.publicnode.com` en `.env`.

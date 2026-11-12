@@ -1,12 +1,13 @@
 /**
  * Lectura EN VIVO del escrow y de ERC-8004 en Fuji, desde el navegador.
  *
- * - Eventos: indexador de Routescan (API compatible con Etherscan). Un pedido filtra por topic sobre
- *   todo el historial: el escrow por jobId y el Validation Registry por requestHash. Trae hora y gas.
- * - Estado: RPC pública con viem (nextJobId, getJob, reputación). Unos 4 pedidos por refresco.
+ * - Eventos: eth_getLogs directo a la RPC (publicnode acepta rangos de ~25.000 bloques), filtrando el
+ *   escrow por jobId y el Validation Registry por requestHash desde el deploy. Fuente primaria, sin el
+ *   atraso ni los huecos que mostró el indexador de Routescan.
+ * - Estado: getJob y reputación por viem. Hora y gas de cada tx: recibo + bloque, una vez por tx.
  * Arma un objeto con la misma forma que demo.json; lo estático (FIRMS, órbitas, benchmark) sale de la foto.
  */
-import { createPublicClient, decodeEventLog, fallback, http, parseAbi, type Abi, type Hex } from "viem";
+import { createPublicClient, decodeEventLog, http, parseAbi, type Abi, type Hex } from "viem";
 import { avalancheFuji } from "viem/chains";
 import escrowAbiJson from "./abi/PunaEscrow.json";
 import type { Attempt, Certificate, ChainEvent, Demo, Tx } from "./data";
@@ -20,17 +21,14 @@ const REPUTATION_ABI = parseAbi([
   "function getSummary(uint256 agentId, address[] clientAddresses, string tag1, string tag2) view returns (uint64 count, int128 summaryValue, uint8 summaryValueDecimals)",
 ]);
 const STATES = ["None", "Created", "Assigned", "Submitted", "Paid", "NoPayout", "Rejected", "Refunded"];
-const INDEXER = "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan/api";
 const FROM_BLOCK = 60_900_000; // poco antes del deploy de PunaEscrow
 
-// publicnode primero: CORS abierto y no comparte cuota con los scripts (que usan la RPC de Avalanche,
-// que limita por IP con 429). La de Avalanche queda de respaldo.
+// publicnode: CORS abierto. La RPC de Avalanche limita por IP con 429 sin cabeceras CORS (el navegador
+// lo ve como "Failed to fetch"), así que en la web no sirve de respaldo. Si publicnode falla, la página
+// se queda con la última lectura o la foto y lo indica.
 export const client = createPublicClient({
   chain: avalancheFuji,
-  transport: fallback([
-    http("https://avalanche-fuji-c-chain-rpc.publicnode.com", { retryCount: 1 }),
-    http("https://api.avax-test.network/ext/bc/C/rpc", { retryCount: 1 }),
-  ]),
+  transport: http("https://avalanche-fuji-c-chain-rpc.publicnode.com", { retryCount: 2 }),
 });
 
 type RawLog = {
@@ -40,17 +38,21 @@ type RawLog = {
 
 const n = (h: string) => Number.parseInt(h, 16) || 0;
 
-async function getLogs(address: string, topic: { idx: 1 | 3; value: Hex }): Promise<RawLog[]> {
-  const q = new URLSearchParams({
-    module: "logs", action: "getLogs", address, fromBlock: String(FROM_BLOCK), toBlock: "latest",
-    [`topic${topic.idx}`]: topic.value,
-  });
-  const r = await fetch(`${INDEXER}?${q}`, { cache: "no-store" });
-  if (!r.ok) throw new Error(`indexador HTTP ${r.status}`);
-  const j = (await r.json()) as { status: string; message: string; result: RawLog[] | string };
-  if (Array.isArray(j.result)) return j.result;
-  if (/no records/i.test(j.message)) return [];
-  throw new Error(`indexador: ${typeof j.result === "string" ? j.result : j.message}`);
+const SPAN = 20_000n; // publicnode acepta ~25.000 bloques por eth_getLogs
+
+/** eth_getLogs a la RPC desde FROM_BLOCK (o `from`) hasta la cabeza, en tramos de SPAN bloques. */
+async function rpcLogs(address: Hex | string, topics: (Hex | Hex[] | null)[], head: bigint, from = BigInt(FROM_BLOCK)): Promise<RawLog[]> {
+  const ranges: [bigint, bigint][] = [];
+  for (let a = from; a <= head; a += SPAN) ranges.push([a, a + SPAN - 1n > head ? head : a + SPAN - 1n]);
+  const chunks = await Promise.all(
+    ranges.map(([f, to]) =>
+      client.request({
+        method: "eth_getLogs",
+        params: [{ address: address as Hex, fromBlock: `0x${f.toString(16)}`, toBlock: `0x${to.toString(16)}`, topics }],
+      } as never) as Promise<{ address: string; topics: Hex[]; data: Hex; blockNumber: string; logIndex: string; transactionHash: Hex }[]>,
+    ),
+  );
+  return chunks.flat().map((l) => ({ ...l, timeStamp: "", gasPrice: "", gasUsed: "" }));
 }
 
 const toArgs = (args: Record<string, unknown>) =>
@@ -103,57 +105,29 @@ export async function latestJobId(escrow: Hex): Promise<number> {
   return Number(next) - 1;
 }
 
-const TAIL = 200n; // bloques recientes que se piden directo a la RPC (el indexador va con ~1 min de atraso)
 const txMeta = new Map<string, Tx>();
 
-/** eth_getLogs directo a la RPC sobre los últimos TAIL bloques, de a 100 (límite de Fuji). */
-async function rpcTail(address: Hex | string, topics: (Hex | Hex[] | null)[], head: bigint): Promise<RawLog[]> {
-  const out: RawLog[] = [];
-  for (let to = head; to > head - TAIL; to -= 100n) {
-    const from = to - 99n;
-    const logs = (await client.request({
-      method: "eth_getLogs",
-      params: [{ address: address as Hex, fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}`, topics }],
-    } as never)) as { address: string; topics: Hex[]; data: Hex; blockNumber: string; logIndex: string; transactionHash: Hex }[];
-    for (const l of logs) out.push({ ...l, timeStamp: "", gasPrice: "", gasUsed: "" });
-  }
-  return out;
-}
-
-const merge = (a: RawLog[], b: RawLog[]) => {
-  const seen = new Set(a.map((l) => `${l.transactionHash}:${n(l.logIndex)}`));
-  return [...a, ...b.filter((l) => !seen.has(`${l.transactionHash}:${n(l.logIndex)}`))];
-};
-
-/** Un refresco completo del job: eventos (indexador + cola reciente por RPC), estado y reputación (RPC). */
+/** Un refresco completo del job: eventos, estado y reputación, todo por RPC. */
 export async function refresh(base: Demo, jobId: number): Promise<Demo | null> {
   const escrow = base.contracts.escrow as Hex;
   const validation = base.contracts.validation;
   const jobTopic = `0x${jobId.toString(16).padStart(64, "0")}` as Hex;
   const head = await client.getBlockNumber();
 
-  const [idxEscrow, tailEscrow] = await Promise.all([
-    getLogs(escrow, { idx: 1, value: jobTopic }).catch(() => [] as RawLog[]),
-    rpcTail(escrow, [null, jobTopic], head),
-  ]);
-  const own = merge(idxEscrow, tailEscrow)
+  const own = (await rpcLogs(escrow, [null, jobTopic], head))
     .map((l) => ({ l, e: decode(l, ESCROW_ABI, "escrow") }))
     .filter((x) => x.e && Number(x.e.args.jobId) === jobId);
   if (!own.some((x) => x.e!.event === "JobCreated")) return null;
 
   const requestHashes = [...new Set(own.filter((x) => x.e!.event === "ResultSubmitted").map((x) => String(x.e!.args.requestHash) as Hex))];
-  const [idxVal, tailVal] = requestHashes.length
-    ? await Promise.all([
-        Promise.all(requestHashes.map((h) => getLogs(validation, { idx: 3, value: h }).catch(() => [] as RawLog[]))).then((x) => x.flat()),
-        rpcTail(validation, [null, null, null, requestHashes], head),
-      ])
-    : [[], []];
-  const val = merge(idxVal, tailVal).map((l) => ({ l, e: decode(l, VALIDATION_ABI, "validation") })).filter((x) => x.e);
+  const created = own.find((x) => x.e!.event === "JobCreated")!;
+  const valLogs = requestHashes.length ? await rpcLogs(validation, [null, null, null, requestHashes], head, BigInt(created.e!.block)) : [];
+  const val = valLogs.map((l) => ({ l, e: decode(l, VALIDATION_ABI, "validation") })).filter((x) => x.e);
 
   const all = [...own, ...val].sort((a, b) => a.e!.block - b.e!.block || a.e!.logIndex - b.e!.logIndex);
   const events = all.map((x) => x.e!);
 
-  // hora y gas: del indexador si lo trae; si no (cola por RPC), recibo + bloque, una vez por tx
+  // hora y gas: recibo + bloque de cada tx, una sola vez (cache en txMeta)
   const txs = new Map<string, Tx>();
   await Promise.all(
     all.map(async ({ l }) => {

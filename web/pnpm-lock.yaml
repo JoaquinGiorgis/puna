@@ -20,6 +20,9 @@ importers:
       react-dom:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
+      satellite.js:
+        specifier: 7.2.0
+        version: 7.2.0
       viem:
         specifier: 2.57.18
         version: 2.57.18(typescript@5.9.3)
@@ -598,6 +601,9 @@ packages:
     resolution: {integrity: sha512-QNhWdt7nrgVWWQG58QuGsAR3jv3Hbe4mb4vz7w2csnHavciZJgda1CPNaldF6eVxv90ud3jUXpKlHL69gO38yw==}
     engines: {node: '>=0.10.0'}
 
+  satellite.js@7.2.0:
+    resolution: {integrity: sha512-O0GqxEU3SZ6ez1JPYyptPboZMZ6xK1xGEOm+OjUHgi1CuqDEVr+SRQXlbT2eApeoQ7HLh7yFiXR4S8M/+tpVaQ==}
+
   scheduler@0.28.0:
     resolution: {integrity: sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw==}
 
@@ -1090,6 +1096,8 @@ snapshots:
       scheduler: 0.28.0
 
   react@19.3.1: {}
+
+  satellite.js@7.2.0: {}
 
   scheduler@0.28.0: {}
 

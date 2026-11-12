@@ -43,7 +43,7 @@ export function LiveProvider({ snapshot, children }: { snapshot: Demo; children:
           setStatus({ kind: "live", at: new Date(), pinned: pinned !== null });
           if (!FINAL.has(res.job.state)) next = 4_000;
         } else {
-          setStatus({ kind: "offline", reason: `el indexador todavía no tiene el createJob del job ${jobId}` });
+          setStatus({ kind: "offline", reason: `no encontré el createJob del job ${jobId} en Fuji` });
           next = 4_000;
         }
       } catch (e) {
