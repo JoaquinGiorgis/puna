@@ -11,6 +11,7 @@ import { LEVEL_ICON } from "@/components/icons";
 import { Satellite } from "lucide-react";
 import { HOME, clampView, proj, type View } from "@/lib/globe-noa";
 import { PolicyModal } from "@/components/cartera/PolicyModal";
+import { SatModal } from "@/components/cartera/SatModal";
 import { useSky } from "@/components/useSky";
 import { demo } from "@/lib/data";
 import { int } from "@/lib/format";
@@ -28,6 +29,7 @@ export default function Cartera() {
   const [open, setOpen] = useState<string | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [satHover, setSatHover] = useState<string | null>(null);
+  const [satOpen, setSatOpen] = useState<string | null>(null);
   const ready = sky.firesAt !== null || sky.firesError !== null;
 
   const rows: Row[] = useMemo(
@@ -52,7 +54,7 @@ export default function Cartera() {
 
   return (
     <div className="theme-dark fixed inset-0 overflow-hidden bg-[#04070d] text-ink">
-      <GlobeView rows={rows} fires={sky.fires} sats={sky.sats} defs={sky.defs} now={sky.mounted ? sky.now : new Date(0)} selected={selected} view={view} setView={setView} onSelect={openPolicy} satHover={satHover} passes={sky.passes} />
+      <GlobeView rows={rows} fires={sky.fires} sats={sky.sats} defs={sky.defs} now={sky.mounted ? sky.now : new Date(0)} selected={selected} view={view} setView={setView} onSelect={openPolicy} satHover={satHover} passes={sky.passes} onSat={setSatOpen} />
 
       {/* capa de UI flotante: no bloquea el globo salvo en sus tarjetas */}
       <div className="pointer-events-none absolute inset-0 flex flex-col gap-3 p-3 md:p-4">
@@ -76,7 +78,7 @@ export default function Cartera() {
 
         <div className="flex min-h-0 flex-1 flex-col justify-end gap-3 md:flex-row md:items-stretch md:justify-between">
           <div className="hidden min-h-0 flex-col justify-end gap-2.5 md:flex">
-            <SatPanel sats={sky.sats} passes={sky.passes} fires={sky.fires} now={sky.mounted ? sky.now : new Date(0)} onHover={setSatHover} />
+            <SatPanel sats={sky.sats} passes={sky.passes} fires={sky.fires} now={sky.mounted ? sky.now : new Date(0)} onHover={setSatHover} onOpen={setSatOpen} />
             <section aria-label="Leyenda" className="lg pointer-events-auto w-[320px] shrink-0 rounded-2xl px-3.5 py-2.5 text-[11px]">
               <ul className="grid grid-cols-2 gap-x-3 gap-y-1">
                 {([["atencion", "#c4352b", "#fff", "Atención"], ["vigilancia", "#f5b03d", "#0e1b2c", "Vigilancia"], ["ok", "#34d399", "#0e1b2c", "Al día"]] as const).map(([lv, bg, fg, l]) => {
@@ -109,6 +111,10 @@ export default function Cartera() {
         </div>
       </div>
 
+      {satOpen && (() => {
+        const st = sky.sats.find((x) => x.name === satOpen);
+        return st ? <SatModal sat={st} def={sky.defs.find((d) => d.name === satOpen)} pass={sky.passes[satOpen] ?? null} fires={sky.fires} now={sky.now} onClose={() => setSatOpen(null)} /> : null;
+      })()}
       {row && <PolicyModal row={row} fires={sky.fires} now={sky.mounted ? sky.now : new Date()} onClose={() => { setOpen(null); fly(null); }} />}
     </div>
   );

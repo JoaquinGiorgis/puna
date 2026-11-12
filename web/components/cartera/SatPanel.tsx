@@ -12,8 +12,8 @@ const hm = (d: Date) => d.toLocaleTimeString("es-AR", { timeZone: "America/Argen
  * Fuentes de datos: los satélites reales de donde sale la información, con su estado para decidir.
  * Un satélite dentro de la Anomalía del Atlántico Sur no recibe cálculos (la radiación puede alterarlos).
  */
-export function SatPanel({ sats, passes, fires, now, onHover }: {
-  sats: SatNow[]; passes: Record<string, Date | null>; fires: Fire[]; now: Date; onHover: (name: string | null) => void;
+export function SatPanel({ sats, passes, fires, now, onHover, onOpen }: {
+  sats: SatNow[]; passes: Record<string, Date | null>; fires: Fire[]; now: Date; onHover: (name: string | null) => void; onOpen: (name: string) => void;
 }) {
   const last = new Map<string, Date>();
   for (const f of fires) { const t = new Date(f.t); if (!last.has(f.sat) || last.get(f.sat)! < t) last.set(f.sat, t); }
@@ -36,8 +36,10 @@ export function SatPanel({ sats, passes, fires, now, onHover }: {
           const pass = passes[x.name];
           const lf = last.get(x.name);
           return (
-            <li key={x.name} onMouseEnter={() => onHover(x.name)} onMouseLeave={() => onHover(null)} title={SENSOR[x.name]}
-              className={`rounded-lg border px-2 py-1 ${x.inSaa ? "border-[#ff5a4e]/50 bg-[#ff5a4e]/12" : "border-white/10 bg-white/[0.04]"}`}>
+            <li key={x.name}>
+              <button type="button" onClick={() => onOpen(x.name)} onMouseEnter={() => onHover(x.name)} onMouseLeave={() => onHover(null)} onFocus={() => onHover(x.name)} onBlur={() => onHover(null)}
+              title={`${SENSOR[x.name] ?? ""} · ver ficha`}
+              className={`block w-full rounded-lg border px-2 py-1 text-left transition hover:bg-white/10 ${x.inSaa ? "border-[#ff5a4e]/50 bg-[#ff5a4e]/12" : "border-white/10 bg-white/[0.04]"}`}>
               <div className="flex items-center gap-1.5">
                 <Satellite aria-hidden="true" size={13} strokeWidth={2.2} className="shrink-0" color={x.inSaa ? "#ff5a4e" : "#3dd6f5"} />
                 <span className="whitespace-nowrap text-[12px] font-semibold">{x.name}</span>
@@ -51,6 +53,7 @@ export function SatPanel({ sats, passes, fires, now, onHover }: {
                 {x.kind === "geo" ? "mira el NOA siempre" : x.overNoa ? "sobre el NOA ahora" : pass ? `vuelve al NOA ${hm(pass)}` : "—"}
                 {" · "}{lf ? `último foco ${ago(lf, now)}` : "sin focos en 48 h"}
               </p>
+              </button>
             </li>
           );
         })}

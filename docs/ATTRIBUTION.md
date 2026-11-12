@@ -37,3 +37,17 @@
 ## Sentinel-2 cloudless (EOX)
 
 La ficha de cada campo en la cartera usa el mosaico **Sentinel-2 cloudless 2025** de EOX IT Services GmbH, que contiene datos Copernicus Sentinel modificados. Licencia CC BY-NC-SA 4.0: solo para uso no comercial, como esta demo. Un producto comercial necesita licencia de EOX u otra fuente de imágenes.
+
+## Imágenes de satélites
+
+Ilustraciones oficiales de dominio público, de NASA y NOAA, obtenidas en Wikimedia Commons y copiadas en `web/public/sats/`:
+
+| Satélite | Archivo | Autor |
+|---|---|---|
+| NOAA-20 | [JPSS-1.jpg](https://commons.wikimedia.org/wiki/File:JPSS-1.jpg) | NOAA |
+| NOAA-21 | [Artist's rendering of NOAA-21.png](https://commons.wikimedia.org/wiki/File:Artist%27s_rendering_of_NOAA-21.png) | NOAA |
+| Terra | [TERRA am1.jpg](https://commons.wikimedia.org/wiki/File:TERRA_am1.jpg) | NASA/JPL |
+| Aqua | [Aqua spacecraft model.png](https://commons.wikimedia.org/wiki/File:Aqua_spacecraft_model.png) | NASA |
+| GOES-19 | [GOES-R Spacecraft Art (serie GOES-R)](https://commons.wikimedia.org/wiki/File:GOES-R_Spacecraft_Art_on_Side_Front_Left_(14213075849).png) | NOAA/Lockheed Martin |
+
+El ícono de satélite del globo es el render propio de `docs/design/assets/sat.py` (`web/public/renders/satA.png`).

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
-import { Check, Satellite } from "lucide-react";
+import { Check } from "lucide-react";
 import { LEVEL_ICON } from "@/components/icons";
 import { BOUNDS, FRAME, clampView, proj, type View } from "@/lib/globe-noa";
 import type { Assessment, Client, Level } from "@/lib/portfolio";
@@ -46,9 +46,9 @@ function Tag({ x, y, dx = 14, dy = -14, k, children }: { x: number; y: number; d
  * misma proyección: focos FIRMS en vivo, trazas y posición SGP4 de satélites reales y un pin por cliente.
  * El SVG usa "slice": llena cualquier pantalla sin deformar. El zoom cambia el viewBox (sin pixelar el SVG).
  */
-export function GlobeView({ rows, fires, sats, defs, now, selected, view, setView, onSelect, satHover = null, passes = {} }: {
+export function GlobeView({ rows, fires, sats, defs, now, selected, view, setView, onSelect, satHover = null, passes = {}, onSat }: {
   rows: Row[]; fires: Fire[]; sats: SatNow[]; defs: SatDef[]; now: Date; selected: string | null; view: View;
-  setView: (f: (v: View) => View) => void; onSelect: (id: string) => void; satHover?: string | null; passes?: Record<string, Date | null>;
+  setView: (f: (v: View) => View) => void; onSelect: (id: string) => void; satHover?: string | null; passes?: Record<string, Date | null>; onSat?: (name: string) => void;
 }) {
   const [aspect, setAspect] = useState(1.6);
   useEffect(() => {
@@ -102,6 +102,12 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
     else down({ ...e, pointerId: -1 } as RPointerEvent<SVGSVGElement>);
   };
   const pick = (id: string) => { if (!drag.current?.moved) onSelect(id); };
+  const pickSat = (name: string) => { if (!drag.current?.moved) onSat?.(name); };
+  const satBtn = (name: string, label: string) => ({
+    role: "button" as const, tabIndex: 0, "aria-label": `${name}: ${label}. Ver ficha del satélite`, className: "cursor-pointer outline-none",
+    onClick: () => pickSat(name),
+    onKeyDown: (e: KeyboardEvent) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onSat?.(name)),
+  });
   const vw = FRAME.w / view.k, vh = FRAME.h / view.k;
   // con "slice" se ve menos en un eje: el rectángulo visible real, para los indicadores de borde
   const visW = aspect >= FRAME.w / FRAME.h ? vw : vh * aspect, visH = aspect >= FRAME.w / FRAME.h ? vw / aspect : vh;
@@ -183,6 +189,8 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
         });
         // separar indicadores que caen juntos sobre el mismo borde
         const off = items.filter((i) => !i.inside);
+        // borde izquierdo: abajo están los paneles de fuentes y leyenda (~480 px de alto)
+        off.forEach((i) => { if (i.edge === "v" && i.ex < cx && i.ey > y1 - 560 * s) { i.ey = y1 - 560 * s; } });
         for (const e of ["h", "v"] as const) {
           const g = off.filter((i) => i.edge === e).sort((a, b) => (e === "h" ? a.ex - b.ex : a.ey - b.ey));
           const gap = (e === "h" ? 175 : 46) * s;
@@ -204,22 +212,21 @@ export function GlobeView({ rows, fires, sats, defs, now, selected, view, setVie
           const pass = passes[x.name];
           const sub = x.inSaa ? "en la Anomalía" : x.kind === "geo" ? "geoestacionario" : x.overNoa ? "sobre el NOA" : pass ? `vuelve ${pass.toLocaleTimeString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: "2-digit", minute: "2-digit", hour12: false })}` : "";
           if (inside) return (
-            <g key={x.name} aria-hidden="true">
-              <circle cx={p.x} cy={p.y} r={(hl ? 24 : 17) * s} fill={color} fillOpacity={0.18} stroke={color} strokeOpacity={0.6} strokeWidth={1 * s} />
-              <circle cx={p.x} cy={p.y} r={11 * s} fill="#0a1220" fillOpacity={0.85} stroke={color} strokeWidth={1.5 * s} />
-              <Satellite x={p.x - 7 * s} y={p.y - 7 * s} width={14 * s} height={14 * s} color={color} strokeWidth={2.2} />
-              <Tag x={p.x} y={p.y} k={view.k} dx={16} dy={-12}>
+            <g key={x.name} {...satBtn(x.name, sub || "en vista")}>
+              <circle cx={p.x} cy={p.y} r={(hl ? 30 : 24) * s} fill={color} fillOpacity={0.14} stroke={color} strokeOpacity={0.75} strokeWidth={1.2 * s} />
+              <image href="/renders/satA.png" x={p.x - 26 * s} y={p.y - 16 * s} width={52 * s} height={32.5 * s} preserveAspectRatio="xMidYMid meet" />
+              <Tag x={p.x} y={p.y} k={view.k} dx={28} dy={-14}>
                 <span className="block font-mono text-[11px] font-medium text-[#e6edf7]">{x.name}</span>
                 {sub && <span className="block text-[10px]" style={{ color: x.inSaa ? "#ff9b92" : "#c9d4e4" }}>{sub}</span>}
               </Tag>
             </g>
           );
           return (
-            <g key={x.name} aria-hidden="true" opacity={hl ? 1 : 0.95}>
-              <circle cx={ex} cy={ey} r={(hl ? 14 : 11) * s} fill="#0a1220" fillOpacity={0.85} stroke={color} strokeWidth={1.5 * s} strokeDasharray={`${3 * s} ${2 * s}`} />
-              <Satellite x={ex - 6.5 * s} y={ey - 6.5 * s} width={13 * s} height={13 * s} color={color} strokeWidth={2.2} />
-              <path d={`M ${ex + 16 * s} ${ey} l ${-5 * s} ${-4 * s} l 0 ${8 * s} z`} fill={color} transform={`rotate(${ang} ${ex} ${ey})`} />
-              <Tag x={ex} y={ey} k={view.k} dx={flip ? -196 : 16} dy={-12}>
+            <g key={x.name} {...satBtn(x.name, p.visible ? "fuera de la vista" : "del otro lado del planeta")} opacity={hl ? 1 : 0.95}>
+              <circle cx={ex} cy={ey} r={(hl ? 19 : 16) * s} fill="#0a1220" fillOpacity={0.8} stroke={color} strokeWidth={1.5 * s} strokeDasharray={`${3 * s} ${2 * s}`} />
+              <image href="/renders/satA.png" x={ex - 14 * s} y={ey - 9 * s} width={28 * s} height={17.5 * s} preserveAspectRatio="xMidYMid meet" />
+              <path d={`M ${ex + 22 * s} ${ey} l ${-5 * s} ${-4 * s} l 0 ${8 * s} z`} fill={color} transform={`rotate(${ang} ${ex} ${ey})`} />
+              <Tag x={ex} y={ey} k={view.k} dx={flip ? -202 : 24} dy={-12}>
                 <span className={`block w-[176px] font-mono text-[11px] font-medium text-[#e6edf7] ${flip ? "text-right" : ""}`}>{x.name}</span>
                 <span className={`block w-[176px] text-[10px] ${flip ? "text-right" : ""}`} style={{ color: x.inSaa ? "#ff9b92" : "#c9d4e4" }}>{p.visible ? "fuera de la vista" : "otro lado del planeta"}{sub ? ` · ${sub}` : ""}</span>
               </Tag>
