@@ -26,9 +26,6 @@ importers:
       satellite.js:
         specifier: 6.0.2
         version: 6.0.2
-      shaders:
-        specifier: 4.0.5
-        version: 4.0.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       three:
         specifier: 0.186.1
         version: 0.186.1
@@ -654,27 +651,6 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  shaders@4.0.5:
-    resolution: {integrity: sha512-1muVyMI5NGkv/+/QpHD9wY2HfmxeWq3MBDT3ERFBTStCSzikSBravuTaGv3B1nz0rXccvv3C0xp3lmvfptu3Zg==}
-    hasBin: true
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0
-      react-dom: ^18.0.0 || ^19.0.0
-      solid-js: ^1.8.0
-      svelte: ^5
-      vue: ^3.5.0
-    peerDependenciesMeta:
-      react:
-        optional: true
-      react-dom:
-        optional: true
-      solid-js:
-        optional: true
-      svelte:
-        optional: true
-      vue:
-        optional: true
-
   sharp@0.35.5:
     resolution: {integrity: sha512-Ywn4OnzGukp7CDMrp08RQ50YKmuwG47brZgIVPTvBaaAfQlRlygrRqSrxdCiL9M+LlzLBiJ68IR1QqvzHyjC7g==}
     engines: {node: '>=20.9.0'}
@@ -711,23 +687,8 @@ packages:
   three@0.186.1:
     resolution: {integrity: sha512-blFeqb49wRCSGUGj7gtpfnSGHy2lwDk94RhUmS1c/hTby70kvChbWpkJ4Pm1390LqzzvTmzgXKHPEafJwCb8jA==}
 
-  tinyest@0.3.4:
-    resolution: {integrity: sha512-81EcMHTCQ2IPweOGk9SpMgjbenR9ZJRsAE84btEv0DhvVKwhe7qBy28hWgatoXa9ppWzmtpHiJ+e86SiaAtY6w==}
-    engines: {node: '>=12.20.0'}
-
   tslib@2.9.1:
     resolution: {integrity: sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA==}
-
-  tsover-runtime@0.0.7:
-    resolution: {integrity: sha512-FHHwMJzZbnP23+fU1PxXljy7j0RRRosL2r1/CRUNTqfW+l7m35JsUkM615x/cAzw4GqRdXPIl3axKMj9qzpZtQ==}
-
-  typed-binary@4.3.5:
-    resolution: {integrity: sha512-irziT9zxcyZs8TawuZBab1kQTACM3Q6wGWDh/a5IB2iWbueu+jbkN5ofoSvp28Em1w4ZEa7y44Jx7pHmgBGZdw==}
-
-  typegpu@0.12.3:
-    resolution: {integrity: sha512-zYwQEhnPPwhq5vQKmollXRK1LCVjStOnL+2B0PiebqvAzYPr25rPNR4r3olLoow5sKKjyj3kzHKEcpD5SyDzGQ==}
-    engines: {node: '>=12.20.0'}
-    hasBin: true
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
@@ -1212,13 +1173,6 @@ snapshots:
   semver@7.8.6:
     optional: true
 
-  shaders@4.0.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
-    dependencies:
-      typegpu: 0.12.3
-    optionalDependencies:
-      react: 19.3.1
-      react-dom: 19.3.1(react@19.3.1)
-
   sharp@0.35.5(@types/node@22.20.5):
     dependencies:
       '@img/colour': 1.1.0
@@ -1266,19 +1220,7 @@ snapshots:
 
   three@0.186.1: {}
 
-  tinyest@0.3.4: {}
-
   tslib@2.9.1: {}
-
-  tsover-runtime@0.0.7: {}
-
-  typed-binary@4.3.5: {}
-
-  typegpu@0.12.3:
-    dependencies:
-      tinyest: 0.3.4
-      tsover-runtime: 0.0.7
-      typed-binary: 4.3.5
 
   typescript@5.9.3: {}
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { SAA, satAt, type Fire, type SatDef, type SatNow } from "@/lib/sky";
 
 export type GlobeAlert = { id: string; field: string; lat: number; lon: number; count: number };
@@ -17,58 +18,132 @@ function vec(lat: number, lon: number, r = R) {
   return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta));
 }
 
-/** Llama 3D: perfil de gota girado (lathe) con un núcleo amarillo, más anillo y haz. */
-function flameMarker() {
+const NOISE = `
+float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
+float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0-2.0*f);
+  return mix(mix(h21(i), h21(i+vec2(1,0)), u.x), mix(h21(i+vec2(0,1)), h21(i+vec2(1,1)), u.x), u.y); }
+float fbm(vec2 p){ float v = 0.0, a = 0.5; for(int i=0;i<5;i++){ v += a*vnoise(p); p *= 2.07; a *= 0.5; } return v; }`;
+
+/** Material de llama volumétrica: ruido fractal que sube, silueta de lágrima y rampa de temperatura. */
+function flameMaterial(seed: number) {
+  return new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    uniforms: { uTime: { value: 0 }, uSeed: { value: seed } },
+    vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
+    fragmentShader: `uniform float uTime; uniform float uSeed; varying vec2 vUv; ${NOISE}
+      void main(){
+        vec2 uv = vUv;
+        float t = uTime*1.7 + uSeed*13.0;
+        float n = fbm(vec2(uv.x*3.2 + uSeed, uv.y*2.6 - t));
+        float n2 = fbm(vec2(uv.x*6.0 - uSeed, uv.y*5.0 - t*1.6));
+        float x = (uv.x - 0.5)*2.0 + (n - 0.5)*0.7*uv.y;
+        float w = mix(0.95, 0.06, pow(uv.y, 0.8));
+        float body = smoothstep(1.0, 0.15, abs(x)/w);
+        float top = smoothstep(0.98, 0.45, uv.y + (n2 - 0.5)*0.45);
+        float flame = body * top * smoothstep(0.0, 0.07, uv.y);
+        float heat = clamp(flame*(1.25 - uv.y*0.9) + (n2 - 0.5)*0.2, 0.0, 1.0);
+        vec3 col = mix(vec3(0.55, 0.06, 0.01), vec3(1.0, 0.42, 0.05), smoothstep(0.1, 0.5, heat));
+        col = mix(col, vec3(1.0, 0.86, 0.45), smoothstep(0.55, 0.9, heat));
+        col = mix(col, vec3(1.0, 0.98, 0.9), smoothstep(0.9, 1.0, heat));
+        gl_FragColor = vec4(col*flame*1.8, flame);
+      }`,
+  });
+}
+
+/** Brasas: partículas que suben y se apagan (todo en el shader de vértices). */
+function embers(seed: number) {
+  const N = 26;
+  const a = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) { a[i * 3] = Math.random(); a[i * 3 + 1] = Math.random(); a[i * 3 + 2] = Math.random(); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(a, 3));
+  return new THREE.Points(g, new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    uniforms: { uTime: { value: 0 }, uSeed: { value: seed } },
+    vertexShader: `uniform float uTime; uniform float uSeed; varying float vLife;
+      void main(){
+        float life = fract(position.y + uTime*(0.25 + position.z*0.35) + uSeed);
+        vLife = life;
+        vec3 p = vec3((position.x - 0.5)*0.05 + sin(life*9.0 + position.z*20.0)*0.012, life*0.2, (position.z - 0.5)*0.05);
+        vec4 mv = modelViewMatrix*vec4(p, 1.0);
+        gl_PointSize = (1.0 - life) * 7.0 * (1.0/ -mv.z);
+        gl_Position = projectionMatrix*mv;
+      }`,
+    fragmentShader: `varying float vLife;
+      void main(){ float d = length(gl_PointCoord - 0.5); if(d > 0.5) discard;
+        vec3 c = mix(vec3(1.0, 0.8, 0.4), vec3(1.0, 0.25, 0.02), vLife);
+        gl_FragColor = vec4(c, (1.0 - vLife) * smoothstep(0.5, 0.0, d)); }`,
+  }));
+}
+
+/** Alerta de fuego 3D: llama volumétrica (tres planos cruzados), brasas, resplandor en el suelo y anillo. */
+function fireMarker() {
   const g = new THREE.Group();
-  const prof: THREE.Vector2[] = [];
-  for (let i = 0; i <= 16; i++) {
-    const t = i / 16;
-    prof.push(new THREE.Vector2(Math.sin(Math.PI * t) ** 1.4 * (1 - t * 0.55) * 0.022, t * 0.075));
+  const seed = Math.random() * 10;
+  const mat = flameMaterial(seed);
+  const plane = new THREE.PlaneGeometry(0.075, 0.13);
+  plane.translate(0, 0.065, 0);
+  for (let i = 0; i < 3; i++) {
+    const m = new THREE.Mesh(plane, mat);
+    m.rotation.y = (i * Math.PI) / 3;
+    g.add(m);
   }
-  const outer = new THREE.Mesh(
-    new THREE.LatheGeometry(prof, 24),
-    new THREE.MeshStandardMaterial({ color: 0xff5a1f, emissive: 0xff4a10, emissiveIntensity: 1.6, roughness: 0.4, transparent: true, opacity: 0.95 }),
+  const em = embers(seed);
+  const glow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.06, 32),
+    new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
+      fragmentShader: "varying vec2 vUv; void main(){ float d = length(vUv - 0.5)*2.0; gl_FragColor = vec4(vec3(1.0,0.35,0.05)*(1.0-d), (1.0-d)*0.8); }",
+    }),
   );
-  const inner = new THREE.Mesh(
-    new THREE.LatheGeometry(prof.map((p) => new THREE.Vector2(p.x * 0.55, p.y * 0.7)), 18),
-    new THREE.MeshStandardMaterial({ color: 0xffd24a, emissive: 0xffc23a, emissiveIntensity: 2.2 }),
-  );
-  inner.position.y = 0.004;
+  glow.rotation.x = -Math.PI / 2;
+  glow.position.y = 0.002;
   const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.026, 0.032, 48),
+    new THREE.RingGeometry(0.05, 0.056, 64),
     new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }),
   );
   ring.rotation.x = -Math.PI / 2;
   ring.name = "ring";
-  const beam = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.0015, 0.004, 0.22, 8, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0xff8a3d, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }),
-  );
-  beam.position.y = 0.11;
-  g.add(outer, inner, ring, beam);
+  g.add(em, glow, ring);
+  g.userData.uniforms = [mat.uniforms, (em.material as THREE.ShaderMaterial).uniforms];
   return g;
 }
 
-/** Satélite 3D: cuerpo con aislante dorado, dos paneles solares y antena. */
-function satelliteModel(color: number) {
+/** Modelos 3D reales de la NASA (NASA 3D Resources, dominio público). NOAA-20/21 usan la plataforma de Suomi NPP. */
+const MODEL_URL: Record<string, string> = {
+  "NOAA-20": "/models/suomi-npp.glb", "NOAA-21": "/models/suomi-npp.glb", Aqua: "/models/aqua.glb", Terra: "/models/terra.glb",
+};
+const SAT_SIZE = 0.085; // exagerado: a escala real no se verían
+const gltfCache = new Map<string, Promise<THREE.Object3D>>();
+function loadModel(url: string) {
+  if (!gltfCache.has(url)) {
+    gltfCache.set(url, new GLTFLoader().loadAsync(url).then((gltf) => {
+      const root = gltf.scene;
+      const box = new THREE.Box3().setFromObject(root);
+      const size = box.getSize(new THREE.Vector3());
+      root.position.sub(box.getCenter(new THREE.Vector3()));
+      const wrap = new THREE.Group();
+      wrap.add(root);
+      wrap.scale.setScalar(SAT_SIZE / Math.max(size.x, size.y, size.z));
+      return wrap;
+    }));
+  }
+  return gltfCache.get(url)!;
+}
+
+function satelliteSlot(name: string, color: number) {
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.045), new THREE.MeshStandardMaterial({ color: 0xc9a24a, metalness: 0.85, roughness: 0.35 }));
-  const panelMat = new THREE.MeshStandardMaterial({ color: 0x1b3f8f, metalness: 0.5, roughness: 0.3, emissive: 0x0a1e4a, emissiveIntensity: 0.6 });
-  const panelGeo = new THREE.BoxGeometry(0.075, 0.002, 0.032);
-  const p1 = new THREE.Mesh(panelGeo, panelMat);
-  p1.position.x = 0.058;
-  const p2 = p1.clone();
-  p2.position.x = -0.058;
-  const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.0015, 0.0015, 0.03, 6), new THREE.MeshStandardMaterial({ color: 0xdddddd }));
-  ant.position.y = 0.03;
-  const dish = new THREE.Mesh(new THREE.ConeGeometry(0.009, 0.006, 16, 1, true), new THREE.MeshStandardMaterial({ color: 0xeeeeee, side: THREE.DoubleSide }));
-  dish.position.y = 0.046;
   const halo = new THREE.Mesh(
-    new THREE.SphereGeometry(0.05, 16, 16),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false }),
+    new THREE.SphereGeometry(0.055, 20, 20),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false }),
   );
   halo.name = "halo";
-  g.add(body, p1, p2, ant, dish, halo);
+  g.add(halo);
+  const url = MODEL_URL[name];
+  if (url) loadModel(url).then((m) => g.add(m.clone(true))).catch(() => {
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.04), new THREE.MeshStandardMaterial({ color: 0xc9a24a, metalness: 0.8, roughness: 0.4 })));
+  });
   return g;
 }
 
@@ -218,12 +293,12 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
         alertList = a;
         alertGroup.clear();
         for (const al of a) {
-          const m = flameMarker();
+          const m = fireMarker();
           const p = vec(al.lat, al.lon, R);
           m.position.copy(p);
           m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p.clone().normalize());
           m.userData.phase = Math.random() * Math.PI * 2;
-          m.scale.setScalar(2.4);
+          m.scale.setScalar(2.6);
           alertGroup.add(m);
         }
       },
@@ -232,7 +307,7 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
           if (x.kind !== "polar") continue;
           let m = satModels.get(x.name);
           if (!m) {
-            m = satelliteModel(x.inSaa ? 0xff5a4e : 0x3dd6f5);
+            m = satelliteSlot(x.name, x.inSaa ? 0xff5a4e : 0x3dd6f5);
             satModels.set(x.name, m);
             satGroup.add(m);
           }
@@ -274,21 +349,20 @@ export function Globe3D({ fires, sats, defs, now, alerts, onLabels }: Props) {
     ro.observe(el);
 
     let raf = 0;
-    const clock = new THREE.Clock();
+    const t0 = performance.now();
     const tmp = new THREE.Vector3();
     const camDir = new THREE.Vector3();
     const tick = () => {
-      const t = clock.getElapsedTime();
+      const t = (performance.now() - t0) / 1000;
       controls.update();
-      if (!reduce) {
-        alertGroup.children.forEach((m) => {
-          const ph = (t * 1.2 + m.userData.phase) % 1;
-          const ring = m.getObjectByName("ring")!;
-          ring.scale.setScalar(1 + ph * 2.2);
-          ((ring as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - ph);
-          m.children[0].scale.set(1, 1 + Math.sin(t * 9 + m.userData.phase) * 0.12, 1);
-        });
-      }
+      alertGroup.children.forEach((m) => {
+        for (const u of m.userData.uniforms as { uTime: { value: number } }[]) u.uTime.value = reduce ? 1.5 : t;
+        if (reduce) return;
+        const ph = (t * 0.8 + m.userData.phase) % 1;
+        const ring = m.getObjectByName("ring")!;
+        ring.scale.setScalar(1 + ph * 1.8);
+        ((ring as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = 0.8 * (1 - ph);
+      });
       renderer.render(scene, camera);
       // posiciones en pantalla de las alertas, para las etiquetas de vidrio
       if (labelCb.current && alertList.length) {

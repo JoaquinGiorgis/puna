@@ -30,7 +30,7 @@ const noaaOf = (agentId: number) => { const n = node(agentId); return n && NOAA[
 const nodeSat = (agentId: number) => { const n = node(agentId); return n && NOAA[n.norad] ? ` (satélite ${NOAA[n.norad]})` : ""; };
 const txTime = new Map(demo.txs.map((t) => [t.hash, t]));
 
-function lot14Steps(): Step[] {
+export function lot14Steps(): Step[] {
   const [d0, d1] = demo.lot.fociDates ?? ["", ""];
   const maxFrp = Math.max(...demo.lot.foci.map((f) => f.frp));
   const trig = pctTxt(demo.job.triggerBps);

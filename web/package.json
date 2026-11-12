@@ -15,7 +15,6 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "satellite.js": "6.0.2",
-    "shaders": "4.0.5",
     "three": "0.186.1",
     "viem": "2.57.18"
   },
