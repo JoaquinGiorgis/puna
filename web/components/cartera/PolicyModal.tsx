@@ -1,0 +1,271 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { GibsImage } from "@/components/DetailDrawer";
+import { FieldImage } from "@/components/FieldImage";
+import { LevelBadge } from "@/components/Shell";
+import { demo } from "@/lib/data";
+import { addrUrl, int, pct, short, txUrl } from "@/lib/format";
+import { frame } from "@/lib/imagery";
+import { lot14Kpis, policyHistory, policyTxs, type StepKind } from "@/lib/policy";
+import { distToField, sumInsured, usd } from "@/lib/portfolio";
+import type { Fire } from "@/lib/sky";
+import type { Row } from "./GlobeView";
+
+type Tab = "historial" | "transacciones" | "auditoria";
+const STEP: Record<StepKind, { bg: string; fg: string; icon: string; title: string }> = {
+  fire: { bg: "#ff7a1a", fg: "#fff", icon: "◉", title: "text-ink" },
+  info: { bg: "#3dd6f5", fg: "#04121c", icon: "→", title: "text-ink" },
+  warn: { bg: "#f5b03d", fg: "#1a1200", icon: "▲", title: "text-ink" },
+  bad: { bg: "#ff5a4e", fg: "#fff", icon: "✕", title: "text-[#ff8a80]" },
+  ok: { bg: "#34d399", fg: "#04140d", icon: "✓", title: "text-[#6ee7b7]" },
+  pending: { bg: "transparent", fg: "#c9d4e4", icon: "…", title: "text-ink" },
+};
+
+/** Focos FIRMS históricos del Lote 14 (8–11/11), en coordenadas de la grilla en demo.json. */
+function lot14Fires(): Fire[] {
+  const [w, s, e, n] = demo.lot.bbox;
+  return demo.lot.foci.map((f) => ({
+    lat: n - f.y * (n - s), lon: w + f.x * (e - w), sat: f.sat === "N20" ? "NOAA-20" : "NOAA-21",
+    source: "VIIRS", t: `${f.date}T${f.time.slice(0, 2)}:${f.time.slice(2)}:00Z`, frp: f.frp, confidence: f.confidence,
+  }));
+}
+
+const TxChip = ({ hash }: { hash: string }) => (
+  <a href={txUrl(demo.chain.explorer, hash)} target="_blank" rel="noreferrer"
+    className="shrink-0 rounded-md bg-[#3dd6f5]/15 px-1.5 py-0.5 font-mono text-[11px] text-[#7dd3fc] hover:bg-[#3dd6f5]/25">
+    {short(hash)} <span aria-hidden="true">↗</span><span className="sr-only"> (abre Snowtrace)</span>
+  </a>
+);
+
+export function PolicyModal({ row, fires, now, onClose }: { row: Row; fires: Fire[]; now: Date; onClose: () => void }) {
+  const { c, a } = row;
+  const box = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<Tab>("historial");
+  const [img, setImg] = useState<"campo" | "dia">("campo");
+  const steps = useMemo(() => policyHistory(c, a, now), [c, a, now]);
+  const txs = useMemo(() => policyTxs(c), [c]);
+  const k = c.onchain ? lot14Kpis() : null;
+  const history = c.onchain ? lot14Fires() : [];
+
+  // foco atrapado + Escape
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    box.current?.querySelector<HTMLElement>("[data-autofocus]")?.focus();
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key !== "Tab" || !box.current) return;
+      const f = [...box.current.querySelectorAll<HTMLElement>("a[href],button:not([disabled]),[tabindex='0']")];
+      if (!f.length) return;
+      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+    };
+    window.addEventListener("keydown", key);
+    return () => { window.removeEventListener("keydown", key); prev?.focus(); };
+  }, [onClose]);
+
+  const kpis: [string, string, string, string][] = k
+    ? [
+        ["Índice validado", pct(k.indexBps), "text-[#ff9a3d]", `disparador ≥ ${pct(k.triggerBps)} · ${k.indexBps >= k.triggerBps ? "supera" : "no supera"}`],
+        ["Indemnización", k.indemnity, "text-[#6ee7b7]", `${k.state === "Paid" ? "pagada" : k.state} · ${k.paidAt} ART`],
+        ["Suma asegurada", usd(sumInsured(c)), "text-ink", `prima ${usd(sumInsured(c) * 0.018)} · campaña 2026/27`],
+        ["De la póliza al pago", `${k.seconds} s`, "text-ink", `${k.txs} txs · ${int(k.gas)} gas`],
+      ]
+    : [
+        ["Índice", a.level === "atencion" ? "pendiente" : "—", "text-ink", a.level === "atencion" ? "falta pedir el índice verificado" : "sin siniestro abierto"],
+        ["Focos en el lote · 48 h", int(a.inField.length), a.inField.length ? "text-[#ff8a80]" : "text-ink", a.near.length ? `${a.near.length} más a ≤ 15 km` : "ninguno a ≤ 15 km"],
+        ["Suma asegurada", usd(sumInsured(c)), "text-ink", `prima ${usd(sumInsured(c) * 0.018)} · campaña 2026/27`],
+        ["Disparador", `≥ ${c.triggerPct} %`, "text-ink", "del lote quemado, verificado"],
+      ];
+
+  const tabs: [Tab, string][] = [["historial", `Historial · ${steps.length}`], ["transacciones", `Transacciones · ${txs.length}`], ["auditoria", `Auditoría · ${k ? k.attempts.length : 0} intentos`]];
+
+  return (
+    <div className="fixed inset-0 z-40 grid place-items-center overflow-y-auto bg-[#02050a]/55 p-3 backdrop-blur-[6px] md:p-6" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div ref={box} role="dialog" aria-modal="true" aria-labelledby="poliza-titulo"
+        className="lg lg-strong theme-dark my-auto flex w-full max-w-[1040px] flex-col gap-4 rounded-[28px] p-4 md:p-6">
+        {/* encabezado */}
+        <header className="flex flex-wrap items-center gap-3.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`https://tiles.maps.eox.at/wms?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=s2cloudless-2025&SRS=EPSG:4326&BBOX=${frame(c.bbox, 0.35).join(",")}&WIDTH=160&HEIGHT=160&FORMAT=image/jpeg`}
+            alt="" className="h-14 w-14 rounded-[14px] border border-white/20 object-cover" />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 id="poliza-titulo" className="text-[22px] font-semibold tracking-tight">{c.field}</h2>
+              <LevelBadge level={a.level} />
+              {c.onchain && <LevelBadge level="siniestro" />}
+              {!c.onchain && <span className="rounded-full bg-[#fbf1df] px-2.5 py-0.5 text-[11.5px] font-semibold text-[#9a6200]"><span aria-hidden="true">▲ </span>Póliza simulada</span>}
+            </div>
+            <p className="text-[12.5px] text-muted">{c.place} · {c.crop} · {int(c.ha)} ha · póliza {c.policy}{c.onchain ? " en Avalanche Fuji" : ""}</p>
+          </div>
+          <Link href={c.onchain ? `/mission-control?job=${demo.job.id}` : "/mission-control"}
+            className="rounded-full border border-white/30 bg-white/[0.06] px-3 py-2 text-[12.5px] font-medium hover:bg-white/15">
+            {c.onchain ? "Abrir en Mission Control" : "Ver cómo se audita"} <span aria-hidden="true">↗</span>
+          </Link>
+          <button data-autofocus onClick={onClose} aria-label="Cerrar póliza"
+            className="grid h-9 w-9 place-items-center rounded-full border border-white/25 bg-white/10 text-[14px] hover:bg-white/20">✕</button>
+        </header>
+
+        {/* indicadores */}
+        <dl className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+          {kpis.map(([l, v, cls, s]) => (
+            <div key={l} className="lg-tile rounded-[14px] px-3.5 py-3">
+              <dt className="text-[11.5px] text-muted">{l}</dt>
+              <dd className={`mt-0.5 font-mono text-[22px] font-semibold leading-tight ${cls}`}>{v}</dd>
+              <dd className="text-[11.5px] text-muted">{s}</dd>
+            </div>
+          ))}
+        </dl>
+
+        {/* cuerpo: las dos columnas se estiran a la misma altura */}
+        <div className="grid items-stretch gap-5 md:grid-cols-[380px_minmax(0,1fr)]">
+          <div className="flex flex-col gap-3">
+            <div className="relative">
+              {img === "campo" ? (
+                <FieldImage bbox={c.bbox} fires={[...a.inField, ...a.near, ...history]} tone={a.level === "atencion" ? "bad" : a.level === "vigilancia" ? "warn" : a.level === "siniestro" ? "info" : "ok"}
+                  pad={0.45} px={760} className="aspect-[4/3] w-full rounded-2xl" alt={`Imagen Sentinel-2 de ${c.field} con el contorno del lote`} />
+              ) : (
+                <div className="rounded-2xl bg-[#0c131e] p-2">
+                  <GibsImage bbox={frame(c.bbox, 1.2, 6)} fires={[...fires.filter((f) => distToField(c, f.lat, f.lon) <= 25), ...history]}
+                    now={now} outline={c.bbox} initialLayer={a.level === "atencion" || c.onchain ? "fuego" : "real"} />
+                </div>
+              )}
+              <div role="group" aria-label="Tipo de imagen" className="lg absolute left-2.5 top-2.5 flex gap-0.5 rounded-full p-0.5">
+                {([["campo", "Campo · Sentinel-2"], ["dia", "Día a día · VIIRS"]] as const).map(([v, l]) => (
+                  <button key={v} onClick={() => setImg(v)} aria-pressed={img === v}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${img === v ? "bg-white text-[#0e1b2c]" : "text-[#e6edf7] hover:bg-white/10"}`}>{l}</button>
+                ))}
+              </div>
+            </div>
+            {img === "campo" && (
+              <p className="text-[11px] leading-snug text-muted">
+                Sentinel-2 cloudless (EOX) · contorno del lote asegurado
+                {c.onchain ? ` · ${demo.lot.foci.length} focos VIIRS del 8 al 11/11 y de las últimas 48 h` : a.inField.length + a.near.length ? " · focos NASA FIRMS de 48 h" : ""}. Es un mosaico sin nubes: muestra el campo, no el día de hoy.
+              </p>
+            )}
+            <section aria-labelledby="poliza-datos" className="lg-tile flex flex-1 flex-col gap-1.5 rounded-[14px] px-3.5 py-3">
+              <h3 id="poliza-datos" className="text-[13px] font-semibold">Póliza</h3>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+                <dt className="text-muted">Cobertura</dt><dd className="text-right">Incendio paramétrico</dd>
+                <dt className="text-muted">Índice</dt><dd className="text-right">Área quemada, verificada por PUNA</dd>
+                <dt className="text-muted">Vigencia</dt><dd className="text-right">01/09/2026 al 31/05/2027</dd>
+                <dt className="text-muted">Productor</dt>
+                <dd className="text-right">{c.onchain
+                  ? <a className="font-mono text-[11.5px] text-[#7dd3fc] underline-offset-2 hover:underline" href={addrUrl(demo.chain.explorer, demo.job.beneficiary)} target="_blank" rel="noreferrer">simulado · {short(demo.job.beneficiary)} ↗</a>
+                  : "simulado"}</dd>
+                <dt className="text-muted">Contrato</dt>
+                <dd className="text-right">{c.onchain
+                  ? <a className="font-mono text-[11.5px] text-[#7dd3fc] underline-offset-2 hover:underline" href={addrUrl(demo.chain.explorer, demo.contracts.escrow)} target="_blank" rel="noreferrer">PunaEscrow {short(demo.contracts.escrow)} ↗</a>
+                  : "se crea al pedir el índice"}</dd>
+                <dt className="text-muted">Validador</dt><dd className="text-right">agente de otro operador · ERC-8004</dd>
+              </dl>
+            </section>
+          </div>
+
+          <div className="flex min-h-0 min-w-0 flex-col gap-3">
+            <div role="tablist" aria-label="Detalle de la póliza" className="lg-tile flex w-fit max-w-full flex-wrap gap-1 rounded-full p-[3px]">
+              {tabs.map(([t, l]) => (
+                <button key={t} role="tab" aria-selected={tab === t} aria-controls={`panel-${t}`} id={`tab-${t}`} onClick={() => setTab(t)}
+                  className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-medium ${tab === t ? "bg-white text-[#0e1b2c]" : "text-[#e6edf7] hover:bg-white/10"}`}>{l}</button>
+              ))}
+            </div>
+
+            {tab === "historial" && (
+              <ol id="panel-historial" role="tabpanel" aria-labelledby="tab-historial" className="flex flex-1 flex-col justify-between">
+                {steps.map((s, i) => {
+                  const st = STEP[s.kind];
+                  return (
+                    <li key={i} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <span aria-hidden="true" className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-[10px] font-bold"
+                          style={{ background: st.bg, color: st.fg, border: s.kind === "pending" ? "1.5px dashed #c9d4e4" : undefined }}>{st.icon}</span>
+                        {i < steps.length - 1 && <span aria-hidden="true" className="w-0.5 flex-1 bg-white/20" />}
+                      </div>
+                      <div className="min-w-0 flex-1 pb-2.5">
+                        <div className="flex items-baseline gap-2">
+                          <p className={`min-w-0 flex-1 text-[13px] font-semibold ${st.title}`}>{s.title}</p>
+                          {s.when && <span className="shrink-0 font-mono text-[11px] text-muted">{s.when}</span>}
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                          <p className="min-w-0 flex-1 text-[11.5px] text-muted">{s.detail}</p>
+                          {s.txs.length > 0 && <span className="flex gap-1">{s.txs.map((h) => <TxChip key={h} hash={h} />)}</span>}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+
+            {tab === "transacciones" && (
+              <div id="panel-transacciones" role="tabpanel" aria-labelledby="tab-transacciones" className="flex flex-1 flex-col gap-2">
+                {txs.length ? (
+                  <>
+                    <div className="lg-tile flex-1 overflow-x-auto rounded-[14px] p-1">
+                      <table className="w-full min-w-[520px] text-left text-[12px]">
+                        <thead className="text-[11px] text-muted"><tr><th className="px-2.5 py-2 font-medium">Hora (ART)</th><th className="font-medium">Evento</th><th className="font-medium">Registro</th><th className="font-medium">Gas</th><th className="font-medium">Tx</th></tr></thead>
+                        <tbody>
+                          {txs.map((t) => (
+                            <tr key={t.hash} className={t.tone === "bad" ? "bg-[#ff5a4e]/15" : t.tone === "ok" ? "bg-[#34d399]/15" : ""}>
+                              <td className="rounded-l-[10px] px-2.5 py-2 font-mono">{t.when}</td>
+                              <td className={`font-medium ${t.tone === "bad" ? "text-[#ff8a80]" : t.tone === "ok" ? "text-[#6ee7b7]" : ""}`}>{t.tone === "bad" ? "✕ " : t.tone === "ok" ? "✓ " : ""}{t.event}</td>
+                              <td className="font-mono">{t.contract}</td>
+                              <td className="font-mono">{int(t.gas)}</td>
+                              <td className="rounded-r-[10px] pr-2"><TxChip hash={t.hash} /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="flex flex-wrap justify-between gap-2 text-[11.5px] text-muted">
+                      <span>{txs.length} transacciones · {int(txs.reduce((s, t) => s + t.gas, 0))} gas · {demo.chain.name}</span>
+                      <a className="font-medium text-[#7dd3fc] hover:underline" href={addrUrl(demo.chain.explorer, demo.contracts.escrow)} target="_blank" rel="noreferrer">Ver en Snowtrace ↗</a>
+                    </p>
+                  </>
+                ) : (
+                  <Empty title="Todavía no hay transacciones" body="Esta póliza de demo no está en PunaEscrow. Cuando se pide el índice, el contrato registra la póliza, la asignación al nodo, la auditoría y el pago, y cada paso aparece acá con su enlace a Snowtrace." />
+                )}
+              </div>
+            )}
+
+            {tab === "auditoria" && (
+              <div id="panel-auditoria" role="tabpanel" aria-labelledby="tab-auditoria" className="flex flex-1 flex-col gap-2.5">
+                {k ? k.attempts.map((at) => {
+                  const okA = at.outcome !== "Rejected";
+                  const node = demo.nodes.find((n) => n.agentId === at.agentId);
+                  return (
+                    <section key={at.attempt} className={`flex-1 rounded-[14px] border px-3.5 py-3 ${okA ? "border-[#34d399]/40 bg-[#34d399]/10" : "border-[#ff5a4e]/45 bg-[#ff5a4e]/10"}`}>
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <h3 className={`text-[13px] font-semibold ${okA ? "text-[#6ee7b7]" : "text-[#ff8a80]"}`}>{okA ? "✓" : "✕"} Intento {at.attempt} · {node?.name} · score {at.score}</h3>
+                        <span className="font-mono text-[11.5px] text-muted">índice declarado {pct(at.indexBps)}</span>
+                      </div>
+                      <ul className="mt-2 grid gap-1 text-[11.5px] sm:grid-cols-2">
+                        {(at.certificate?.checks ?? []).map((ch) => (
+                          <li key={ch.name} className={ch.ok ? "text-muted" : "font-medium text-[#ff8a80]"}><span aria-hidden="true">{ch.ok ? "✓ " : "✕ "}</span>{ch.name}</li>
+                        ))}
+                        {!at.certificate && <li className="text-muted">El detalle por capa está en Mission Control.</li>}
+                      </ul>
+                    </section>
+                  );
+                }) : (
+                  <Empty title="Sin auditorías" body="La auditoría corre cuando se pide el índice: un validador de otro operador revisa cada capa del cálculo con Freivalds y publica el score en ERC-8004." />
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Empty({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="lg-tile grid flex-1 place-content-center gap-1 rounded-[14px] p-6 text-center">
+      <p className="text-[13.5px] font-semibold">{title}</p>
+      <p className="mx-auto max-w-[44ch] text-[12px] text-muted">{body}</p>
+      <Link href="/mission-control" className="mt-2 text-[12.5px] font-medium text-[#7dd3fc] hover:underline">Ver un job real en Mission Control ↗</Link>
+    </div>
+  );
+}

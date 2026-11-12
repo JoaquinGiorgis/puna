@@ -184,3 +184,18 @@ export const ago = (d: Date, now: Date) => {
   const m = Math.max(0, Math.round((now.getTime() - d.getTime()) / 60_000));
   return m < 60 ? `hace ${m} min` : m < 48 * 60 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`;
 };
+
+/** Traza en tierra [lon, lat] de ±`minutes` alrededor de `now`, cortada al cruzar el antimeridiano. */
+export function groundTrack(def: SatDef, now: Date, minutes = 45, step = 1): [number, number][][] {
+  const segs: [number, number][][] = [];
+  let cur: [number, number][] = [];
+  for (let m = -minutes; m <= minutes; m += step) {
+    const g = geodetic(def, new Date(now.getTime() + m * 60_000));
+    if (!g || g.altKm > 30_000) continue;
+    const prev = cur[cur.length - 1];
+    if (prev && Math.abs(prev[0] - g.lon) > 180) { segs.push(cur); cur = []; }
+    cur.push([g.lon, g.lat]);
+  }
+  if (cur.length > 1) segs.push(cur);
+  return segs;
+}

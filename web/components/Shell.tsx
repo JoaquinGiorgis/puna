@@ -22,10 +22,10 @@ export function Logo() {
 
 /** Estado de un campo: SIEMPRE ícono + etiqueta. */
 const LEVEL: Record<Level, { icon: string; label: string; cls: string }> = {
-  atencion: { icon: "!", label: "Atención", cls: "bg-bad text-white" },
-  siniestro: { icon: "◆", label: "Siniestro on-chain", cls: "bg-[#e3eff7] text-cyan" },
-  vigilancia: { icon: "▲", label: "Vigilancia", cls: "bg-[#fbf1df] text-warn" },
-  ok: { icon: "✓", label: "Sin novedades", cls: "bg-[#e2f2ea] text-ok" },
+  atencion: { icon: "!", label: "Atención", cls: "bg-[#c4352b] text-white" },
+  siniestro: { icon: "◆", label: "Siniestro on-chain", cls: "bg-[#e3eff7] text-[#0369a1]" },
+  vigilancia: { icon: "▲", label: "Vigilancia", cls: "bg-[#fbf1df] text-[#9a6200]" },
+  ok: { icon: "✓", label: "Sin novedades", cls: "bg-[#e2f2ea] text-[#0b7d55]" },
 };
 
 export function LevelBadge({ level, className = "" }: { level: Level | "cargando"; className?: string }) {
@@ -34,10 +34,21 @@ export function LevelBadge({ level, className = "" }: { level: Level | "cargando
   const l = LEVEL[level];
   return (
     <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold ${l.cls} ${className}`}>
-      <span aria-hidden="true" className={level === "atencion" ? "grid h-3.5 w-3.5 place-items-center rounded-full bg-white text-[10px] font-bold text-bad" : ""}>{l.icon}</span>
+      <span aria-hidden="true" className={level === "atencion" ? "grid h-3.5 w-3.5 place-items-center rounded-full bg-white text-[10px] font-bold text-[#c4352b]" : ""}>{l.icon}</span>
       {l.label}
     </span>
   );
+}
+
+/** Guarda de la sesión demo: si no pasó por el login, vuelve a /. */
+export function useDemoGuard() {
+  const router = useRouter();
+  const [ok, setOk] = useState(false);
+  useEffect(() => {
+    if (isSignedIn()) setOk(true);
+    else router.replace("/");
+  }, [router]);
+  return ok;
 }
 
 /** Encabezado de la app de la aseguradora + guarda de la sesión demo. */
