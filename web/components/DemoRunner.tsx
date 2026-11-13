@@ -77,13 +77,13 @@ export function DemoRunner() {
   return (
     <>
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls="demo-runner"
-        className="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full bg-[#ea6a12] px-5 py-3 text-[14px] font-semibold text-white shadow-[0_14px_30px_-10px_rgb(0_0_0/0.5)] transition hover:bg-[#c9560a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan">
+        className="fixed bottom-4 right-4 z-[60] flex items-center gap-2 rounded-full bg-[#ea6a12] px-5 py-3 text-[14px] font-semibold text-white shadow-[0_14px_30px_-10px_rgb(0_0_0/0.5)] transition hover:bg-[#c9560a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan">
         <span aria-hidden="true">{running ? "●" : "▶"}</span> {running ? "Siniestro en curso…" : "Disparar siniestro en vivo"}
       </button>
 
       {open && (
         <section id="demo-runner" aria-labelledby="demo-runner-t"
-          className="glass fixed bottom-20 right-4 z-40 flex max-h-[min(640px,calc(100dvh-120px))] w-[min(460px,calc(100vw-32px))] flex-col gap-3 rounded-[22px] p-4 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.6)]">
+          className="fixed bottom-20 right-4 border border-[var(--line)] bg-[var(--bg-canvas)] z-[60] flex max-h-[min(640px,calc(100dvh-120px))] w-[min(460px,calc(100vw-32px))] flex-col gap-3 rounded-[22px] p-4 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.6)]">
           <header className="flex items-start justify-between gap-3">
             <div>
               <h2 id="demo-runner-t" className="text-[15px] font-semibold tracking-tight">Siniestro en vivo · Lote 14</h2>
