@@ -7,7 +7,8 @@ import { LevelBadge } from "@/components/Shell";
 import { demo } from "@/lib/data";
 import { addrUrl, int, pct, short, txUrl } from "@/lib/format";
 import { Stepper } from "./Stepper";
-import { BadgeCheck, Building2, Clock, Landmark, Play, ShieldCheck, User, Users, Wallet } from "lucide-react";
+import { BadgeCheck, Building2, Clock, Landmark, Play, ShieldCheck, User, Users, Wallet, Zap } from "lucide-react";
+import { DemoRunner } from "@/components/DemoRunner";
 import { INSURED, LEGAL_DAYS, RES315_SOURCE, UVA_1M_USD, type Insured } from "@/lib/insured";
 import { frame } from "@/lib/imagery";
 import { lot14Kpis, policyHistory, policyStages, policyTxs, type Stage, type StepKind } from "@/lib/policy";
@@ -47,6 +48,7 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
   const [tab, setTab] = useState<Tab>("historial");
   const [img, setImg] = useState<"campo" | "dia">("campo");
   const [techOn, setTechOn] = useState(false);
+  const [liveRun, setLiveRun] = useState(false);
   const steps = useMemo(() => policyHistory(c, a), [c, a]);
   const flow = useMemo(() => policyStages(c, a), [c, a]);
   const txs = useMemo(() => policyTxs(c), [c]);
@@ -104,6 +106,12 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
             </div>
             <p className="text-[12.5px] text-muted">{ins ? `${ins.name} · ` : ""}{c.place} · {c.crop} · {int(c.ha)} ha · póliza {c.policy}{c.onchain ? " en Avalanche Fuji" : ""}</p>
           </div>
+          {c.onchain && (
+            <button onClick={() => setLiveRun((v) => !v)} aria-expanded={liveRun}
+              className="flex items-center gap-1.5 rounded-full bg-[#ea6a12] px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-[#c9560a]">
+              <Zap size={14} aria-hidden="true" /> Disparar siniestro en vivo
+            </button>
+          )}
           {onReplay && (
             <button onClick={onReplay} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-[12.5px] font-semibold text-[#0e1b2c] hover:bg-white/90">
               <Play size={14} aria-hidden="true" /> Reproducir el siniestro
@@ -112,6 +120,8 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
           <button data-autofocus onClick={onClose} aria-label="Cerrar póliza"
             className="grid h-9 w-9 place-items-center rounded-full border border-white/25 bg-white/10 text-[14px] hover:bg-white/20">✕</button>
         </header>
+
+        {c.onchain && liveRun && <DemoRunner variant="inline" onClose={() => setLiveRun(false)} />}
 
         {/* indicadores */}
         <dl className="grid grid-cols-2 gap-2.5 md:grid-cols-4">

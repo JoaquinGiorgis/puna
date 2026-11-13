@@ -5,7 +5,7 @@ expone el progreso. El validador NO vive acá: es otro servicio, con otra wallet
 
   GET  /health                     → ok
   GET  /status                     → {"running", "lines", "jobId", "result", "runsToday", "cap", "cooldown"}
-  POST /run   {"capa":1-4,"bit":0-7}  → 202 si arrancó; 409 si hay una corrida; 429 si hay que esperar
+  POST /run   {"capa":1-4,"bit":0-7} o {"job":N} para retomar uno Rejected  → 202 si arrancó; 409 si hay una corrida; 429 si hay que esperar
   GET  /<sha256>.<ext>             → artefactos del nodo (tensores), que el validador baja y verifica por hash
 
 Variables: INSURER_PK, SCHEDULER_PK, NODE_A_PK, NODE_B_PK, VALIDATOR_ADDR, PRODUCER_ADDR, AGENT_ID_A,
@@ -51,9 +51,10 @@ class State:
 S = State()
 
 
-def _run(capa: int, bit: int) -> None:
-    cmd = [sys.executable, "-u", str(ROOT / "scripts" / "e2e.py"), "--demo", "--live", "--remote-validator",
-           "--capa", str(capa), "--bit", str(bit)]
+def _run(capa: int, bit: int, job: int | None = None) -> None:
+    e2e = [sys.executable, "-u", str(ROOT / "scripts" / "e2e.py"), "--live", "--remote-validator"]
+    # job: retoma uno que quedó Created o Rejected (sin falla); si no, el guion completo con la falla elegida
+    cmd = e2e + (["--job", str(job)] if job else ["--demo", "--capa", str(capa), "--bit", str(bit)])
     try:
         p = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         assert p.stdout
@@ -133,6 +134,7 @@ class Handler(SimpleHTTPRequestHandler):
             n = int(self.headers.get("Content-Length") or 0)
             body = json.loads(self.rfile.read(min(n, 1024)) or b"{}")
             capa, bit = int(body.get("capa", 3)), int(body.get("bit", 7))
+            job = int(body["job"]) if body.get("job") is not None else None
         except (ValueError, json.JSONDecodeError):
             return self._json(400, {"error": "pedido inválido"})
         if not (1 <= capa <= 4 and 0 <= bit <= 7):
@@ -148,8 +150,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json(429, {"error": "se alcanzó el tope de corridas de hoy"})
             S.running, S.lines, S.job_id, S.result, S.started = True, [], None, None, time.time()
             S.runs_today += 1
-        threading.Thread(target=_run, args=(capa, bit), daemon=True).start()
-        return self._json(202, {"started": True, "capa": capa, "bit": bit})
+        threading.Thread(target=_run, args=(capa, bit, job), daemon=True).start()
+        return self._json(202, {"started": True, "capa": capa, "bit": bit, "job": job})
 
     def list_directory(self, path):
         self.send_error(404)

@@ -5,6 +5,8 @@ Lee FUJI_RPC_URL y PUNA_ESCROW de .env. Las claves privadas las pasa cada agente
 from __future__ import annotations
 
 import json
+import re
+import time
 import os
 from pathlib import Path
 
@@ -80,19 +82,35 @@ def get_job(esc, job_id: int) -> dict:
     return job
 
 
+_NEXT_NONCE: dict[str, int] = {}
+
+
+def _nonce(w: Web3, addr: str) -> int:
+    # La RPC pública balancea entre nodos: uno atrasado puede devolver un nonce viejo aun con
+    # "pending". Se usa el mayor entre lo que dice la red y lo que ya mandamos desde este proceso.
+    return max(w.eth.get_transaction_count(addr, "pending"), _NEXT_NONCE.get(addr, 0))
+
+
 def send(w: Web3, label: str, fn, acct, value: int = 0):
-    """Firma y manda la tx; imprime hash y link. Corta si revierte."""
-    tx = fn.build_transaction({
-        "from": acct.address,
-        # "pending": la RPC pública balancea entre nodos y uno atrasado puede devolver un nonce viejo
-        "nonce": w.eth.get_transaction_count(acct.address, "pending"),
-        "chainId": CHAIN_ID,
-        "value": value,
-    })
-    # La estimación queda justa cuando se escriben strings en storage (validationResponse se
-    # quedó sin gas en Fuji con el valor estimado): margen de 30 %.
-    tx["gas"] = tx["gas"] * 13 // 10
-    h = w.eth.send_raw_transaction(acct.sign_transaction(tx).raw_transaction)
+    """Firma y manda la tx; imprime hash y link. Corta si revierte. Reintenta si el nonce quedó viejo."""
+    for attempt in range(4):
+        nonce = _nonce(w, acct.address)
+        tx = fn.build_transaction({"from": acct.address, "nonce": nonce, "chainId": CHAIN_ID, "value": value})
+        # La estimación queda justa cuando se escriben strings en storage (validationResponse se
+        # quedó sin gas en Fuji con el valor estimado): margen de 30 %.
+        tx["gas"] = tx["gas"] * 13 // 10
+        try:
+            h = w.eth.send_raw_transaction(acct.sign_transaction(tx).raw_transaction)
+        except Exception as e:  # noqa: BLE001
+            msg = str(e)
+            m = re.search(r"next nonce (\d+)", msg)
+            if "nonce too low" in msg and attempt < 3:
+                _NEXT_NONCE[acct.address] = int(m.group(1)) if m else nonce + 1
+                time.sleep(1.5)
+                continue
+            raise
+        _NEXT_NONCE[acct.address] = nonce + 1
+        break
     rcpt = w.eth.wait_for_transaction_receipt(h, timeout=180)
     hx = h.to_0x_hex()
     print(f"[{'ok' if rcpt.status == 1 else 'REVERT'}] {label}\n      {EXPLORER_TX}{hx}", flush=True)
