@@ -153,7 +153,7 @@ function Status({ c, a, ready, now, error }: { c: Client; a: ReturnType<typeof a
                 <li><span className="font-mono text-muted">2.</span> Un validador de otro operador audita el cálculo (Freivalds).</li>
                 <li><span className="font-mono text-muted">3.</span> Si aprueba y supera {c.triggerPct} %, PunaEscrow paga {usd(sumInsured(c))} al productor.</li>
               </ol>
-              <p className="mt-2 text-[11.5px] text-muted">En la demo, el único job on-chain es el del Lote 14. Para este campo el flujo sería el mismo.</p>
+              <p className="mt-2 text-[11.5px] text-muted">En la demo, el único job on-chain es el de Finca Tres Cerros. Para este campo el flujo sería el mismo.</p>
             </>
           )}
           {a.level === "vigilancia" && (

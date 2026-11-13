@@ -157,7 +157,7 @@ export default function Cartera() {
                 <li className="flex items-center gap-1.5"><span aria-hidden="true" className="h-3 w-3 rounded-sm border border-dashed border-[#ff5a4e] bg-[#ff5a4e]/25" />Anomalía (radiación)</li>
                 <li className="flex items-center gap-1.5"><Satellite aria-hidden="true" size={13} color="#3dd6f5" />Satélite · órbita SGP4</li>
               </ul>
-              <p className="mt-1.5 text-[10.5px] text-[#f5c46b]"><span aria-hidden="true">▲ </span>Cartera simulada · fuego, órbitas, imágenes y Lote 14 reales</p>
+              <p className="mt-1.5 text-[10.5px] text-[#f5c46b]"><span aria-hidden="true">▲ </span>Cartera simulada · fuego, órbitas, imágenes y el incendio de Anta reales</p>
               <p className="text-[10px] text-muted">Globo NASA Blue Marble · arrastrá para moverte · rueda o pellizco para el zoom</p>
             </section>
           </div>

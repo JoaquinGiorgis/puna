@@ -98,7 +98,7 @@ export function DemoRunner({ variant = "floating", onClose }: { variant?: "float
             : "fixed bottom-20 right-4 z-[60] flex max-h-[min(640px,calc(100dvh-120px))] w-[min(460px,calc(100vw-32px))] flex-col gap-3 rounded-[22px] border border-[var(--line)] bg-[var(--bg-canvas)] p-4 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.6)]"}>
           <header className="flex items-start justify-between gap-3">
             <div>
-              <h2 id="demo-runner-t" className="text-[15px] font-semibold tracking-tight">Siniestro en vivo · Lote 14</h2>
+              <h2 id="demo-runner-t" className="text-[15px] font-semibold tracking-tight">Siniestro en vivo · Finca Tres Cerros</h2>
               <p className="mt-0.5 text-[12px] leading-snug text-muted">
                 {inline
                   ? "Llegan los focos de FIRMS, ORBIT-07 (en la Anomalía) mide con la falla que elijas, el validador de otro operador lo rechaza y ORBIT-03 vuelve a medir. Después liquidás: el contrato paga solo si la auditoría aprobó."

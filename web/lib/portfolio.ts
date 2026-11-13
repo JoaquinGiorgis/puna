@@ -55,7 +55,7 @@ const lot = demo.lot.bbox as [number, number, number, number];
 
 export const CLIENTS: Client[] = [
   {
-    id: "lote-14", field: "Lote 14", place: "Anta (Salta)", crop: "soja y poroto", bbox: lot, ha: bboxHa(lot),
+    id: "lote-14", field: "Finca Tres Cerros", place: "Anta (Salta)", crop: "soja y poroto", bbox: lot, ha: bboxHa(lot),
     policy: `PUNA-NOA-0014 · job ${demo.job.id}`, usdPerHa: 400, triggerPct: demo.job.triggerBps / 100, onchain: true,
   },
   ...SEEDS.map(([id, field, place, crop, lat, lon, ha, usdPerHa], i) => ({

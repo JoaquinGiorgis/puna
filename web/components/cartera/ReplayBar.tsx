@@ -35,10 +35,10 @@ export function ReplayBar({ steps, step, playing, setStep, setPlaying, onClose }
   }, [step, playing, steps.length, setStep, setPlaying, onClose]);
 
   return (
-    <section aria-label="Reproducción del siniestro del Lote 14" aria-live="polite"
+    <section aria-label="Reproducción del siniestro de Finca Tres Cerros" aria-live="polite"
       className="lg pointer-events-auto w-full max-w-[620px] rounded-[20px] px-4 py-3">
       <div className="flex items-center gap-2 text-[11.5px] text-muted">
-        <span className="font-semibold text-[#7dd3fc]">Reproduciendo el siniestro del Lote 14</span>
+        <span className="font-semibold text-[#7dd3fc]">Reproduciendo el siniestro de Finca Tres Cerros</span>
         <span className="font-mono">paso {step + 1} de {steps.length}</span>
         <span className="ml-auto font-mono">{s.when}</span>
         <button onClick={onClose} aria-label="Cerrar la reproducción" className="grid h-7 w-7 place-items-center rounded-full border border-white/20 hover:bg-white/10"><X size={14} /></button>
