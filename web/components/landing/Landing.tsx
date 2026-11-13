@@ -434,7 +434,7 @@ export function Landing() {
                 Resolvé el peritaje de siniestros con auditoría satelital
               </h1>
               <p className="rise max-w-[46ch] text-[17px] font-light leading-relaxed md:text-[19px]" style={{ animationDelay: "120ms" }}>
-                Un satélite mide el daño, otro de otro operador audita la medición y el seguro se paga en segundos, con evidencia lista para la SSN.
+                Un satélite mide el daño, otro de otro operador audita la medición y el seguro paramétrico se paga en segundos, con evidencia lista para la SSN.
               </p>
               <div className="rise flex flex-wrap items-center gap-3" style={{ animationDelay: "180ms" }}>
                 <Link href="/ingresar" className={`flex items-center gap-2 rounded-full bg-[var(--ink)] px-6 py-3.5 text-[15px] font-bold text-white shadow-[0_14px_30px_-12px_rgb(11_36_64/0.6)] hover:bg-[#13365e] ${ring}`}>

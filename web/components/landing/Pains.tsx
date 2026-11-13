@@ -71,7 +71,7 @@ function PainsBase({ seconds, txs, fee, indemnity, inView }: Props & { inView: b
         before={{ icon: UserRound, label: "Una de las partes" }} after={{ icon: Fingerprint, label: "Con huella" }}
         fix={`${demo.lot.foci.length} focos`} fixTxt="públicos de la NASA, con su huella guardada antes de calcular." />
       <Card n={4} title="Pruebas para la SSN"
-        today="La Res. SSN 315 y el reasegurador piden índice nombrado, dato con respaldo y acceso al cálculo."
+        today="La Res. SSN 315 regula los seguros paramétricos: con el reasegurador, pide índice nombrado, dato con respaldo y acceso al cálculo."
         before={{ icon: FolderOpen, label: "Legajo a mano" }} after={{ icon: Link2, label: "Registro público" }}
         link={{ href: RES315_SOURCE, label: "Ver la Res. SSN 315" }}
         fix={`${txs} comprobantes`} fixTxt={`públicos por siniestro en Avalanche, con costo de red ${fee}.`} />
