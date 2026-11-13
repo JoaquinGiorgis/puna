@@ -22,8 +22,8 @@ export function AlertsMini({ fires, ready }: { fires: Fire[]; ready: boolean }) 
     : [{ c: lot, txt: `${demo.lot.foci.length} focos FIRMS · 8 al 11/11` }];
   return (
     <div className="flex h-full flex-col gap-2 p-3">
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#ff8a80]">
-        <span className="flex items-center gap-1 rounded-full bg-[#c4352b] px-1.5 py-0.5 text-[10px] text-white"><Flame size={10} strokeWidth={2.6} aria-hidden="true" /> Atención</span>
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#b42318]">
+        <span className="flex items-center gap-1 rounded-full bg-[#c4352b] px-1.5 py-0.5 text-[11.5px] text-white"><Flame size={10} strokeWidth={2.6} aria-hidden="true" /> Atención</span>
         {ready ? `${rows.length} ${rows.length === 1 ? "campo" : "campos"} con fuego` : "Leyendo NASA FIRMS…"}
       </p>
       {rows.map(({ c, txt }) => (
@@ -31,8 +31,8 @@ export function AlertsMini({ fires, ready }: { fires: Fire[]; ready: boolean }) 
           <FieldImage bbox={c.bbox} fires={fires} tone="bad" px={160} className="h-11 w-12 shrink-0 rounded-lg" alt={`Imagen satelital de ${c.field}`} />
           <div className="min-w-0 leading-tight">
             <p className="truncate text-[12.5px] font-semibold">{c.field}</p>
-            <p className="truncate text-[10.5px] text-[#9aa9be]">{c.place}</p>
-            <p className="truncate text-[10.5px] text-[#ff8a80]">{txt}</p>
+            <p className="truncate text-[11.5px] text-[#33506e]">{c.place}</p>
+            <p className="truncate text-[11.5px] text-[#b42318]">{txt}</p>
           </div>
         </div>
       ))}
@@ -51,13 +51,13 @@ export function GridMini({ pct, trigger }: { pct: string; trigger: string }) {
       <div className="relative aspect-square h-full shrink-0 overflow-hidden rounded-xl">
         <FieldImage bbox={demo.lot.bbox as BBox} fires={fires} tone="bad" pad={0.12} px={400} className="h-full w-full"
           alt={`Imagen Sentinel-2 del Lote 14 con ${fires.length} focos de fuego vistos por la NASA`} />
-        <span className="absolute left-1.5 top-1.5 rounded-full bg-white px-1.5 py-px text-[9px] font-medium text-[#0e1b2c]">Sentinel-2</span>
+        <span className="absolute left-1.5 top-1.5 rounded-full bg-white px-1.5 py-px text-[11px] font-medium text-[#0e1b2c]">Sentinel-2</span>
       </div>
       <div className="flex min-w-0 flex-col gap-1">
-        <p className="text-[10px] leading-tight text-[#c9d4e4]">Área quemada</p>
-        <p className="whitespace-nowrap font-mono text-[20px] font-semibold tabular-nums leading-none text-[#ff9b4a]">{pct}</p>
-        <p className="text-[10px] leading-tight text-[#9aa9be]">supera el {trigger} pactado</p>
-        <p className="mt-1.5 flex items-center gap-1 text-[10px] text-[#9aa9be]"><i className="h-2 w-2 rounded-full bg-[#ff7a1a]" /> {fires.length} focos</p>
+        <p className="text-[11.5px] leading-tight text-[#33506e]">Área quemada</p>
+        <p className="whitespace-nowrap text-[20px] font-semibold tabular-nums leading-none text-[#b54708]">{pct}</p>
+        <p className="text-[11.5px] leading-tight text-[#33506e]">supera el {trigger} pactado</p>
+        <p className="mt-1.5 flex items-center gap-1 text-[11.5px] text-[#33506e]"><i className="h-2 w-2 rounded-full bg-[#ea6a12]" /> {fires.length} focos</p>
       </div>
     </div>
   );
@@ -69,26 +69,26 @@ export function AuditMini() {
   const layers = (a.certificate?.checks ?? []).filter((c) => c.name.endsWith(": Freivalds"));
   const okOf = (at: typeof a, name: string) => at.certificate?.checks.find((c) => c.name === name)?.ok;
   const Cell = ({ ok }: { ok?: boolean }) => ok
-    ? <span className="flex items-center gap-1 text-[#6ee7b7]"><Check size={11} strokeWidth={3} aria-hidden="true" />ok</span>
-    : <span className="flex items-center gap-1 text-[#ff8a80]"><X size={11} strokeWidth={3} aria-hidden="true" />falla</span>;
+    ? <span className="flex items-center gap-1 text-[#0b7d55]"><Check size={11} strokeWidth={3} aria-hidden="true" />ok</span>
+    : <span className="flex items-center gap-1 text-[#b42318]"><X size={11} strokeWidth={3} aria-hidden="true" />falla</span>;
   return (
-    <table className="h-full w-full text-left font-mono text-[10.5px]">
+    <table className="h-full w-full text-left text-[11.5px]">
       <caption className="sr-only">Auditoría de Freivalds por capa, dos intentos</caption>
-      <thead className="text-[9.5px] text-[#9aa9be]">
+      <thead className="text-[11px] text-[#33506e]">
         <tr><th className="px-3 pb-1 pt-2.5 font-normal">Capa</th><th className="pb-1 pt-2.5 font-normal">Intento 1</th><th className="pb-1 pt-2.5 font-normal">Intento 2</th></tr>
       </thead>
       <tbody>
         {layers.map((l) => (
-          <tr key={l.name} className={`border-t border-white/[0.06] ${okOf(a, l.name) ? "" : "bg-[#ff5a4e]/10"}`}>
-            <td className="px-3 py-[3px] text-[#e6edf7]">{l.name.split(":")[0].replace(/ (conv|lineal).*/, "")} · Freivalds</td>
+          <tr key={l.name} className={`border-t border-[#0b2440]/10 ${okOf(a, l.name) ? "" : "bg-[#b42318]/[0.07]"}`}>
+            <td className="px-3 py-[3px] text-[#0b2440]">{l.name.split(":")[0].replace(/ (conv|lineal).*/, "")} · Freivalds</td>
             <td><Cell ok={okOf(a, l.name)} /></td>
             <td><Cell ok={okOf(b, l.name)} /></td>
           </tr>
         ))}
-        <tr className="border-t border-white/[0.1] font-semibold">
-          <td className="px-3 py-1 font-sans text-[11px]">Puntaje</td>
-          <td><span className="rounded bg-[#ff5a4e]/15 px-1 py-0.5 text-[#ff8a80]">{a.score}/100</span></td>
-          <td><span className="rounded bg-[#34d399]/15 px-1 py-0.5 text-[#6ee7b7]">{b.score}/100</span></td>
+        <tr className="border-t border-[#0b2440]/15 font-semibold">
+          <td className="px-3 py-1 text-[11px]">Puntaje</td>
+          <td><span className="rounded bg-[#b42318]/10 px-1 py-0.5 text-[#b42318]">{a.score}/100</span></td>
+          <td><span className="rounded bg-[#0b7d55]/10 px-1 py-0.5 text-[#0b7d55]">{b.score}/100</span></td>
         </tr>
       </tbody>
     </table>
@@ -103,9 +103,9 @@ export function TxMini({ explorer }: { explorer: string }) {
   return (
     <ul className="flex h-full flex-col justify-center gap-1 p-2.5">
       {rows.map((r) => (
-        <li key={r.hash} className={`grid grid-cols-[1fr_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] ${r.tone === "bad" ? "bg-[#ff5a4e]/10" : r.tone === "ok" ? "bg-[#34d399]/12" : ""}`}>
-          <span className={`truncate ${r.tone === "bad" ? "text-[#ff8a80]" : r.tone === "ok" ? "font-semibold text-[#6ee7b7]" : "text-[#e6edf7]"}`}>{label(r.what)}</span>
-          <a href={txUrl(explorer, r.hash)} target="_blank" rel="noreferrer" className="rounded bg-[#7dd3fc]/12 px-1 font-mono text-[10px] text-[#7dd3fc] hover:text-white">{r.hash.slice(0, 6)} ↗</a>
+        <li key={r.hash} className={`grid grid-cols-[1fr_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] ${r.tone === "bad" ? "bg-[#b42318]/[0.07]" : r.tone === "ok" ? "bg-[#0b7d55]/10" : ""}`}>
+          <span className={`truncate ${r.tone === "bad" ? "text-[#b42318]" : r.tone === "ok" ? "font-semibold text-[#0b7d55]" : "text-[#0b2440]"}`}>{label(r.what)}</span>
+          <a href={txUrl(explorer, r.hash)} target="_blank" rel="noreferrer" className="rounded bg-[#0b6cb8]/10 px-1 text-[11.5px] text-[#0b6cb8] hover:text-[#0b2440]">{r.hash.slice(0, 6)} ↗</a>
         </li>
       ))}
     </ul>

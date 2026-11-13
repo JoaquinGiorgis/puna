@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { onScrollFrame } from "./scrollFrame";
 
 /**
  * Fondo único de la landing: un cielo fijo que nunca se corta entre secciones.
@@ -21,8 +22,8 @@ const WX: { scene: Scene; src: string }[] = [
 // clouds-*.webp miden 2400×1018; con background-size 1800px el mosaico mide 1800×763
 const TILE = 763;
 
-/** Lava la parte de arriba y de abajo de la foto con el color del cielo, para que el texto se lea y no haya cortes. */
-const WASH = "linear-gradient(180deg, rgb(169 216 245 / 0.92) 0%, rgb(169 216 245 / 0.35) 30%, rgb(169 216 245 / 0) 55%, rgb(214 236 250 / 0.55) 100%)";
+/** Degradé oscuro sobre cada foto: el texto blanco de "Qué medimos" se lee (AA) con cualquiera de las cuatro. */
+const WASH = "linear-gradient(180deg, rgb(4 18 34 / 0.55) 0%, rgb(4 18 34 / 0.1) 30%, rgb(4 18 34 / 0.25) 55%, rgb(4 18 34 / 0.82) 100%), linear-gradient(90deg, rgb(4 18 34 / 0.5) 0%, rgb(4 18 34 / 0) 60%)";
 
 export function SkyBackdrop({ scene }: { scene: Scene }) {
   const far = useRef<HTMLDivElement>(null);
@@ -30,16 +31,11 @@ export function SkyBackdrop({ scene }: { scene: Scene }) {
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let raf = 0;
-    const apply = () => {
+    return onScrollFrame(() => {
       const y = window.scrollY;
       if (far.current) far.current.style.transform = `translate3d(0, ${-((y * 0.12) % TILE)}px, 0)`;
       if (near.current) near.current.style.transform = `translate3d(0, ${-((y * 0.38) % TILE)}px, 0)`;
-    };
-    const onScroll = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(apply); };
-    apply();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("scroll", onScroll); };
+    });
   }, []);
 
   const photo = scene.startsWith("wx-");
@@ -51,11 +47,11 @@ export function SkyBackdrop({ scene }: { scene: Scene }) {
           style={{ backgroundImage: `${WASH}, url(${w.src})` }} />
       ))}
       <div className="sky-layer" data-on={scene === "sun"}
-        style={{ backgroundImage: "linear-gradient(90deg, rgb(8 61 115 / 0.42), rgb(8 61 115 / 0) 60%), url(/landing/sun-sky.webp)" }} />
-      <div ref={far} className="sky-clouds" style={{ height: `calc(100% + ${TILE}px)`, opacity: photo ? 0.25 : sunny ? 0.35 : 0.55 }}>
+        style={{ backgroundImage: "linear-gradient(90deg, rgb(8 52 100 / 0.6), rgb(8 52 100 / 0.25) 45%, rgb(8 61 115 / 0) 70%), url(/landing/sun-sky.webp)" }} />
+      <div ref={far} className="sky-clouds" style={{ height: `calc(100% + ${TILE}px)`, opacity: photo ? 0 : sunny ? 0.25 : 0.55 }}>
         <div className="sky-drift" style={{ "--img": "url(/landing/clouds-a.webp)", "--drift": "220s" } as React.CSSProperties} />
       </div>
-      <div ref={near} className="sky-clouds" style={{ height: `calc(100% + ${TILE}px)`, opacity: photo ? 0.3 : sunny ? 0.4 : 0.85 }}>
+      <div ref={near} className="sky-clouds" style={{ height: `calc(100% + ${TILE}px)`, opacity: photo ? 0 : sunny ? 0.3 : 0.85 }}>
         <div className="sky-drift" style={{ "--img": "url(/landing/clouds-b.webp)", "--drift": "120s", backgroundPosition: "900px 380px" } as React.CSSProperties} />
       </div>
     </div>

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { satAt, type SatDef, type SatNow } from "@/lib/sky";
+import { device } from "./device";
 
-export type GlobeAlert = { id: string; field: string; lat: number; lon: number; count: number };
+export type GlobeAlert = { id: string; field: string; lat: number; lon: number; count: number; note: string };
 
 const R = 1;
 const EARTH_KM = 6371;
@@ -40,7 +41,22 @@ function loadModel(url: string) {
   return gltfCache.get(url)!;
 }
 
-function satelliteSlot(name: string, color: number) {
+/** Satélite liviano (cuerpo dorado + dos paneles), para no bajar 5,5 MB de modelos en teléfonos. */
+function lightSatellite() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.55), new THREE.MeshStandardMaterial({ color: 0xd4a84a, metalness: 0.7, roughness: 0.35 }));
+  const panelMat = new THREE.MeshStandardMaterial({ color: 0x1d3f8f, metalness: 0.4, roughness: 0.45, side: THREE.DoubleSide });
+  for (const sx of [-1, 1]) {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.32), panelMat);
+    p.position.x = sx * 0.68;
+    g.add(p);
+  }
+  g.add(body);
+  g.scale.setScalar(SAT_SIZE);
+  return g;
+}
+
+function satelliteSlot(name: string, color: number, lite: boolean) {
   const g = new THREE.Group();
   const halo = new THREE.Mesh(
     new THREE.SphereGeometry(0.055, 20, 20),
@@ -48,8 +64,9 @@ function satelliteSlot(name: string, color: number) {
   );
   halo.name = "halo";
   g.add(halo);
-  const url = MODEL_URL[name];
-  if (url) loadModel(url).then((m) => g.add(m.clone(true))).catch(() => {
+  const url = lite ? undefined : MODEL_URL[name];
+  if (!url) { g.add(lightSatellite()); return g; }
+  loadModel(url).then((m) => g.add(m.clone(true))).catch(() => {
     g.add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.04), new THREE.MeshStandardMaterial({ color: 0xc9a24a, metalness: 0.8, roughness: 0.4 })));
   });
   return g;
@@ -69,80 +86,71 @@ function atmosphere() {
   );
 }
 
-/** Baliza de alerta: punto rojo brillante, columna de luz hacia afuera y anillo que late. */
-function glowTexture(inner: string, outer: string) {
-  const c = document.createElement("canvas");
-  c.width = c.height = 64;
-  const x = c.getContext("2d")!;
-  const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
-  gr.addColorStop(0, inner);
-  gr.addColorStop(0.35, outer);
-  gr.addColorStop(1, "rgba(0,0,0,0)");
-  x.fillStyle = gr;
-  x.fillRect(0, 0, 64, 64);
-  return new THREE.CanvasTexture(c);
+/** Bruma azul sobre el borde del planeta (dispersión de día), del lado visible. */
+function haze() {
+  return new THREE.Mesh(
+    new THREE.SphereGeometry(R * 1.014, 96, 96),
+    new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: `varying vec3 vN; varying vec3 vP;
+        void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position,1.0); vP = mv.xyz; gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `varying vec3 vN; varying vec3 vP;
+        void main(){ float f = pow(1.0 - clamp(dot(vN, normalize(-vP)), 0.0, 1.0), 3.0); gl_FragColor = vec4(0.45, 0.72, 1.0, 1.0) * f * 0.95; }`,
+    }),
+  );
 }
-const GLOW = typeof document !== "undefined" ? glowTexture("rgba(255,235,225,1)", "rgba(230,40,30,0.9)") : null;
 
-function beacon() {
-  const g = new THREE.Group();
-  const dot = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, depthWrite: false, blending: THREE.AdditiveBlending }));
-  dot.scale.setScalar(0.09);
-  const beam = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.004, 0.012, 0.32, 12, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0xff4a3a, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }),
-  );
-  beam.position.y = 0.16;
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.03, 0.036, 48),
-    new THREE.MeshBasicMaterial({ color: 0xff5a4e, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }),
-  );
-  ring.rotation.x = -Math.PI / 2;
-  ring.name = "ring";
-  const tilt = new THREE.Group(); // el eje Y local apunta hacia afuera de la esfera
-  tilt.add(beam, ring);
-  g.add(dot, tilt);
-  g.userData.tilt = tilt;
-  return g;
-}
 
 type Props = {
   sats: SatNow[];
   defs: SatDef[];
   now: Date;
   alerts: GlobeAlert[];
-  onLabels?: (pos: Record<string, { x: number; y: number; visible: boolean }>) => void;
+  /** Contenido HTML de cada pin (mismo pin que la cartera). Se posiciona sin re-render de React. */
+  renderPin: (a: GlobeAlert, i: number) => ReactNode;
 };
 
 /**
- * Globo 3D de la landing (three.js) sobre el cielo claro. Textura NASA Blue Marble con atmósfera,
- * solo las alertas (fuego dentro de un campo asegurado) como balizas 3D, y satélites reales por SGP4 con su órbita.
- * Arrastrable; sin zoom para no secuestrar el scroll.
+ * Globo 3D de la landing (three.js), de día: textura NASA Blue Marble con agua más clara, relieve, brillo del mar,
+ * nubes y atmósfera. Solo marca las alertas (fuego dentro de un campo asegurado) con el pin de la cartera, y los
+ * satélites reales por SGP4 con su órbita. Arrastrable; sin zoom para no secuestrar el scroll.
+ * Rendimiento: dibuja solo cuando está en pantalla y la pestaña visible; los pines se mueven por transform
+ * directo (sin setState por frame); las órbitas se recalculan una vez por minuto y se liberan.
  */
-export function Globe3D({ sats, defs, now, alerts, onLabels }: Props) {
+export function Globe3D({ sats, defs, now, alerts, renderPin }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const api = useRef<{
-    setAlerts: (a: GlobeAlert[]) => void;
-    setSats: (s: SatNow[], d: SatDef[], now: Date) => void;
-  } | null>(null);
-  const labelCb = useRef(onLabels);
-  labelCb.current = onLabels;
+  const pinEls = useRef<(HTMLDivElement | null)[]>([]);
+  const api = useRef<{ setAlerts: (a: GlobeAlert[]) => void; setSats: (s: SatNow[], d: SatDef[], t: Date, rebuild: boolean) => void } | null>(null);
+  // sin WebGL (o si el contexto se pierde) se muestra una imagen fija del globo: la página nunca se rompe
+  const [fallback, setFallback] = useState(() => !device().webgl);
 
   useEffect(() => {
+    if (fallback) return;
     const el = host.current!;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const { reduce, lite, coarse } = device();
+    const small = lite;
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: !small, alpha: true, powerPreference: small ? "default" : "high-performance" });
+    } catch {
+      setFallback(true);
+      return;
+    }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, small ? 1.5 : 1.75));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    el.appendChild(renderer.domElement);
-    renderer.domElement.style.display = "block";
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    el.prepend(renderer.domElement);
+    Object.assign(renderer.domElement.style, { display: "block", opacity: "0", transition: "opacity 700ms ease" });
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 100);
-    // cámara mirando el NOA, un poco desde el sur para ver la Anomalía y el Atlántico
     camera.position.copy(vec(-20, -60, 4.5));
 
     const controls = new OrbitControls(camera, renderer.domElement);
+    // en pantallas táctiles el globo gira solo y no captura el dedo: el scroll vertical de la página sigue andando
+    controls.enabled = !coarse;
+    renderer.domElement.style.touchAction = coarse ? "pan-y" : "none";
     controls.enableZoom = false;
     controls.enablePan = false;
     controls.enableDamping = true;
@@ -153,55 +161,62 @@ export function Globe3D({ sats, defs, now, alerts, onLabels }: Props) {
     controls.addEventListener("start", () => { controls.autoRotate = false; clearTimeout(idle); });
     controls.addEventListener("end", () => { idle = setTimeout(() => (controls.autoRotate = !reduce), 6000); });
 
-    scene.add(new THREE.AmbientLight(0xcfe3f7, 0.55));
-    scene.add(new THREE.HemisphereLight(0xdff1ff, 0x0b2440, 0.35));
-    const sun = new THREE.DirectionalLight(0xfff4e0, 3.1);
-    sun.position.copy(vec(18, -20, 6)).add(new THREE.Vector3(-2.5, 1.5, 0));
-    scene.add(sun);
+    // de día y parejo: la luz sale casi desde la cámara, así los dos lados del globo quedan iguales;
+    // el volumen viene del borde que se oscurece suave y de la atmósfera
+    scene.add(new THREE.AmbientLight(0xeaf4ff, 0.9));
+    scene.add(new THREE.HemisphereLight(0xf2f8ff, 0x2a4a6a, 0.35));
+    const sun = new THREE.DirectionalLight(0xfffaf0, 2.3);
+    sun.position.set(0, 0.8, 5);
+    camera.add(sun);
+    scene.add(camera);
 
-    const earthTex = new THREE.TextureLoader().load("/textures/earth-day.jpg");
+    // el globo aparece recién con todas sus texturas (sin el disco negro mientras cargan)
+    const manager = new THREE.LoadingManager(() => { renderer.domElement.style.opacity = "1"; if (onScreen) draw(); });
+    const loader = new THREE.TextureLoader(manager);
+    const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    const earthTex = loader.load(small ? "/textures/earth-day-light-2k.jpg" : "/textures/earth-day-light.jpg");
     earthTex.colorSpace = THREE.SRGBColorSpace;
-    earthTex.anisotropy = 8;
+    earthTex.anisotropy = aniso;
+    const roughTex = loader.load("/textures/earth-rough.jpg");   // mar brillante, tierra mate
+    const bumpTex = loader.load("/textures/earth-bump.jpg");     // relieve suave en la tierra
+    const cloudTex = loader.load("/textures/earth-clouds.png");  // nubes procedurales, despejado sobre el NOA
+    cloudTex.colorSpace = THREE.SRGBColorSpace;
+    cloudTex.anisotropy = aniso;
+    const seg = small ? 64 : 96;
     const earth = new THREE.Mesh(
-      new THREE.SphereGeometry(R, 96, 96),
-      new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.75, metalness: 0.05, color: 0xf2f6fb }),
+      new THREE.SphereGeometry(R, seg, seg),
+      new THREE.MeshStandardMaterial({ map: earthTex, roughnessMap: roughTex, roughness: 1, metalness: 0, bumpMap: bumpTex, bumpScale: 0.5 }),
     );
-    scene.add(earth, atmosphere());
+    const clouds = new THREE.Mesh(
+      new THREE.SphereGeometry(R * 1.008, seg, seg),
+      new THREE.MeshStandardMaterial({ map: cloudTex, transparent: true, depthWrite: false, roughness: 1, metalness: 0 }),
+    );
+    scene.add(earth, clouds, haze(), atmosphere());
 
-    const alertGroup = new THREE.Group();
     const satGroup = new THREE.Group();
     const trackGroup = new THREE.Group();
-    scene.add(alertGroup, trackGroup, satGroup);
+    scene.add(trackGroup, satGroup);
+    const trackMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 });
     const satModels = new Map<string, THREE.Group>();
-    let alertList: GlobeAlert[] = [];
+    let anchors: THREE.Vector3[] = [];
 
     api.current = {
-      setAlerts(a) {
-        alertList = a;
-        alertGroup.clear();
-        for (const al of a) {
-          const m = beacon();
-          const p = vec(al.lat, al.lon, R * 1.004);
-          m.position.copy(p);
-          (m.userData.tilt as THREE.Group).quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p.clone().normalize());
-          alertGroup.add(m);
-        }
-      },
-      setSats(s, d, t) {
+      setAlerts(a) { anchors = a.map((al) => vec(al.lat, al.lon, R * 1.004)); },
+      setSats(s, d, t, rebuild) {
         for (const x of s) {
           if (x.kind !== "polar") continue;
           let m = satModels.get(x.name);
           if (!m) {
-            m = satelliteSlot(x.name, 0xffffff);
+            m = satelliteSlot(x.name, 0xffffff, lite);
             satModels.set(x.name, m);
             satGroup.add(m);
           }
-          const p = vec(x.lat, x.lon, R + x.altKm / EARTH_KM);
-          m.position.copy(p);
+          m.position.copy(vec(x.lat, x.lon, R + x.altKm / EARTH_KM));
           m.lookAt(0, 0, 0);
-          const halo = m.getObjectByName("halo") as THREE.Mesh;
         }
-        // órbitas: ±40 min alrededor de ahora, recalculadas una vez por minuto
+        if (!rebuild) return;
+        // órbitas: ±40 min alrededor de ahora; se liberan las geometrías viejas para no acumular memoria
+        trackGroup.children.forEach((c) => (c as THREE.Line).geometry.dispose());
         trackGroup.clear();
         for (const def of d) {
           const cur = s.find((x) => x.name === def.name);
@@ -211,64 +226,65 @@ export function Globe3D({ sats, defs, now, alerts, onLabels }: Props) {
             const q = satAt(def, new Date(t.getTime() + k * 60_000));
             if (q) pts.push(vec(q.lat, q.lon, R + q.altKm / EARTH_KM));
           }
-          if (pts.length < 2) continue;
-          trackGroup.add(new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints(pts),
-            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 }),
-          ));
+          if (pts.length > 1) trackGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), trackMat));
         }
       },
     };
 
+    const size = { w: 1, h: 1 };
     const resize = () => {
-      const w = el.clientWidth, h = el.clientHeight;
-      renderer.setSize(w, h, false);
+      size.w = el.clientWidth; size.h = el.clientHeight;
+      renderer.setSize(size.w, size.h, false);
       renderer.domElement.style.width = "100%";
       renderer.domElement.style.height = "100%";
-      camera.aspect = w / Math.max(1, h);
+      camera.aspect = size.w / Math.max(1, size.h);
       camera.updateProjectionMatrix();
+      // que entre entero (con su halo) también cuando el lienzo es más angosto que alto: alejar la cámara
+      const half = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      const fit = (R * 1.1) / (half * Math.min(1, camera.aspect));
+      camera.position.setLength(Math.max(4.2, fit / 0.97));
     };
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(el);
 
+    // el loop corre solo con el globo en pantalla y la pestaña visible; si no, se detiene del todo
     let raf = 0;
-    const tmp = new THREE.Vector3();
-    const camDir = new THREE.Vector3();
-    const t0 = performance.now();
-    const tick = () => {
-      controls.update();
-      if (!reduce) {
-        const k = ((performance.now() - t0) / 1600) % 1;
-        alertGroup.children.forEach((b) => {
-          const ring = (b.userData.tilt as THREE.Group).getObjectByName("ring") as THREE.Mesh;
-          ring.scale.setScalar(1 + k * 2.2);
-          (ring.material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - k);
-        });
-      }
-      renderer.render(scene, camera);
-      // posiciones en pantalla de las alertas, para las etiquetas de vidrio
-      if (labelCb.current && alertList.length) {
-        camera.getWorldDirection(camDir);
-        const out: Record<string, { x: number; y: number; visible: boolean }> = {};
-        alertList.forEach((al, i) => {
-          const m = alertGroup.children[i];
-          if (!m) return;
-          tmp.copy(m.position);
-          const facing = tmp.clone().normalize().dot(camera.position.clone().normalize()) > 0.15;
-          tmp.project(camera);
-          out[al.id] = { x: (tmp.x * 0.5 + 0.5) * el.clientWidth, y: (-tmp.y * 0.5 + 0.5) * el.clientHeight, visible: facing };
-        });
-        labelCb.current(out);
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    tick();
+    let onScreen = false;
+    const start = () => { if (!raf && onScreen && !document.hidden) { draw(); raf = requestAnimationFrame(tick); } };
+    const stop = () => { cancelAnimationFrame(raf); raf = 0; };
+    const io = new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; if (onScreen) start(); else stop(); }, { rootMargin: "100px" });
+    io.observe(el);
+    const onVis = () => (document.hidden ? stop() : start());
+    document.addEventListener("visibilitychange", onVis);
+    const onLost = (e: Event) => { e.preventDefault(); stop(); setFallback(true); };
+    renderer.domElement.addEventListener("webglcontextlost", onLost);
 
+    const tmp = new THREE.Vector3();
+    const camN = new THREE.Vector3();
+    const tick = () => { raf = requestAnimationFrame(tick); draw(); };
+    function draw() {
+      controls.update();
+      if (!reduce) clouds.rotation.y += 0.00006;
+      renderer.render(scene, camera);
+      // pines: transform directo sobre el DOM
+      camN.copy(camera.position).normalize();
+      anchors.forEach((p, i) => {
+        const pin = pinEls.current[i];
+        if (!pin) return;
+        const facing = tmp.copy(p).normalize().dot(camN) > 0.15;
+        tmp.copy(p).project(camera);
+        pin.style.transform = `translate3d(${((tmp.x * 0.5 + 0.5) * size.w).toFixed(1)}px, ${((-tmp.y * 0.5 + 0.5) * size.h).toFixed(1)}px, 0)`;
+        pin.style.opacity = facing ? "1" : "0";
+      });
+    }
     return () => {
-      cancelAnimationFrame(raf);
+      stop();
       clearTimeout(idle);
       ro.disconnect();
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVis);
+      renderer.domElement.removeEventListener("webglcontextlost", onLost);
       controls.dispose();
       scene.traverse((o) => {
         const m = o as THREE.Mesh;
@@ -276,18 +292,39 @@ export function Globe3D({ sats, defs, now, alerts, onLabels }: Props) {
         const mat = m.material as THREE.Material | THREE.Material[] | undefined;
         (Array.isArray(mat) ? mat : mat ? [mat] : []).forEach((x) => x.dispose());
       });
-      earthTex.dispose();
+      [earthTex, roughTex, bumpTex, cloudTex].forEach((t) => t.dispose());
       renderer.dispose();
-      el.removeChild(renderer.domElement);
+      renderer.domElement.remove();
       api.current = null;
     };
-  }, []);
+  }, [fallback]);
 
-  useEffect(() => { api.current?.setAlerts(alerts); }, [alerts]);
+  useEffect(() => { api.current?.setAlerts(alerts); }, [alerts, fallback]);
   const minute = Math.floor(now.getTime() / 60_000);
-  useEffect(() => { api.current?.setSats(sats, defs, new Date(minute * 60_000)); },
+  const last = useRef<{ minute: number; defs: SatDef[] | null }>({ minute: -1, defs: null });
+  useEffect(() => {
+    const rebuild = last.current.minute !== minute || last.current.defs !== defs;
+    last.current = { minute, defs };
+    api.current?.setSats(sats, defs, new Date(minute * 60_000), rebuild);
+  },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sats, defs]);
+    [sats, defs, fallback]);
 
-  return <div ref={host} className="absolute inset-0 cursor-grab active:cursor-grabbing" aria-hidden="true" />;
+  if (fallback) {
+    return (
+      <div className="absolute inset-0 grid place-items-center p-6">
+        <img src="/landing/globe-disk.webp" alt="Globo terrestre centrado en Sudamérica" decoding="async" className="h-full max-h-[620px] w-auto object-contain" />
+      </div>
+    );
+  }
+
+  return (
+    <div ref={host} className="absolute inset-0 md:cursor-grab md:active:cursor-grabbing">
+      {alerts.map((a, i) => (
+        <div key={a.id} ref={(n) => { pinEls.current[i] = n; }} className="pointer-events-none absolute left-0 top-0 opacity-0 transition-opacity duration-300 will-change-transform">
+          {renderPin(a, i)}
+        </div>
+      ))}
+    </div>
+  );
 }

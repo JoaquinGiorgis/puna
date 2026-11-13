@@ -182,7 +182,7 @@ a.ext {
   --act: #0b6cb8;
   --alert: #c4352b;
   --ok: #0b7d55;
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Helvetica Neue", "HelveticaNeue", Helvetica, Arial, sans-serif;
   color: var(--ink);
   font-weight: 400;
 }
@@ -192,22 +192,28 @@ a.ext {
     linear-gradient(180deg, #3e9bdd 0%, #6fb8e9 38%, #a9d8f5 72%, #dff1fc 100%);
 }
 .sky-clouds { position: absolute; inset: 0 0 auto 0; will-change: transform; transition: opacity 900ms ease; }
-.sky-drift { animation: sky-drift var(--drift, 140s) linear infinite; width: calc(100% + 1800px); height: 100%; background-image: var(--img); background-size: 1800px auto; background-repeat: repeat; }
-@keyframes sky-drift { to { transform: translate3d(-1800px, 0, 0); } }
+.sky-drift { width: 100%; height: 100%; background-image: var(--img); background-size: 1800px auto; background-repeat: repeat; }
 .sky-layer { position: absolute; inset: 0; opacity: 0; transition: opacity 900ms ease; background-size: cover; background-position: center; }
 .sky-layer[data-on="true"] { opacity: 1; }
 
 .sky-glass {
   background: rgb(255 255 255 / 0.64);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
   border: 1px solid rgb(255 255 255 / 0.95);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 1),
     inset 0 30px 40px -34px rgb(255 255 255 / 0.95),
     0 24px 48px -16px rgb(30 90 150 / 0.22);
 }
-.sky-glass-strong { background: rgb(255 255 255 / 0.86); }
+/* teléfonos: blur más barato. Quien pide menos transparencia recibe vidrio opaco */
+@media (max-width: 767px) {
+  .sky-glass { backdrop-filter: blur(8px) saturate(140%); -webkit-backdrop-filter: blur(8px) saturate(140%); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .sky-glass { background: rgb(255 255 255 / 0.94); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+.sky-glass-strong { background: rgb(255 255 255 / 0.88); }
 
 /* satélites que cruzan el cielo de la portada */
 .sky-sat { position: absolute; pointer-events: none; will-change: transform; filter: drop-shadow(0 18px 18px rgb(11 36 64 / 0.25)); }
@@ -216,13 +222,22 @@ a.ext {
 @keyframes sat-cross-a { from { transform: translate3d(-20vw, 2vh, 0) rotate(-10deg); } to { transform: translate3d(115vw, -4vh, 0) rotate(-4deg); } }
 @keyframes sat-cross-b { from { transform: translate3d(110vw, 0, 0) rotate(14deg) scale(0.7); } to { transform: translate3d(-25vw, 6vh, 0) rotate(22deg) scale(0.7); } }
 
-/* pasto real que crece desde abajo y se mece */
-.grass { position: absolute; pointer-events: none; transform-origin: bottom center; transform: scaleY(0.15); opacity: 0; transition: transform 1.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.8s ease; }
-.grass[data-grown="true"] { transform: scaleY(1); opacity: 1; }
-.grass-tuft { -webkit-mask-image: radial-gradient(48% 100% at 50% 100%, #000 45%, transparent 100%); mask-image: radial-gradient(48% 100% at 50% 100%, #000 45%, transparent 100%); }
-.grass-edge { -webkit-mask-image: linear-gradient(to top, #000 62%, transparent); mask-image: linear-gradient(to top, #000 62%, transparent); }
-.grass-sway { animation: grass-sway 5s ease-in-out infinite alternate; transform-origin: bottom center; height: 100%; background-image: url(/landing/grass.webp); background-size: auto 100%; background-repeat: repeat-x; background-position: bottom center; }
-@keyframes grass-sway { from { transform: skewX(-2deg); } to { transform: skewX(2.5deg); } }
+/* satélites del cierre: cruzan solo la mitad derecha (junto al sol) y se desvanecen antes del texto */
+.sky-sat-c { animation: sat-cross-c 22s linear infinite; }
+.sky-sat-d { animation: sat-cross-c 31s linear infinite; animation-delay: -14s; }
+@keyframes sat-cross-c {
+  0% { transform: translate3d(105vw, 0, 0) rotate(12deg); opacity: 0; }
+  8% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate3d(48vw, -10vh, 0) rotate(4deg); opacity: 0; }
+}
+
+/* animaciones fuera de pantalla o de objetos ocultos: en pausa (no consumen frames) */
+[data-paused="true"] .sky-sat { animation-play-state: paused; }
+.obj[data-on="false"] .obj-bob { animation: none; }
+
+/* pasto 3D: se difumina hacia abajo para fundirse con el cielo */
+.grass-fade { -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 52%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 52%, transparent 100%); }
 
 /* objetos 3D de "cómo funciona" */
 .obj { position: absolute; transition: opacity 600ms ease, transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1); opacity: 0; transform: translate3d(0, 60px, 0) scale(0.8) rotate(-8deg); pointer-events: none; }
@@ -235,10 +250,9 @@ a.ext {
 .reveal[data-in="true"], [data-in="true"] .reveal { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .sky-drift, .sky-sat, .grass-sway, .obj-bob, .step-swap { animation: none !important; }
+  .sky-drift, .sky-sat, .sky-sat-c, .sky-sat-d, .obj-bob, .step-swap { animation: none !important; }
   .sky-sat { display: none; }
-  .grass, .obj, .reveal, .sky-layer { transition: none !important; }
-  .grass { transform: none; opacity: 1; }
+  .obj, .reveal, .sky-layer { transition: none !important; }
   .reveal { opacity: 1; transform: none; }
   .obj { transform: none; }
 }
