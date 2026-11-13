@@ -1,0 +1,13 @@
+.env
+.env.*
+.venv
+.git
+.claude
+out
+web
+contracts
+docs
+sample-data
+scripts
+tests
+**/__pycache__

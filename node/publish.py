@@ -61,6 +61,9 @@ def fetch(uri: str, max_bytes: int = 50_000_000) -> bytes:
         parts = parts._replace(path="/" + name)
     elif parts.scheme == "file":
         data = Path(urllib.parse.unquote(parts.path)).read_bytes()
+    elif parts.scheme in ("http", "https") and _HEX64.match(Path(parts.path).stem) and (_dir() / Path(parts.path).name).exists():
+        # copia local con el mismo hash (los túneles son efímeros); igual se verifica el sha256 abajo
+        data = (_dir() / Path(parts.path).name).read_bytes()
     elif parts.scheme in ("http", "https"):
         with urllib.request.urlopen(urllib.parse.urlunsplit(parts._replace(fragment="")), timeout=30) as r:
             data = r.read(max_bytes + 1)

@@ -113,3 +113,36 @@ scripts/validator_remote.sh                # túnel propio para los certificados
 Hay que arrancar el validador antes que el e2e. Si la segunda máquina falla, se saca `--remote-validator` y el validador vuelve a correr como proceso aparte en la misma máquina.
 
 Después de grabar, hay que copiar los certificados (`<sha256>.json`) a `web/public/artifacts/`. Así la web los muestra cuando el túnel se cierra. Si el validador corrió en otra máquina, se copian de su `out/artifacts/`.
+
+### Sin segunda compu: el validador en Railway
+
+El validador corre como servicio en Railway: otro host, otra IP y solo con su propia clave. El servicio (`python -m validator.serve`) escucha los pedidos de ERC-8004 y publica sus certificados en `https://<servicio>.up.railway.app/<sha256>.json`. La imagen sale de `deploy/validator/Dockerfile`, solo con el código Python, sin `.env` ni web. `railway.json` la apunta.
+
+Una sola vez:
+
+```bash
+railway init -n puna-validator      # proyecto nuevo
+railway up --detach                 # build + deploy desde la raíz del repo
+railway domain                      # genera el dominio público
+```
+
+En el dashboard de Railway, en Variables, se cargan **solo** `VALIDATOR_PK`, `FUJI_RPC_URL` y `PUNA_ESCROW`. Si aparece una clave del nodo o de la aseguradora, el servicio se niega a arrancar. Para ver el validador en el video: `railway logs`.
+
+En esta máquina (el nodo) sigue haciendo falta el túnel para los tensores:
+
+```bash
+source scripts/serve_artifacts.sh
+set -a; source .env; set +a
+.venv/bin/python scripts/e2e.py --demo --live --remote-validator
+```
+
+Servicio desplegado: `https://validator-production-3c773130.up.railway.app` (proyecto `puna-validator`). No hace falta partir la pantalla: la terminal del nodo ya muestra "respuesta on-chain del validador remoto" y el certificado con la URL de Railway.
+
+**Para que la cartera muestre el job grabado** (hoy muestra la foto del job 7, `web/public/data/demo.json`):
+
+```bash
+.venv/bin/python scripts/export_web.py --job <N> --from-block <bloque del createJob> --to-block <bloque del último settle>
+cp out/artifacts/<sha256 de cada certificado>.json web/public/artifacts/
+```
+
+Los números son los mismos (37,8 %, scores 49 y 100). Cambian el número de job, la hora y los hashes.
