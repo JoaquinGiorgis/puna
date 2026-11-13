@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Logo, useDemoGuard } from "@/components/Shell";
@@ -113,7 +112,6 @@ export default function Cartera() {
           <Logo />
           <nav aria-label="Secciones" className="flex gap-0.5 rounded-full bg-white/[0.08] p-[3px] text-[12.5px] font-medium">
             <span aria-current="page" className="rounded-full bg-white px-3 py-1.5 text-[#0e1b2c]">Cartera</span>
-            <Link href="/mission-control" className="rounded-full px-3 py-1.5 text-[#e6edf7] hover:bg-white/10">Auditoría on-chain</Link>
           </nav>
           <span className="hidden items-center gap-1.5 rounded-full bg-[#34d399]/15 px-2.5 py-1.5 font-mono text-[11px] text-[#6ee7b7] sm:flex" aria-live="polite">
             {sky.firesError ? <span className="text-[#f5c46b]">▲ {sky.firesError}</span> : sky.firesAt

@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, ArrowUpRight, Check, Droplets, Flame, Snowflake, Sun, type LucideIcon } from "lucide-react";
+import { ArrowRight, Check, Droplets, Flame, Snowflake, Sun, type LucideIcon } from "lucide-react";
 import { demo } from "@/lib/data";
 import { addrUrl } from "@/lib/format";
 import { lot14Kpis } from "@/lib/policy";
@@ -406,7 +406,6 @@ export function Landing() {
             <li><a href="#problemas" className={`rounded-full px-3 py-1.5 hover:bg-white/60 ${ring}`}>Problemas</a></li>
             <li><a href="#como" className={`rounded-full px-3 py-1.5 hover:bg-white/60 ${ring}`}>Cómo funciona</a></li>
             <li><a href="#medimos" className={`rounded-full px-3 py-1.5 hover:bg-white/60 ${ring}`}>Qué medimos</a></li>
-            <li><Link href="/mission-control" className={`rounded-full px-3 py-1.5 hover:bg-white/60 ${ring}`}>Ver una auditoría</Link></li>
           </ul>
           <Link href="/ingresar" className={`ml-auto flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-5 py-2.5 text-[14px] font-bold text-white hover:bg-[#13365e] ${ring}`}>
             Entrar a la demo <ArrowRight size={15} aria-hidden="true" />
@@ -436,9 +435,6 @@ export function Landing() {
               <div className="rise flex flex-wrap items-center gap-3" style={{ animationDelay: "180ms" }}>
                 <Link href="/ingresar" className={`flex items-center gap-2 rounded-full bg-[var(--ink)] px-6 py-3.5 text-[15px] font-bold text-white shadow-[0_14px_30px_-12px_rgb(11_36_64/0.6)] hover:bg-[#13365e] ${ring}`}>
                   Ver la cartera de demo <ArrowRight size={16} aria-hidden="true" />
-                </Link>
-                <Link href={`/mission-control?job=${demo.job.id}`} className={`sky-glass flex items-center gap-1.5 rounded-full px-5 py-3.5 text-[15px] hover:bg-white ${ring}`}>
-                  Mirá un siniestro real <ArrowUpRight size={15} aria-hidden="true" />
                 </Link>
               </div>
             </div>
@@ -486,9 +482,6 @@ export function Landing() {
               <div className="flex flex-wrap gap-3 [text-shadow:none]">
                 <Link href="/ingresar" className={`flex items-center gap-2 rounded-full bg-white px-7 py-4 text-[16px] font-bold text-[var(--ink)] shadow-[0_18px_40px_-14px_rgb(8_40_80/0.6)] hover:bg-[#eaf6fd] ${ring}`}>
                   Entrar a la demo <ArrowRight size={17} aria-hidden="true" />
-                </Link>
-                <Link href={`/mission-control?job=${demo.job.id}`} className={`flex items-center gap-1.5 rounded-full border border-white/80 bg-white/10 px-6 py-4 text-[16px] text-white backdrop-blur hover:bg-white/20 ${ring}`}>
-                  Ver una auditoría <ArrowUpRight size={16} aria-hidden="true" />
                 </Link>
               </div>
             </div>

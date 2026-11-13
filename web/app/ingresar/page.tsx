@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Logo } from "@/components/Shell";
@@ -58,10 +57,6 @@ export default function Login() {
 
         <p className="mt-4 rounded-xl bg-warn-bg px-3 py-2 text-[12px] leading-snug text-warn">
           <span aria-hidden="true">▲ </span>Acceso de demostración: los datos ya están cargados y no se validan. No escribas una contraseña real.
-        </p>
-        <p className="mt-4 text-[12.5px] text-muted">
-          ¿Querés ver la auditoría on-chain directamente?{" "}
-          <Link href="/mission-control" className="ext text-cyan">Mission Control</Link>
         </p>
       </section>
     </main>

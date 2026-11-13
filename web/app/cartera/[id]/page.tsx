@@ -153,9 +153,6 @@ function Status({ c, a, ready, now, error }: { c: Client; a: ReturnType<typeof a
                 <li><span className="font-mono text-muted">2.</span> Un validador de otro operador audita el cálculo (Freivalds).</li>
                 <li><span className="font-mono text-muted">3.</span> Si aprueba y supera {c.triggerPct} %, PunaEscrow paga {usd(sumInsured(c))} al productor.</li>
               </ol>
-              <Link href="/mission-control" className="mt-3 inline-block rounded-xl bg-[#0e1b2c] px-4 py-2 text-[13px] font-semibold text-white">
-                Ver cómo se audita: job {demo.job.id} en Fuji →
-              </Link>
               <p className="mt-2 text-[11.5px] text-muted">En la demo, el único job on-chain es el del Lote 14. Para este campo el flujo sería el mismo.</p>
             </>
           )}
@@ -191,7 +188,6 @@ function Lot14() {
         <li><span className="text-ok">✓</span> {pct(demo.job.indexBps)} supera el disparador de {pct(demo.job.triggerBps)}: {demo.job.state === "Paid" ? "pagado" : demo.job.state}.</li>
       </ol>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Link href={`/mission-control?job=${demo.job.id}`} className="rounded-xl bg-[#0e1b2c] px-4 py-2 text-[13px] font-semibold text-white">Ver la auditoría completa →</Link>
         {paid && <a href={txUrl(demo.chain.explorer, paid.tx)} target="_blank" rel="noreferrer" className="glass-raised ext rounded-xl px-3 py-2 text-[13px]">Pago en Snowtrace ↗</a>}
       </div>
     </>

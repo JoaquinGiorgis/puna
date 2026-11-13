@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GibsImage } from "@/components/DetailDrawer";
 import { FieldImage } from "@/components/FieldImage";
@@ -110,10 +109,6 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
               <Play size={14} aria-hidden="true" /> Reproducir el siniestro
             </button>
           )}
-          <Link href={c.onchain ? `/mission-control?job=${demo.job.id}` : "/mission-control"}
-            className="rounded-full border border-white/30 bg-white/[0.06] px-3 py-2 text-[12.5px] font-medium hover:bg-white/15">
-            {c.onchain ? "Abrir en Mission Control" : "Ver cómo se audita"} <span aria-hidden="true">↗</span>
-          </Link>
           <button data-autofocus onClick={onClose} aria-label="Cerrar póliza"
             className="grid h-9 w-9 place-items-center rounded-full border border-white/25 bg-white/10 text-[14px] hover:bg-white/20">✕</button>
         </header>
@@ -329,7 +324,6 @@ function Empty({ title, body }: { title: string; body: string }) {
     <div className="lg-tile grid flex-1 place-content-center gap-1 rounded-[14px] p-6 text-center">
       <p className="text-[13.5px] font-semibold">{title}</p>
       <p className="mx-auto max-w-[44ch] text-[12px] text-muted">{body}</p>
-      <Link href="/mission-control" className="mt-2 text-[12.5px] font-medium text-[#7dd3fc] hover:underline">Ver un job real en Mission Control ↗</Link>
     </div>
   );
 }

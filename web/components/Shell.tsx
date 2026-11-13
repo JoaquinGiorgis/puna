@@ -64,7 +64,6 @@ export function AppShell({ children, crumbs }: { children: ReactNode; crumbs?: R
 
   const nav = [
     { href: "/cartera", label: "Cartera" },
-    { href: "/mission-control", label: "Auditoría on-chain" },
   ];
 
   return (
