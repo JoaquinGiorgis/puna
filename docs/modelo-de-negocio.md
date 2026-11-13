@@ -1,6 +1,6 @@
 # Modelo de negocio de PUNA
 
-> **En una frase:** PUNA es una herramienta que la aseguradora compra para tener la certeza de que el índice satelital que dispara un pago se calculó bien. Cobra una licencia, por hectárea monitoreada y por auditoría, nunca un porcentaje de la prima ni del pago. El primer caso es el incendio en campos del NOA; la misma capa sirve para sequía, inundación o helada.
+> **En una frase:** PUNA es una herramienta que la aseguradora compra para tener la certeza de que el índice satelital que dispara un pago se calculó bien. Cobra un abono mensual fijo según las hectáreas bajo póliza (la suma de los lotes de sus asegurados), con las auditorías incluidas, nunca un porcentaje de la prima ni del pago. El primer caso es el incendio en campos del NOA; la misma capa sirve para sequía, inundación o helada.
 
 Las cifras de mercado tienen su fuente en [`reports/Seguros paramétricos blockchain agro.md`](../reports/Seguros%20paramétricos%20blockchain%20agro.md). **Los precios y las proyecciones son supuestos nuestros** y están marcados como tales.
 
@@ -86,18 +86,29 @@ PUNA le vende software y un servicio de verificación a la aseguradora. **No cob
 2. **Regulación.** En Argentina, promover seguros y asesorar al asegurado es tarea de productores asesores matriculados en la SSN (Ley 22.400). Una comisión por póliza o por prima convertiría a PUNA en intermediario. Quien toma una parte de la prima a cambio de suscribir riesgo es una MGA (por ejemplo Descartes, Otonomi), y ese no es nuestro negocio.
 3. **Precedentes.** Los proveedores que escalaron vendiéndole a aseguradoras cobran licencias y suscripciones por un trabajo concreto. Guidewire cobra por el volumen de primas que administra su software, pero como licencia, no como participación. CAPE Analytics, que Moody's acordó comprar en 2025, vende scores por suscripción. Floodbase es el agente de cálculo del producto de Guy Carpenter. Los protocolos on-chain que cobran un porcentaje de la prima, como Re y Ensuro, se quedan con muy poco. El detalle está en [`reports/Modelos de negocio de herramientas.md`](../reports/Modelos%20de%20negocio%20de%20herramientas.md).
 
-### Planes (precios supuestos nuestros, a validar en el piloto)
+### Planes: abono mensual por hectáreas bajo póliza (precios supuestos nuestros, a validar en el piloto)
 
-| Plan | Qué incluye | Precio |
-|---|---|---|
-| **Piloto** | Una campaña (90 a 120 días) en paralelo con la liquidación tradicional, hasta 50 lotes, métricas acordadas de antemano: coincidencia con el perito, tiempo hasta el pago, costo por siniestro | **USD 10.000** fijo, o sin cargo si podemos publicar el caso |
-| **Licencia anual** | Por programa paramétrico: cartera web, checklist de la Res. SSN 315, soporte, un cupo de auditorías incluido | **USD 10.000 a 25.000** al año según el plan |
-| **Monitoreo** | Vigilancia satelital de cada lote asegurado durante la campaña | **USD 0,30 por ha por campaña** |
-| **Auditoría** | Cada cálculo auditado por un validador independiente y liquidado on-chain, **apruebe o rechace**. Incluye el fee del validador, que se paga en stablecoin | **USD 20 por auditoría** fuera del cupo, más el costo de red al costo |
-| **Enterprise** | Marca blanca para reaseguradores o brokers, SLA, red propia de Avalanche con la aseguradora y el reasegurador como validadores | Licencia anual a medida |
-| **Implementación** | Integración con el sistema de la aseguradora y armado de la póliza paramétrica | USD 8.000 a 20.000, una sola vez |
+La aseguradora paga un **abono mensual fijo** según cuántas hectáreas tiene bajo póliza: la suma de las hectáreas de los lotes de todos sus asegurados en ese programa. Contrato anual, facturado por mes, en dólares y pagadero en pesos.
 
-- **El precio no depende del resultado.** Ni la prima ni la indemnización cambian lo que cobra PUNA: se cobra la licencia, el monitoreo por hectárea y cada auditoría, apruebe o rechace.
+| Plan | Hectáreas bajo póliza | Abono mensual | Por ha y por año (al tope) | % de la prima (al tope, USD 11,9/ha) |
+|---|---|---|---|---|
+| **Piloto** | Hasta 50 lotes, una campaña (90 a 120 días), en paralelo con el perito | **USD 10.000** fijo por campaña, o sin cargo si podemos publicar el caso | — | — |
+| **Inicial** | Hasta 25.000 ha | **USD 1.200** | USD 0,58 | 4,8 % |
+| **Crecimiento** | Hasta 75.000 ha | **USD 3.000** | USD 0,48 | 4,0 % |
+| **Regional** | Hasta 200.000 ha | **USD 6.500** | USD 0,39 | 3,3 % |
+| **Cartera** | Hasta 500.000 ha | **USD 13.000** | USD 0,31 | 2,6 % |
+| **Enterprise** | Más de 500.000 ha, marca blanca para reaseguradores o brokers, SLA, red propia de Avalanche | A medida | — | — |
+
+**Qué incluye todo abono:** cartera web, checklist de la Res. SSN 315, monitoreo satelital de cada lote, soporte y **auditorías ilimitadas en la práctica**: hasta 3 por cada 1.000 ha por año, cuando lo esperado son 2,3 (1,9 siniestros por cada 1.000 ha × 1,2 auditorías por siniestro). Cada auditoría la hace un validador independiente y se liquida on-chain, apruebe o rechace; el fee del validador sale del abono.
+
+**Reglas del abono:**
+- **Hectáreas que se cuentan:** el pico de hectáreas bajo póliza vigente en el mes. Un lote que se renueva no cuenta dos veces (igual que OneSoil).
+- **Si se pasa del tope:** no hay salto forzado de plan. Cada hectárea extra paga **USD 0,05 por mes** (USD 0,60 por año) hasta que le convenga subir de plan.
+- **Implementación:** integración con el sistema de la aseguradora y armado de la póliza, de USD 8.000 a 20.000, una sola vez.
+- **Por qué mensual y fijo aunque el incendio sea de junio a octubre:** la aseguradora presupuesta un gasto fijo y PUNA no depende de que haya siniestros. El monitoreo y el registro para la SSN corren todo el año.
+- **Dónde no cierra:** con menos de 15.000 ha el abono Inicial pasa el 6 % de la prima. Para esos casos está el piloto o un programa compartido con otra aseguradora o con una provincia.
+
+- **El precio no depende del resultado.** Ni la prima ni la indemnización cambian lo que cobra PUNA: se cobra el abono por hectáreas, haya o no siniestros, y cada auditoría vale lo mismo apruebe o rechace.
 - **Cobro on-chain como Chainlink Functions:** en la v2, la aseguradora carga un saldo prepago en el contrato y cada auditoría descuenta su fee. La plataforma anual se factura en pesos o dólares, como cualquier software.
 - **Por qué cobramos más que el costo de cómputo:** auditar con Freivalds cuesta casi nada. Lo que se paga es la independencia del validador, la liquidación en 15 días que pide la Res. 315 y la trazabilidad para la SSN y el reasegurador.
 
@@ -115,7 +126,28 @@ Datos de la encuesta agro de la SSN (julio 2023 a junio 2024). Los montos en dó
 | Referencia internacional | En EE. UU. el Estado le reconoce a la aseguradora un **6 % de la prima** como gasto de liquidación en la cobertura catastrófica | USDA RMA, vía CRS |
 | NOA y Chaco | 819.000 ha aseguradas, unos USD 8 M de prima (USD 9,9 por ha), el 2,1 % de las primas del país | SSN 2024 |
 
-**La regla de precio:** PUNA tiene que costar **menos que el gasto de liquidar con perito**. Apuntamos a que el total quede entre el **3 % y el 5 % de la prima** del programa, por debajo del 6 % que usa como referencia el sistema de EE. UU. y muy por debajo del 12,8 % que hoy se va en administración. Dato que falta y se mide en el piloto: cuánto cobra un perito por inspección en Argentina; no lo encontramos publicado.
+**La regla de precio:** PUNA tiene que costar **menos que el gasto de liquidar con perito**. Apuntamos a que el total quede entre el **3 % y el 5 % de la prima** del programa, por debajo del 6 % que usa como referencia el sistema de EE. UU. y muy por debajo del 12,8 % que hoy se va en administración. Dato que falta y se mide en el piloto: cuánto cobra un perito por inspección en Argentina; no lo encontramos publicado. Como referencia europea, un estudio de la ESA (HALO) pone la inspección física de un sitio en EUR 2.000 a 8.000 por visita.
+
+### Qué cobra la competencia por hectárea (búsqueda del 12/11/2026)
+
+Casi nadie publica precios para aseguradoras: todo es "contactar a ventas". Lo que sí está publicado es lo que pagan productores y empresas agro por monitoreo satelital, y lo que cuesta la imagen satelital comercial.
+
+| Producto | Para quién | Modelo | Precio publicado | Por ha y por año |
+|---|---|---|---|---|
+| **Farmonaut** | Productor y agroempresa | Abono mensual por tramo de hectáreas | De USD 4,99/mes por 5 ha a USD 224,99/mes por 500 ha | USD 5,4 a 12 |
+| **Sensix** (Brasil) | Productor de granos, fibra y caña | Licencia anual por área sembrada | R$ 5 a 18 por ha por año (2024) | USD 1 a 3,5 |
+| **OneSoil Pro** | Productor y revendedor | Suscripción anual por hectáreas únicas | Varía por país; menos de USD 2/ha en una herramienta asociada (2022) | ≤ USD 2 |
+| **Auravant** (Argentina) | Productor y asesor | Freemium; pago por paquete de hectáreas | Gratis hasta 3.000 ha (2019); en la App Store de México figuran planes "1000" a MXN 499 y 1.299 | "Centavos de dólar por ha", según la empresa |
+| **EOSDA Crop Monitoring** | Productor; tiene línea para aseguradoras | Planes Essential y Professional | Essential con tope de 1.000 ha; precio solo dentro de la app | Sin dato |
+| **Climate FieldView Plus** | Productor | Abono anual fijo | USD 649 por año | Depende del campo |
+| **Planet / Sentinel Hub** | Quien procesa imágenes | Área bajo gestión, por km² y por año | Desde EUR 665 por 500 ha por año (PlanetScope, foro de 2023) | ≈ EUR 1,3 solo el dato |
+| **Cropin, Agrotools, OroraTech, EarthDaily** | Aseguradoras y bancos | Contrato enterprise | No publican | Sin dato |
+
+**Qué nos dice esto:**
+- **El modelo está validado.** Los que venden monitoreo satelital por suscripción cobran por tramos de hectáreas con un tope y baja el precio por hectárea a mayor volumen (Farmonaut, Planet, OneSoil). Es exactamente el abono que proponemos.
+- **Nuestro precio por hectárea es entre 3 y 20 veces menor** (USD 0,31 a 0,58 contra USD 1 a 12). Es coherente: no vendemos agronomía a un productor, vendemos una medición auditada a una cartera grande, y la aseguradora no puede pagar USD 2/ha sobre una prima de USD 12/ha (sería el 17 %).
+- **Tenemos que seguir con datos gratuitos** (FIRMS, Sentinel-2). Si usáramos PlanetScope, el dato solo costaría unos EUR 1,3 por ha: más que todo nuestro abono.
+- **Lo que falta validar** se pregunta en el piloto: cuánto paga hoy la aseguradora por perito por siniestro, y si prefiere el abono fijo o pagar por hectárea por campaña.
 
 ### Ejemplo real 1: la plata que se movió en el job 7 (Fuji)
 
@@ -138,11 +170,12 @@ Con los datos de la SSN para esa provincia (358.000 ha aseguradas, ARS 3.890 M d
 | Concepto | Cálculo | Monto |
 |---|---|---|
 | Prima del programa | 100.000 ha × USD 11,9 | USD 1.190.000 |
-| Siniestros esperados | 100.000 ha × 1,9 por cada 1.000 ha | unos 193 (232 auditorías, contando reintentos) |
-| Licencia anual, incluye 100 auditorías | Fijo | USD 15.000 |
-| Monitoreo | 100.000 ha × USD 0,30 | USD 30.000 |
-| Auditorías fuera del cupo | 132 × USD 20 | USD 2.640 |
-| **PUNA total** | | **USD 47.640, el 4 % de la prima** |
+| Siniestros esperados | 100.000 ha × 1,9 por cada 1.000 ha | unos 193 (232 auditorías, contando reintentos; el abono incluye hasta 300) |
+| Plan Crecimiento (hasta 75.000 ha) | USD 3.000 × 12 meses | USD 36.000 |
+| Hectáreas sobre el tope | 25.000 ha × USD 0,05 × 12 meses | USD 15.000 |
+| **PUNA total** | USD 4.250 por mes | **USD 51.000 al año, el 4,3 % de la prima** |
+
+Le conviene más que subir a Regional (USD 78.000 al año). Si el programa crece a 150.000 ha, Crecimiento con excedente y Regional cuestan lo mismo, y desde ahí pasa a Regional.
 
 Contra eso, la aseguradora deja de mandar perito a unos 190 siniestros para decidir si se dispara el pago, y cumple de entrada el acceso al cálculo y el plazo de 15 días de la Res. SSN 315.
 
@@ -153,16 +186,16 @@ Contra eso, la aseguradora deja de mandar perito a unos 190 siniestros para deci
 
 ## 5. Proyección a 3 años
 
-**Supuestos:** precios de la tabla de planes; 1,9 siniestros por cada 1.000 ha (SSN 2024) y 1,2 auditorías por siniestro; costos de un equipo chico en Argentina (3 a 6 personas) más infraestructura: USD 120.000, 220.000 y 320.000 por año. Los datos satelitales que usamos hoy (FIRMS, Sentinel) son gratuitos y auditar con Freivalds cuesta casi nada, así que el costo es casi todo equipo.
+**Supuestos:** abonos de la tabla de planes, con las hectáreas repartidas en partes iguales entre aseguradoras y cada una en el plan que le sale más barato; auditorías incluidas en el abono; costos de un equipo chico en Argentina (3 a 6 personas) más infraestructura: USD 120.000, 220.000 y 320.000 por año. Los datos satelitales que usamos hoy (FIRMS, Sentinel) son gratuitos y auditar con Freivalds cuesta casi nada, así que el costo es casi todo equipo.
 
 | Escenario | 2027 | 2028 | 2029 |
 |---|---|---|---|
-| **Conservador** | Piloto pago, sin programa · **USD 10.000** | 1 aseguradora, 80.000 ha · **USD 40.700** | 2 aseguradoras, 200.000 ha · **USD 101.300** |
-| **Base** | Piloto + 1 programa de 50.000 ha · **USD 40.300** | 3 aseguradoras, 200.000 ha · **USD 117.300** | 4 aseguradoras + 1 provincia, 500.000 ha · **USD 266.200** |
-| **Optimista** | 2 programas, 120.000 ha · **USD 77.600** | 5 aseguradoras, 500.000 ha · **USD 263.200** | 7 aseguradoras + 2 provincias, 1,2 M ha · **USD 590.600** |
+| **Conservador** | Piloto pago, sin programa · **USD 10.000** | 1 aseguradora, 80.000 ha · **USD 39.000** | 2 aseguradoras, 200.000 ha · **USD 102.000** |
+| **Base** | Piloto + 1 programa de 50.000 ha · **USD 39.400** | 3 aseguradoras, 200.000 ha · **USD 108.000** | 4 aseguradoras + 1 provincia, 500.000 ha · **USD 255.000** |
+| **Optimista** | 2 programas, 120.000 ha · **USD 70.800** | 5 aseguradoras, 500.000 ha · **USD 255.000** | 7 aseguradoras + 2 provincias, 1,2 M ha · **USD 639.000** |
 | Costos | USD 120.000 | USD 220.000 | USD 320.000 |
 
-- **Lectura honesta:** en el escenario base, PUNA no cubre sus costos en 3 años solo con agro en el norte argentino (resultado 2029: unos USD −54.000). El punto de equilibrio llega cerca de las **600.000 ha** bajo PUNA. Es el 2,5 % de las hectáreas aseguradas del país, pero más que todo el NOA y el Chaco juntos.
+- **Lectura honesta:** en el escenario base, PUNA no cubre sus costos en 3 años solo con agro en el norte argentino (resultado 2029: unos USD −65.000). El punto de equilibrio llega cerca de las **630.000 ha** bajo PUNA. Es el 2,5 % de las hectáreas aseguradas del país, pero más que todo el NOA y el Chaco juntos.
 - **El precio queda entre 3 % y 5 % de la prima** en todos los escenarios, como apunta la regla de precio.
 - **Qué tiene que pasar para el base:** que el piloto muestre que el índice coincide con el perito y que una aseguradora del top 10 (el top 10 tiene el 90 % de las primas) lo lleve a su programa. Una provincia como tomadora (exenta de aprobación previa por la Res. 315) acelera el año 3.
 - **Para crecer de verdad** hay que salir del incendio en el NOA: sequía en la zona núcleo (Córdoba ya tiene un piloto provincial de hasta 500.000 ha), otros países (Brasil, Paraguay) y, cuando llegue, el cómputo orbital, donde los operadores satelitales pagan por auditoría.
@@ -170,8 +203,8 @@ Contra eso, la aseguradora deja de mandar perito a unos 190 siniestros para deci
 | Nivel | Qué es | Tamaño | Fuente |
 |---|---|---|---|
 | **TAM** | Primas de seguros paramétricos en el mundo | USD 15–21 B en 2025, +8–13 % anual | GMI, MRFR (informe de mercado) |
-| **SAM** | Seguro agrícola argentino, a USD 0,30 por ha más licencias | 23,57 M ha ≈ **USD 7 M de monitoreo por campaña**, más licencias y auditorías | SSN 2024; precio supuesto |
-| **SOM a 3 años** | Escenario base | **500.000 ha, unos USD 266.000 por año** | Cálculo de arriba |
+| **SAM** | Seguro agrícola argentino, a USD 0,31–0,58 por ha por año | 23,57 M ha ≈ **USD 7 a 14 M por año** | SSN 2024; precio supuesto |
+| **SOM a 3 años** | Escenario base | **500.000 ha, unos USD 255.000 por año** | Cálculo de arriba |
 
 ## 6. Competencia y alternativas
 
@@ -212,7 +245,7 @@ Contra eso, la aseguradora deja de mandar perito a unos 190 siniestros para deci
 | Poca demanda: varios seguros on-chain cerraron | Arrancamos con una aseguradora con distribución propia y un tomador público, no vendiéndole al productor de a uno |
 | Que el validador se ponga de acuerdo con el nodo | Validadores de otro operador elegidos por la aseguradora. En la v2, varios validadores con stake y slashing |
 | El cómputo orbital tarda en llegar | El producto ya sirve con cálculo en tierra. La auditoría por un tercero vale igual |
-| Que nos traten como intermediarios o como socios | Le vendemos solo a la aseguradora, nunca al productor, y cobramos licencia, hectárea y auditoría, sin comisión por póliza ni porcentaje de prima o de pago |
+| Que nos traten como intermediarios o como socios | Le vendemos solo a la aseguradora, nunca al productor, y cobramos un abono por hectáreas bajo póliza, sin comisión por póliza ni porcentaje de prima o de pago |
 | Venta larga: con aseguradoras un contrato tarda 12 a 18 meses | Entramos con un piloto pago de una campaña, con métricas acordadas, y vendemos también a través de reaseguradores y brokers con marca blanca |
 
 ## 9. Para la slide de modelo de negocio
@@ -220,8 +253,9 @@ Contra eso, la aseguradora deja de mandar perito a unos 190 siniestros para deci
 - **Cliente:** aseguradoras agro con licencia en el NOA. Después, provincias y quienes financian la campaña.
 - **Beneficiario:** el productor, que cobra en minutos y puede verificar por qué.
 - **Qué vendemos:** que el índice que dispara el pago esté bien calculado, auditado por un tercero y liquidado on-chain.
-- **Cómo cobramos:** como herramienta, no como socio. Piloto USD 10.000, licencia de USD 10.000 a 25.000 al año, USD 0,30 por hectárea por campaña y USD 20 por auditoría (supuestos). Cobramos lo mismo apruebe o rechace. Total: entre 3 % y 5 % de la prima, por debajo del 6 % de gasto de liquidación de referencia.
-- **Ejemplo:** un programa de 100.000 ha en Santiago del Estero paga unos USD 47.600 al año, el 4 % de su prima.
-- **Proyección (base):** USD 40.000 en 2027, 117.000 en 2028 y 266.000 en 2029. El equilibrio llega cerca de las 600.000 ha; para crecer más hay que sumar sequía, otros países y cómputo orbital.
+- **Cómo cobramos:** como herramienta, no como socio. Abono mensual fijo por hectáreas bajo póliza, con auditorías incluidas: de USD 1.200/mes (hasta 25.000 ha) a USD 13.000/mes (hasta 500.000 ha); piloto de USD 10.000 por campaña (supuestos). Cobramos lo mismo apruebe o rechace. Total: entre 3 % y 5 % de la prima, por debajo del 6 % de gasto de liquidación de referencia.
+- **Contra la competencia:** el monitoreo satelital para productores se cobra igual, por tramos de hectáreas, pero a USD 1 a 12 por ha por año. Nosotros, a una cartera grande, de USD 0,31 a 0,58.
+- **Ejemplo:** un programa de 100.000 ha en Santiago del Estero paga USD 4.250 por mes, USD 51.000 al año, el 4,3 % de su prima.
+- **Proyección (base):** USD 39.000 en 2027, 108.000 en 2028 y 255.000 en 2029. El equilibrio llega cerca de las 630.000 ha; para crecer más hay que sumar sequía, otros países y cómputo orbital.
 - **Mercado:** 23,6 M ha aseguradas en Argentina. La cabeza de playa es el NOA, donde casi nadie asegura el incendio.
 - **Por qué ahora:** la Res. SSN 315/2026 (julio de 2026), los incendios de Salta (julio de 2026) y la llegada del cómputo orbital (2026–2028).
