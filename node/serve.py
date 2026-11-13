@@ -6,6 +6,8 @@ expone el progreso. El validador NO vive acá: es otro servicio, con otra wallet
   GET  /health                     → ok
   GET  /status                     → {"running", "lines", "jobId", "result", "runsToday", "cap", "cooldown"}
   POST /run   {"capa":1-4,"bit":0-7} o {"job":N} para retomar uno Rejected  → 202 si arrancó; 409 si hay una corrida; 429 si hay que esperar
+              {"capa","bit","stage":true}: llegan los datos, se audita (rechazo incluido) y queda listo, sin liquidar
+  POST /settle {"job":N}           → solo la liquidación (botón "Liquidar siniestro" de la póliza)
   GET  /<sha256>.<ext>             → artefactos del nodo (tensores), que el validador baja y verifica por hash
 
 Variables: INSURER_PK, SCHEDULER_PK, NODE_A_PK, NODE_B_PK, VALIDATOR_ADDR, PRODUCER_ADDR, AGENT_ID_A,
@@ -51,10 +53,15 @@ class State:
 S = State()
 
 
-def _run(capa: int, bit: int, job: int | None = None) -> None:
+def _run(capa: int, bit: int, job: int | None = None, mode: str = "full") -> None:
     e2e = [sys.executable, "-u", str(ROOT / "scripts" / "e2e.py"), "--live", "--remote-validator"]
     # job: retoma uno que quedó Created o Rejected (sin falla); si no, el guion completo con la falla elegida
-    cmd = e2e + (["--job", str(job)] if job else ["--demo", "--capa", str(capa), "--bit", str(bit)])
+    if mode == "settle":
+        cmd = e2e[:3] + ["--job", str(job), "--settle-only"]  # sin datos en vivo: solo la tx de settle
+    else:
+        cmd = e2e + (["--job", str(job)] if job else ["--demo", "--capa", str(capa), "--bit", str(bit)])
+        if mode == "stage" and not job:
+            cmd.append("--stage")
     try:
         p = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         assert p.stdout
@@ -71,6 +78,8 @@ def _run(capa: int, bit: int, job: int | None = None) -> None:
                 m = re.search(r"RESULTADO intento \d+: (\w+)", line)
                 if m:
                     S.result = m.group(1)
+                if "LISTO PARA LIQUIDAR" in line:
+                    S.result = "Listo"
         code = p.wait()
         if code != 0:
             with S.lock:
@@ -128,30 +137,38 @@ class Handler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
-        if not self.path.startswith("/run"):
+        settle = self.path.startswith("/settle")
+        if not (settle or self.path.startswith("/run")):
             return self._json(404, {"error": "no existe"})
         try:
             n = int(self.headers.get("Content-Length") or 0)
             body = json.loads(self.rfile.read(min(n, 1024)) or b"{}")
             capa, bit = int(body.get("capa", 3)), int(body.get("bit", 7))
             job = int(body["job"]) if body.get("job") is not None else None
+            mode = "settle" if settle else ("stage" if body.get("stage") else "full")
         except (ValueError, json.JSONDecodeError):
             return self._json(400, {"error": "pedido inválido"})
         if not (1 <= capa <= 4 and 0 <= bit <= 7):
             return self._json(400, {"error": "capa 1 a 4 y bit 0 a 7"})
+        if settle and job is None:
+            return self._json(400, {"error": "falta el job a liquidar"})
         with S.lock:
             if S.day != date.today():
                 S.day, S.runs_today = date.today(), 0
             if S.running:
                 return self._json(409, {"error": "ya hay una corrida en curso"})
-            if S.finished and time.time() - S.finished < COOLDOWN:
+            if not settle and S.finished and time.time() - S.finished < COOLDOWN:
                 return self._json(429, {"error": f"esperá {int(COOLDOWN - (time.time() - S.finished))} s"})
             if S.runs_today >= CAP:
                 return self._json(429, {"error": "se alcanzó el tope de corridas de hoy"})
-            S.running, S.lines, S.job_id, S.result, S.started = True, [], None, None, time.time()
-            S.runs_today += 1
-        threading.Thread(target=_run, args=(capa, bit, job), daemon=True).start()
-        return self._json(202, {"started": True, "capa": capa, "bit": bit, "job": job})
+            if settle:  # la liquidación sigue al mismo job: se conserva el log de la auditoría
+                S.running, S.result, S.started = True, None, time.time()
+                S.lines.append("── liquidación pedida desde la póliza")
+            else:
+                S.running, S.lines, S.job_id, S.result, S.started = True, [], None, None, time.time()
+                S.runs_today += 1
+        threading.Thread(target=_run, args=(capa, bit, job, mode), daemon=True).start()
+        return self._json(202, {"started": True, "capa": capa, "bit": bit, "job": job, "mode": mode})
 
     def list_directory(self, path):
         self.send_error(404)

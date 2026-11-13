@@ -185,12 +185,21 @@ def main() -> None:
     ap.add_argument("--trigger-bps", type=int, default=3000)
     ap.add_argument("--max-saa-bps", type=int, default=10_000)
     ap.add_argument("--no-settle", action="store_true")
+    ap.add_argument("--stage", action="store_true",
+                    help="con --demo: corre todo (rechazo incluido) y deja el intento aprobado sin liquidar")
+    ap.add_argument("--settle-only", action="store_true", help="con --job: solo liquida (el botón de la póliza)")
     ap.add_argument("--live", action="store_true", help="baja FIRMS, TLE y protones GOES en el momento")
     ap.add_argument("--remote-validator", action="store_true",
                     help="el validador corre en otra máquina; acá solo se espera su respuesta on-chain")
     a = ap.parse_args()
 
     r = Run(a)
+    if a.settle_only:
+        if a.job is None:
+            raise SystemExit("--settle-only va con --job")
+        r.step("liquidación")
+        r.settle(a.job)
+        return
     print(f"escrow {r.esc.address} · modo {'demo' if a.demo else 'política'}")
     r.step("1. aseguradora")
     job_id = a.job if a.job is not None else r.create_job()
@@ -214,6 +223,9 @@ def main() -> None:
         d = r.assign(job_id)
         r.step(f"7. nodo {d.node.name} → 8. validador")
         r.node_and_validate(job_id, d, None)
+        if a.stage:
+            print(f"  LISTO PARA LIQUIDAR job {job_id}: auditoría aprobada, falta settle", flush=True)
+            return
         r.step("9. liquidación")
         r.settle(job_id)
 

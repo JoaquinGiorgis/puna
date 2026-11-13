@@ -62,11 +62,11 @@ export function DemoRunner({ variant = "floating", onClose }: { variant?: "float
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
   }, [st?.lines.length]);
 
-  const run = async () => {
+  const post = async (path: "/run" | "/settle", payload: object) => {
     setBusy(true);
     setErr(null);
     try {
-      const r = await fetch(`${NODE}/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ capa, bit }) });
+      const r = await fetch(`${NODE}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const body = await r.json().catch(() => ({}));
       if (!r.ok) setErr(body.error ?? `error ${r.status}`);
       await poll();
@@ -77,7 +77,11 @@ export function DemoRunner({ variant = "floating", onClose }: { variant?: "float
     }
   };
 
+  // En la póliza, la llegada de datos y la auditoría corren solas ("stage"); el pago es un paso aparte.
+  const run = () => post("/run", inline ? { capa, bit, stage: true } : { capa, bit });
   const running = !!st?.running;
+  const ready = inline && !running && st?.result === "Listo" && st.jobId != null;
+  const settle = () => st?.jobId != null && post("/settle", { job: st.jobId });
   const blocked = running || busy || (st?.cooldown ?? 0) > 0 || (st ? st.runsToday >= st.cap : false);
 
   return (
@@ -96,7 +100,9 @@ export function DemoRunner({ variant = "floating", onClose }: { variant?: "float
             <div>
               <h2 id="demo-runner-t" className="text-[15px] font-semibold tracking-tight">Siniestro en vivo · Lote 14</h2>
               <p className="mt-0.5 text-[12px] leading-snug text-muted">
-                Crea un job en Fuji, asigna ORBIT-07 (en la Anomalía) con la falla que elijas, el validador de otro operador lo audita y se reasigna a ORBIT-03.
+                {inline
+                  ? "Llegan los focos de FIRMS, ORBIT-07 (en la Anomalía) mide con la falla que elijas, el validador de otro operador lo rechaza y ORBIT-03 vuelve a medir. Después liquidás: el contrato paga solo si la auditoría aprobó."
+                  : "Crea un job en Fuji, asigna ORBIT-07 (en la Anomalía) con la falla que elijas, el validador de otro operador lo audita y se reasigna a ORBIT-03."}
               </p>
             </div>
             <button type="button" onClick={() => (inline ? onClose?.() : setOpen(false))} aria-label="Cerrar el siniestro en vivo" className="rounded-full px-2 text-[18px] leading-none text-muted hover:text-ink">×</button>
@@ -119,9 +125,22 @@ export function DemoRunner({ variant = "floating", onClose }: { variant?: "float
             </label>
             <button type="button" onClick={run} disabled={blocked}
               className="ml-auto rounded-full bg-[#ea6a12] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[#c9560a] disabled:cursor-not-allowed disabled:opacity-60">
-              {running ? "Corriendo…" : (st?.cooldown ?? 0) > 0 ? `Esperá ${st?.cooldown} s` : "Disparar"}
+              {running ? "Corriendo…" : (st?.cooldown ?? 0) > 0 ? `Esperá ${st?.cooldown} s` : inline ? "Recibir datos y auditar" : "Disparar"}
             </button>
           </div>
+
+          {ready && (
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-ok/40 bg-ok-bg px-3 py-2.5">
+              <p className="flex-1 text-[12.5px] leading-snug text-ink">
+                <span aria-hidden="true" className="text-ok">✓ </span>
+                <b>Auditoría aprobada · job {st?.jobId}.</b> Falta liquidar: el contrato paga solo si el índice supera el disparador.
+              </p>
+              <button type="button" onClick={settle} disabled={busy}
+                className="rounded-full bg-[#16a34a] px-5 py-2.5 text-[14px] font-semibold text-white transition hover:bg-[#15803d] disabled:opacity-60">
+                Liquidar siniestro
+              </button>
+            </div>
+          )}
 
           {err && <p role="alert" className="rounded-lg bg-warn-bg px-3 py-2 text-[12px] text-warn"><span aria-hidden="true">▲ </span>{err}</p>}
 
