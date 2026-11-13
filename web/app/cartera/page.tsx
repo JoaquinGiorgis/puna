@@ -181,7 +181,7 @@ export default function Cartera() {
         return st ? <SatModal sat={st} def={sky.defs.find((d) => d.name === satOpen)} pass={sky.passes[satOpen] ?? null} fires={sky.fires} now={sky.now} onClose={() => setSatOpen(null)}
           onFollow={satOnMap(st) ? () => { setFollow(st.name); setSatOpen(null); } : undefined} /> : null;
       })()}
-      {row && <PolicyModal onReplay={row.c.onchain ? startReplay : undefined} row={row} fires={sky.fires} now={sky.mounted ? sky.now : new Date()} onClose={() => { setOpen(null); fly(null); }} />}
+      {row && <PolicyModal row={row} fires={sky.fires} now={sky.mounted ? sky.now : new Date()} onClose={() => { setOpen(null); fly(null); }} />}
     </div>
   );
 }
