@@ -109,7 +109,7 @@ function StepCard({ s, i, n, reserve = false }: { s: Step; i: number; n: number;
         <h3 className="max-w-[20ch] text-[28px] font-bold leading-[1.05] tracking-[-0.03em] md:text-[34px]">{s.title}</h3>
       </div>
       <p className="max-w-[52ch] text-[16px] font-light leading-relaxed [text-wrap:pretty]">{s.body}</p>
-      <div className="relative mt-auto h-[188px] overflow-hidden rounded-2xl border border-white bg-white/80 shadow-[0_14px_34px_-18px_rgb(30_90_150/0.45)]">{s.mini}</div>
+      <div className="relative mt-auto h-[188px] shrink-0 overflow-hidden [@media(max-height:760px)]:h-[164px] rounded-2xl border border-white bg-white/80 shadow-[0_14px_34px_-18px_rgb(30_90_150/0.45)]">{s.mini}</div>
       <p className="flex"><span className="rounded-full bg-[var(--act)]/10 px-3 py-1.5 text-[13px] font-bold tabular-nums text-[var(--act)]">{s.fact}</span></p>
     </div>
   );
@@ -141,7 +141,7 @@ const HowItWorks = memo(function HowItWorks({ steps }: { steps: Step[] }) {
   const head = (
     <div className="flex flex-col gap-4">
       <Eyebrow>Cómo funciona</Eyebrow>
-      <h2 id="como-t" className="max-w-[16ch] text-[32px] font-bold leading-[1.05] tracking-[-0.035em] md:text-[40px]">Del siniestro al pago, en cuatro pasos</h2>
+      <h2 id="como-t" className="max-w-[16ch] text-[32px] font-bold leading-[1.05] tracking-[-0.035em] md:text-[40px] [@media(max-height:760px)]:text-[32px]">Del siniestro al pago, en cuatro pasos</h2>
       <p className="max-w-[40ch] text-[16px] font-light leading-relaxed">Así peritamos un incendio real en Anta, Salta. Quien mide el daño nunca es quien lo controla.</p>
     </div>
   );
@@ -150,15 +150,18 @@ const HowItWorks = memo(function HowItWorks({ steps }: { steps: Step[] }) {
     <>
       {/* escritorio: sección fija, el scroll cambia de paso */}
       <section ref={sec} id="como" aria-labelledby="como-t" data-zone="sky" className="relative hidden scroll-mt-0 lg:block" style={{ height: `${steps.length * 90 + 60}vh` }}>
-        <div className="sticky top-0 flex h-svh items-center overflow-hidden">
-          {/* satélites de parallax: cruzan el cielo a medida que avanza el scroll */}
-          <img decoding="async" src="/landing/obj-satellite.webp" alt="" aria-hidden="true" className="pointer-events-none absolute left-0 top-[9%] w-[150px] drop-shadow-[0_20px_20px_rgb(11_36_64/0.25)]"
-            style={{ transform: "translate3d(calc(var(--hp, 0) * 115vw - 18vw), calc(var(--hp, 0) * -40px), 0) rotate(-8deg)" }} />
+        <div className="sticky top-0 flex h-svh items-center-safe overflow-hidden pb-4 pt-[112px]">
+          {/* satélite de parallax: cruza por debajo de las cards, nunca debajo del header */}
           <img decoding="async" src="/landing/obj-satellite.webp" alt="" aria-hidden="true" className="pointer-events-none absolute right-0 top-[90%] w-[90px] opacity-80"
             style={{ transform: "translate3d(calc(var(--hp, 0) * -120vw + 10vw), calc(var(--hp, 0) * 60px), 0) rotate(16deg)" }} />
 
           <div className="relative mx-auto grid w-full max-w-[1240px] grid-cols-[400px_minmax(0,1fr)] items-center gap-14 px-6">
-            <div className="sky-glass flex flex-col gap-8 rounded-[36px] p-8">
+            <div className="relative">
+            {/* satélite apoyado en la esquina de la card: queda entero, por delante y por debajo del header */}
+            <img decoding="async" src="/landing/obj-satellite.webp" alt="" aria-hidden="true"
+              className="pointer-events-none absolute -right-10 -top-8 z-10 w-[124px] drop-shadow-[0_20px_20px_rgb(11_36_64/0.25)]"
+              style={{ transform: "translate3d(calc(var(--hp, 0) * -14px), calc(var(--hp, 0) * 18px), 0) rotate(calc(-10deg + var(--hp, 0) * 14deg))" }} />
+            <div className="sky-glass flex flex-col gap-8 rounded-[36px] p-8 [@media(max-height:760px)]:gap-4 [@media(max-height:760px)]:p-6">
               {head}
               <ol className="flex flex-col gap-1" aria-label="Pasos">
                 {steps.map((s, i) => {
@@ -166,7 +169,7 @@ const HowItWorks = memo(function HowItWorks({ steps }: { steps: Step[] }) {
                   return (
                     <li key={s.key}>
                       <button type="button" onClick={() => goTo(i)} aria-current={on ? "step" : undefined}
-                        className={`flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-left ${ring} ${on ? "bg-white shadow-[0_12px_28px_-14px_rgb(30_90_150/0.4)]" : "hover:bg-white/50"}`}>
+                        className={`flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-left [@media(max-height:760px)]:py-2 ${ring} ${on ? "bg-white shadow-[0_12px_28px_-14px_rgb(30_90_150/0.4)]" : "hover:bg-white/50"}`}>
                         <span className={`h-8 w-1 rounded-full transition-colors ${on ? "bg-[var(--act)]" : "bg-[var(--ink)]/15"}`} aria-hidden="true" />
                         <span className={`text-[15px] tabular-nums ${on ? "font-bold text-[var(--act)]" : "text-[var(--ink-2)]"}`}>{String(i + 1).padStart(2, "0")}</span>
                         <span className={`text-[17px] ${on ? "font-bold" : ""}`}>{s.title}</span>
@@ -176,13 +179,14 @@ const HowItWorks = memo(function HowItWorks({ steps }: { steps: Step[] }) {
                 })}
               </ol>
             </div>
+            </div>
 
-            <div className="relative h-[620px]">
+            <div className="relative h-[min(620px,calc(100svh-136px))] min-h-[500px]">
               <div className="sky-glass absolute inset-y-0 left-0 right-[60px] rounded-[36px] p-10">
                 <div key={active} className="step-swap h-full"><StepCard s={steps[active]} i={active} n={steps.length} reserve /></div>
               </div>
               {steps.map((s, i) => (
-                <div key={s.key} className="obj -top-16 right-2 flex h-[190px] w-[250px] items-start justify-end" data-on={i === active}>
+                <div key={s.key} className="obj right-0 top-5 flex h-[170px] w-[220px] items-start justify-end [@media(max-height:760px)]:h-[140px]" data-on={i === active}>
                   <img decoding="async" src={s.obj} alt={i === active ? s.objAlt : ""} className="obj-bob h-full w-auto max-w-full object-contain drop-shadow-[0_30px_30px_rgb(11_36_64/0.28)]" />
                 </div>
               ))}
@@ -202,7 +206,7 @@ const HowItWorks = memo(function HowItWorks({ steps }: { steps: Step[] }) {
           <ol className="flex flex-col gap-6">
             {steps.map((s, i) => (
               <li key={s.key} className="sky-glass relative rounded-[28px] p-6 pt-24">
-                <img decoding="async" src={s.obj} alt={s.objAlt} className="absolute -top-8 right-4 w-[150px] drop-shadow-[0_20px_20px_rgb(11_36_64/0.25)]" />
+                <img decoding="async" src={s.obj} alt={s.objAlt} className="absolute -top-8 right-4 h-[116px] w-auto max-w-[150px] object-contain object-right-top drop-shadow-[0_20px_20px_rgb(11_36_64/0.25)]" />
                 <StepCard s={s} i={i} n={steps.length} />
               </li>
             ))}
