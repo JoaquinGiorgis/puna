@@ -178,14 +178,14 @@ function Status({ c, a, ready, now, error }: { c: Client; a: ReturnType<typeof a
 function Lot14() {
   const paid = demo.events.find((e) => e.event === "PayoutTriggered");
   const rejected = demo.attempts.find((x) => x.outcome === "Rejected");
-  const ok = demo.attempts.find((x) => x.outcome === "Paid");
+  const ok = demo.attempts.find((x) => x.outcome === "Paid" || (x.outcome == null && x.score >= demo.job.minScore));
   return (
     <>
-      <p className="mt-1 text-[14px]"><strong>Incendio real del 8 al 11/11</strong> (NASA FIRMS, {demo.lot.foci.length} focos en el lote). Siniestro liquidado on-chain.</p>
+      <p className="mt-1 text-[14px]"><strong>Incendio real del 8 al 11/11</strong> (NASA FIRMS, {demo.lot.foci.length} focos en el lote). {demo.job.state === "Paid" ? "Siniestro liquidado on-chain." : "Auditoría aprobada on-chain: falta liquidar."}</p>
       <ol className="mt-3 grid gap-1.5 text-[13px]">
         {rejected && <li><span className="text-bad">✕</span> Primer cálculo (nodo en la Anomalía): índice {pct(rejected.indexBps)}, score {rejected.score}. Rechazado, sin pago.</li>}
         {ok && <li><span className="text-ok">✓</span> Reasignado a otro nodo: índice {pct(ok.indexBps)}, score {ok.score}. Aprobado.</li>}
-        <li><span className="text-ok">✓</span> {pct(demo.job.indexBps)} supera el disparador de {pct(demo.job.triggerBps)}: {demo.job.state === "Paid" ? "pagado" : demo.job.state}.</li>
+        <li><span className="text-ok">✓</span> {pct(demo.job.indexBps)} supera el disparador de {pct(demo.job.triggerBps)}: {demo.job.state === "Paid" ? "pagado" : "listo para liquidar"}.</li>
       </ol>
       <div className="mt-3 flex flex-wrap gap-2">
         {paid && <a href={txUrl(demo.chain.explorer, paid.tx)} target="_blank" rel="noreferrer" className="glass-raised ext rounded-xl px-3 py-2 text-[13px]">Pago en Snowtrace ↗</a>}

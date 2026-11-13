@@ -15,7 +15,7 @@ const FILTERS: [Filter, string, string][] = [["todos", "Todos", "Todos los campo
 
 function statusLine({ a }: Row, now: Date) {
   if (a.level === "atencion") return { cls: "text-[#ff8a80] font-medium", t: `${a.inField.length} focos dentro del campo · último ${ago(a.last!, now)}` };
-  if (a.level === "siniestro") return { cls: "text-[#7dd3fc]", t: "Incendio 8–11/11 · pagado tras la auditoría" };
+  if (a.level === "siniestro") return { cls: "text-[#7dd3fc]", t: "Incendio 8–11/11 · auditado on-chain" };
   if (a.level === "vigilancia") return { cls: "text-[#f5c46b]", t: `Foco a ${a.nearestKm!.toLocaleString("es-AR", { maximumFractionDigits: 1 })} km · ${a.near.length} en ${WATCH_KM} km` };
   return { cls: "text-muted", t: a.nearestKm !== null ? `Foco más cercano a ${Math.round(a.nearestKm)} km` : "Sin focos en el NOA" };
 }

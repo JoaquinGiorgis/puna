@@ -75,7 +75,7 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
   const kpis: [string, string, string, string][] = k
     ? [
         ["Área quemada (verificada)", pct(k.indexBps), "text-[#ff9a3d]", `supera el ${pct(k.triggerBps)} pactado`],
-        ["Pago al productor", k.indemnity, "text-[#6ee7b7]", `${k.state === "Paid" ? "pagado" : k.state} · ${k.paidAt}`],
+        ["Pago al productor", k.indemnity, "text-[#6ee7b7]", k.state === "Paid" ? `pagado · ${k.paidAt}` : "listo para liquidar"],
         ["Suma asegurada", usd(sumInsured(c)), "text-ink", `prima ${usd(sumInsured(c) * (ins?.premium.pct ?? 1.8) / 100)} · campaña 2026/27`],
         ["Del reclamo al pago", `${k.seconds} s`, "text-ink", `plazo legal: ${LEGAL_DAYS} días · costo de red ${k.fee}`],
       ]

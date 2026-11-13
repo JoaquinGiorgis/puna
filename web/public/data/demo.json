@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-11T18:36:42+00:00",
+ "generatedAt": "2026-11-13T11:40:35+00:00",
  "chain": {
   "id": 43113,
   "name": "Avalanche Fuji",
@@ -12,8 +12,8 @@
   "reputation": "0x8004B663056A597Dffe9eCcC1965A193B7388713"
  },
  "job": {
-  "id": 7,
-  "state": "Paid",
+  "id": 17,
+  "state": "Submitted",
   "insurer": "0xd01458d054314E794e09379609d9d1ac70F39E25",
   "beneficiary": "0x10dC4C3b2b926851093F54C5CB01542c239E1a3E",
   "validator": "0xFdce04b21fd0287B895db935f2779c4891e517B4",
@@ -36,7 +36,7 @@
    "agentId": 300,
    "saaBps": 10000,
    "indexBps": 0,
-   "requestHash": "0x897ed03ae8d1aebe450e66dab3d6ab6c298d03038e65c6383b6e2ae54b93d6e5",
+   "requestHash": "0x088f829771a2c492cf405f063c15beddff16109aa4d0fbfc758d5bd197296027",
    "score": 49,
    "certificate": {
     "score": 49,
@@ -123,10 +123,10 @@
       "detail": ""
      }
     ],
-    "jobId": 7,
+    "jobId": 17,
     "attempt": 1,
     "agentId": 300,
-    "requestHash": "0x897ed03ae8d1aebe450e66dab3d6ab6c298d03038e65c6383b6e2ae54b93d6e5",
+    "requestHash": "0x088f829771a2c492cf405f063c15beddff16109aa4d0fbfc758d5bd197296027",
     "escrow": "0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982",
     "validator": "0xFdce04b21fd0287B895db935f2779c4891e517B4"
    },
@@ -137,7 +137,7 @@
    "agentId": 301,
    "saaBps": 0,
    "indexBps": 3777,
-   "requestHash": "0x8a0a0cc0ff5656cae4b33e15389d5d73bc9996ce596985282ad7bc7460959b67",
+   "requestHash": "0x461745cde5524f674307a1344813d5d0b509a48215c4d4e133705fab082370d9",
    "score": 100,
    "certificate": {
     "score": 100,
@@ -224,25 +224,24 @@
       "detail": ""
      }
     ],
-    "jobId": 7,
+    "jobId": 17,
     "attempt": 2,
     "agentId": 301,
-    "requestHash": "0x8a0a0cc0ff5656cae4b33e15389d5d73bc9996ce596985282ad7bc7460959b67",
+    "requestHash": "0x461745cde5524f674307a1344813d5d0b509a48215c4d4e133705fab082370d9",
     "escrow": "0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982",
     "validator": "0xFdce04b21fd0287B895db935f2779c4891e517B4"
-   },
-   "outcome": "Paid"
+   }
   }
  ],
  "events": [
   {
    "event": "JobCreated",
    "contract": "escrow",
-   "tx": "0xd24f08e41dbb9cdd85894f90cc75318a9225e67ce475e7d9450db12d3ea5fad9",
-   "block": 60904991,
-   "logIndex": 1,
+   "tx": "0xbac720a5e331975c52acf96d6bd508c9d1603db9d264b90f8187662bc270fe73",
+   "block": 61001664,
+   "logIndex": 6,
    "args": {
-    "jobId": 7,
+    "jobId": 17,
     "insurer": "0xd01458d054314E794e09379609d9d1ac70F39E25",
     "beneficiary": "0x10dC4C3b2b926851093F54C5CB01542c239E1a3E",
     "indemnity": "15000000000000000"
@@ -251,11 +250,11 @@
   {
    "event": "NodeAssigned",
    "contract": "escrow",
-   "tx": "0x58835a6f00da7e50e0423625208b6255b9846a5e12b0b056a4e482f2b2756402",
-   "block": 60904995,
+   "tx": "0x69973ec0153e8a23b06982cd6ac1540bfdef30d72cdc71e833cbeeb99a18b73d",
+   "block": 61001665,
    "logIndex": 0,
    "args": {
-    "jobId": 7,
+    "jobId": 17,
     "agentId": 300,
     "attempt": 1,
     "saaBps": 10000
@@ -264,52 +263,52 @@
   {
    "event": "ResultSubmitted",
    "contract": "escrow",
-   "tx": "0xd34583feb3b00cec5116759901b585dd12e6ae70c3765964e6dd104b5838d0da",
-   "block": 60904999,
-   "logIndex": 2,
+   "tx": "0x602ad17ba116317a698d198d07a05689ab835ead4d05ae810bef8af8c7d49363",
+   "block": 61001667,
+   "logIndex": 0,
    "args": {
-    "jobId": 7,
-    "requestHash": "0x897ed03ae8d1aebe450e66dab3d6ab6c298d03038e65c6383b6e2ae54b93d6e5",
+    "jobId": 17,
+    "requestHash": "0x088f829771a2c492cf405f063c15beddff16109aa4d0fbfc758d5bd197296027",
     "indexBps": 0
    }
   },
   {
    "event": "ValidationRequest",
    "contract": "validation",
-   "tx": "0x4aa0a69873cca142ef8a0f32c2288d2296755fc8c503ecb94279034bd4df1835",
-   "block": 60905003,
+   "tx": "0xcb0dcd06f0a7d1768450be36e2d4e93151e997d9d5f561289af46bf981c063ee",
+   "block": 61001669,
    "logIndex": 0,
    "args": {
     "validatorAddress": "0xFdce04b21fd0287B895db935f2779c4891e517B4",
     "agentId": 300,
-    "requestHash": "0x897ed03ae8d1aebe450e66dab3d6ab6c298d03038e65c6383b6e2ae54b93d6e5",
-    "requestURI": "puna-artifacts://24211cff4bceeeb0151b08b64287e5bc5dc808402a3709e6346f1ac7cad38c1a.npz#escrow=0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982&job=7"
+    "requestHash": "0x088f829771a2c492cf405f063c15beddff16109aa4d0fbfc758d5bd197296027",
+    "requestURI": "https://nodo-production-23b65ee1.up.railway.app/24211cff4bceeeb0151b08b64287e5bc5dc808402a3709e6346f1ac7cad38c1a.npz#escrow=0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982&job=17"
    }
   },
   {
    "event": "ValidationResponse",
    "contract": "validation",
-   "tx": "0x2239deb0ba3fb2f0a14cf46ac344d0023366efe0b0592873183880b914879c3f",
-   "block": 60905013,
+   "tx": "0x801ce363e4d9e19721d5ee6d65aded3f01fa12528d5545dea40a19d6b1091dba",
+   "block": 61001677,
    "logIndex": 0,
    "args": {
     "validatorAddress": "0xFdce04b21fd0287B895db935f2779c4891e517B4",
     "agentId": 300,
-    "requestHash": "0x897ed03ae8d1aebe450e66dab3d6ab6c298d03038e65c6383b6e2ae54b93d6e5",
+    "requestHash": "0x088f829771a2c492cf405f063c15beddff16109aa4d0fbfc758d5bd197296027",
     "response": 49,
-    "responseURI": "puna-artifacts://3120bcba6cf8fbdb7c267bf2d36872653a779e0830601c4e00d2b472b3238ae3.json",
-    "responseHash": "0xcb2ca5eca47d75391b9928f05ca41fdb7fe2f91da3a00f0fbfd87370dcfeefbd",
+    "responseURI": "https://validator-production-3c773130.up.railway.app/83566ed17f5679f1b0b260ad5b2850df1626629449e10280c470e7c96900b63c.json",
+    "responseHash": "0x53067ffbd0f43e5a491c6866245dbdcbfbb775b073cdbe20ae86888676fa3e20",
     "tag": "puna-freivalds"
    }
   },
   {
    "event": "JobRejected",
    "contract": "escrow",
-   "tx": "0x15914187dcdd71b61d6c8687f1ff9137722878a59faf72b29cd473e888dd089e",
-   "block": 60905014,
+   "tx": "0xbfd542bd142b8c55cef488749ec4fe70e557a2afae59aa4fabb2e969d12b9807",
+   "block": 61001680,
    "logIndex": 0,
    "args": {
-    "jobId": 7,
+    "jobId": 17,
     "agentId": 300,
     "score": 49
    }
@@ -317,31 +316,31 @@
   {
    "event": "NewFeedback",
    "contract": "reputation",
-   "tx": "0x15914187dcdd71b61d6c8687f1ff9137722878a59faf72b29cd473e888dd089e",
-   "block": 60905014,
+   "tx": "0xbfd542bd142b8c55cef488749ec4fe70e557a2afae59aa4fabb2e969d12b9807",
+   "block": 61001680,
    "logIndex": 1,
    "args": {
     "agentId": 300,
     "clientAddress": "0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982",
     "indexedTag1": "0xbbfaf91a77da032c0f37b91f093dbc6efbd2b409be880ce93ff3356c26a4df20",
-    "feedbackIndex": 2,
+    "feedbackIndex": 13,
     "value": 0,
     "valueDecimals": 0,
     "tag1": "puna",
     "tag2": "rejected",
     "endpoint": "",
     "feedbackURI": "",
-    "feedbackHash": "0x0000000000000000000000000000000000000000000000000000000000000007"
+    "feedbackHash": "0x0000000000000000000000000000000000000000000000000000000000000011"
    }
   },
   {
    "event": "NodeAssigned",
    "contract": "escrow",
-   "tx": "0x0994322995664806a636988d6702dd1b524570523069e5edb8bff9b0afe30ee3",
-   "block": 60905016,
+   "tx": "0xcf20638682db71d0ec646ee514d7f7ddd48970f41617ac14b9efe9959526bf88",
+   "block": 61001682,
    "logIndex": 0,
    "args": {
-    "jobId": 7,
+    "jobId": 17,
     "agentId": 301,
     "attempt": 2,
     "saaBps": 0
@@ -350,166 +349,125 @@
   {
    "event": "ResultSubmitted",
    "contract": "escrow",
-   "tx": "0x267dbe59b5a22ca9678ec61f2581d26191f372cef255e0708a9f1534f5506870",
-   "block": 60905020,
+   "tx": "0xcf2136934134375ddad83ac142a414db95aa4eb0c5f44436bb3738c953e2fcb8",
+   "block": 61001684,
    "logIndex": 0,
    "args": {
-    "jobId": 7,
-    "requestHash": "0x8a0a0cc0ff5656cae4b33e15389d5d73bc9996ce596985282ad7bc7460959b67",
+    "jobId": 17,
+    "requestHash": "0x461745cde5524f674307a1344813d5d0b509a48215c4d4e133705fab082370d9",
     "indexBps": 3777
    }
   },
   {
    "event": "ValidationRequest",
    "contract": "validation",
-   "tx": "0x0bc70463012f21c3230a3c036d33438c76af7a2d297bcaa12f63c4513b82f0fa",
-   "block": 60905023,
+   "tx": "0x7773bf453bcd31b6d0e5b99433d315f02048ede92e4a286ddbcf274b0bc3742e",
+   "block": 61001686,
    "logIndex": 0,
    "args": {
     "validatorAddress": "0xFdce04b21fd0287B895db935f2779c4891e517B4",
     "agentId": 301,
-    "requestHash": "0x8a0a0cc0ff5656cae4b33e15389d5d73bc9996ce596985282ad7bc7460959b67",
-    "requestURI": "puna-artifacts://7c1cc8244b95ae016c29fa55dc6ba7124486f7aeda3f3a1f5bc1a37872998a2d.npz#escrow=0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982&job=7"
+    "requestHash": "0x461745cde5524f674307a1344813d5d0b509a48215c4d4e133705fab082370d9",
+    "requestURI": "https://nodo-production-23b65ee1.up.railway.app/7c1cc8244b95ae016c29fa55dc6ba7124486f7aeda3f3a1f5bc1a37872998a2d.npz#escrow=0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982&job=17"
    }
   },
   {
    "event": "ValidationResponse",
    "contract": "validation",
-   "tx": "0xc94ad8fe383654790d032092f831638351a32c5c19c84fb0e9a31319311d2f96",
-   "block": 60905028,
+   "tx": "0xaafd031f2d9ba9f4d1e542b54408887d0d90068a4d3d0300ecab79ac93503102",
+   "block": 61001690,
    "logIndex": 0,
    "args": {
     "validatorAddress": "0xFdce04b21fd0287B895db935f2779c4891e517B4",
     "agentId": 301,
-    "requestHash": "0x8a0a0cc0ff5656cae4b33e15389d5d73bc9996ce596985282ad7bc7460959b67",
+    "requestHash": "0x461745cde5524f674307a1344813d5d0b509a48215c4d4e133705fab082370d9",
     "response": 100,
-    "responseURI": "puna-artifacts://81d4b9c2bac2a1b1d9c2e34712bba680f7ef1c05abc3f2d0aba857eeb8164c01.json",
-    "responseHash": "0xf1845d85a85745853d9a07aa2b6f2653c4357162ebeb3faf21e2225e9dc60689",
+    "responseURI": "https://validator-production-3c773130.up.railway.app/eef2b8b2b662c5c50eae175e334402247d8a319d73d47721f5d096242aba4a4d.json",
+    "responseHash": "0xd145749c57c6066d2d747ea8dab551e5b54a3542cb54ffea263203a746cce143",
     "tag": "puna-freivalds"
-   }
-  },
-  {
-   "event": "PayoutTriggered",
-   "contract": "escrow",
-   "tx": "0xba0727e9691b788e74a1e1c7054a6613413d537dd43749fa3442973c814ddd6b",
-   "block": 60905032,
-   "logIndex": 0,
-   "args": {
-    "jobId": 7,
-    "beneficiary": "0x10dC4C3b2b926851093F54C5CB01542c239E1a3E",
-    "indexBps": 3777,
-    "amount": "15000000000000000"
-   }
-  },
-  {
-   "event": "NewFeedback",
-   "contract": "reputation",
-   "tx": "0xba0727e9691b788e74a1e1c7054a6613413d537dd43749fa3442973c814ddd6b",
-   "block": 60905032,
-   "logIndex": 1,
-   "args": {
-    "agentId": 301,
-    "clientAddress": "0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982",
-    "indexedTag1": "0xbbfaf91a77da032c0f37b91f093dbc6efbd2b409be880ce93ff3356c26a4df20",
-    "feedbackIndex": 5,
-    "value": 100,
-    "valueDecimals": 0,
-    "tag1": "puna",
-    "tag2": "validated",
-    "endpoint": "",
-    "feedbackURI": "",
-    "feedbackHash": "0x0000000000000000000000000000000000000000000000000000000000000007"
    }
   }
  ],
  "txs": [
   {
-   "hash": "0xd24f08e41dbb9cdd85894f90cc75318a9225e67ce475e7d9450db12d3ea5fad9",
-   "block": 60904991,
-   "timestamp": 1794421883,
+   "hash": "0xbac720a5e331975c52acf96d6bd508c9d1603db9d264b90f8187662bc270fe73",
+   "block": 61001664,
+   "timestamp": 1794569868,
    "from": "0xd01458d054314E794e09379609d9d1ac70F39E25",
    "gasUsed": 259200,
-   "feeWei": "41472000"
+   "feeWei": "40694400"
   },
   {
-   "hash": "0x58835a6f00da7e50e0423625208b6255b9846a5e12b0b056a4e482f2b2756402",
-   "block": 60904995,
-   "timestamp": 1794421888,
+   "hash": "0x69973ec0153e8a23b06982cd6ac1540bfdef30d72cdc71e833cbeeb99a18b73d",
+   "block": 61001665,
+   "timestamp": 1794569870,
    "from": "0xfeE95f2a554D5491861142C21ED8e5A8ce7267D1",
    "gasUsed": 110194,
-   "feeWei": "17631040"
+   "feeWei": "17300458"
   },
   {
-   "hash": "0xd34583feb3b00cec5116759901b585dd12e6ae70c3765964e6dd104b5838d0da",
-   "block": 60904999,
-   "timestamp": 1794421891,
+   "hash": "0x602ad17ba116317a698d198d07a05689ab835ead4d05ae810bef8af8c7d49363",
+   "block": 61001667,
+   "timestamp": 1794569872,
    "from": "0xf6B91C71EDC333f1eaD4151d6Fb6E72c62d7cE67",
    "gasUsed": 160673,
-   "feeWei": "25707680"
+   "feeWei": "25225661"
   },
   {
-   "hash": "0x4aa0a69873cca142ef8a0f32c2288d2296755fc8c503ecb94279034bd4df1835",
-   "block": 60905003,
-   "timestamp": 1794421895,
+   "hash": "0xcb0dcd06f0a7d1768450be36e2d4e93151e997d9d5f561289af46bf981c063ee",
+   "block": 61001669,
+   "timestamp": 1794569873,
    "from": "0xf6B91C71EDC333f1eaD4151d6Fb6E72c62d7cE67",
-   "gasUsed": 178223,
-   "feeWei": "28515680"
+   "gasUsed": 179003,
+   "feeWei": "28103471"
   },
   {
-   "hash": "0x2239deb0ba3fb2f0a14cf46ac344d0023366efe0b0592873183880b914879c3f",
-   "block": 60905013,
-   "timestamp": 1794421905,
+   "hash": "0x801ce363e4d9e19721d5ee6d65aded3f01fa12528d5545dea40a19d6b1091dba",
+   "block": 61001677,
+   "timestamp": 1794569881,
    "from": "0xFdce04b21fd0287B895db935f2779c4891e517B4",
-   "gasUsed": 133182,
-   "feeWei": "21309120"
+   "gasUsed": 134010,
+   "feeWei": "21039570"
   },
   {
-   "hash": "0x15914187dcdd71b61d6c8687f1ff9137722878a59faf72b29cd473e888dd089e",
-   "block": 60905014,
-   "timestamp": 1794421908,
+   "hash": "0xbfd542bd142b8c55cef488749ec4fe70e557a2afae59aa4fabb2e969d12b9807",
+   "block": 61001680,
+   "timestamp": 1794569884,
    "from": "0xfeE95f2a554D5491861142C21ED8e5A8ce7267D1",
    "gasUsed": 168604,
-   "feeWei": "26976640"
+   "feeWei": "26470828"
   },
   {
-   "hash": "0x0994322995664806a636988d6702dd1b524570523069e5edb8bff9b0afe30ee3",
-   "block": 60905016,
-   "timestamp": 1794421913,
+   "hash": "0xcf20638682db71d0ec646ee514d7f7ddd48970f41617ac14b9efe9959526bf88",
+   "block": 61001682,
+   "timestamp": 1794569886,
    "from": "0xfeE95f2a554D5491861142C21ED8e5A8ce7267D1",
    "gasUsed": 70242,
-   "feeWei": "11238720"
+   "feeWei": "11027994"
   },
   {
-   "hash": "0x267dbe59b5a22ca9678ec61f2581d26191f372cef255e0708a9f1534f5506870",
-   "block": 60905020,
-   "timestamp": 1794421917,
+   "hash": "0xcf2136934134375ddad83ac142a414db95aa4eb0c5f44436bb3738c953e2fcb8",
+   "block": 61001684,
+   "timestamp": 1794569888,
    "from": "0x5C8b3c9e3F1f27fbF055be26810e9E31427cB6a0",
    "gasUsed": 160697,
-   "feeWei": "25711520"
+   "feeWei": "25229429"
   },
   {
-   "hash": "0x0bc70463012f21c3230a3c036d33438c76af7a2d297bcaa12f63c4513b82f0fa",
-   "block": 60905023,
-   "timestamp": 1794421920,
+   "hash": "0x7773bf453bcd31b6d0e5b99433d315f02048ede92e4a286ddbcf274b0bc3742e",
+   "block": 61001686,
+   "timestamp": 1794569889,
    "from": "0x5C8b3c9e3F1f27fbF055be26810e9E31427cB6a0",
-   "gasUsed": 178223,
-   "feeWei": "28515680"
+   "gasUsed": 179003,
+   "feeWei": "28103471"
   },
   {
-   "hash": "0xc94ad8fe383654790d032092f831638351a32c5c19c84fb0e9a31319311d2f96",
-   "block": 60905028,
-   "timestamp": 1794421925,
+   "hash": "0xaafd031f2d9ba9f4d1e542b54408887d0d90068a4d3d0300ecab79ac93503102",
+   "block": 61001690,
+   "timestamp": 1794569895,
    "from": "0xFdce04b21fd0287B895db935f2779c4891e517B4",
-   "gasUsed": 133182,
-   "feeWei": "21309120"
-  },
-  {
-   "hash": "0xba0727e9691b788e74a1e1c7054a6613413d537dd43749fa3442973c814ddd6b",
-   "block": 60905032,
-   "timestamp": 1794421929,
-   "from": "0xfeE95f2a554D5491861142C21ED8e5A8ce7267D1",
-   "gasUsed": 228407,
-   "feeWei": "36545120"
+   "gasUsed": 134010,
+   "feeWei": "21039570"
   }
  ],
  "window": {
@@ -525,8 +483,8 @@
    "saaBps": 10000,
    "orbitHash": "0xc95e5ea3c0c9ed7c67cf8da73fd1750661d56cde94ef5cdcd681f92cf4211868",
    "reputation": {
-    "count": 2,
-    "average": 0.0
+    "count": 13,
+    "average": 7.0
    }
   },
   {
@@ -537,8 +495,8 @@
    "saaBps": 0,
    "orbitHash": "0xd0cbda928b7b455a52cf1ed3f922d8c83e8d9aab7e3181153ee90d5e09cc85a3",
    "reputation": {
-    "count": 5,
-    "average": 100.0
+    "count": 14,
+    "average": 92.0
    }
   }
  ],
