@@ -449,7 +449,7 @@ export function Landing() {
         <section ref={painsRef} id="problemas" aria-labelledby="aseg-t" data-zone="sky" className="relative scroll-mt-24 pb-[200px] pt-24">
           <div className="mx-auto flex max-w-[760px] flex-col items-center gap-4 px-4 text-center">
             <Eyebrow>Para aseguradoras</Eyebrow>
-            <h2 id="aseg-t" className="text-[32px] font-bold leading-[1.05] tracking-[-0.035em] [text-wrap:balance] md:text-[44px]">Cuatro problemas del seguro agro que PUNA resuelve</h2>
+            <h2 id="aseg-t" className="text-[32px] font-bold leading-[1.05] tracking-[-0.035em] [text-wrap:balance] md:text-[44px]">Cuatro problemas de las aseguradoras que PUNA resuelve</h2>
             <p className="max-w-[56ch] text-[17px] font-light leading-relaxed">Cómo se hace hoy y qué cambia, con los números del incendio real del Lote 14.</p>
           </div>
           <div className="relative mx-auto mt-14 max-w-[1240px] px-4">
