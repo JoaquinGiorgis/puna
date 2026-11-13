@@ -27,10 +27,11 @@ export default function Page() {
         </div>
         <footer className="text-xs text-muted xl:hidden">
           <p>
-            <strong className="text-ink">Real:</strong> órbitas (TLE CelesTrak + SGP4), focos NASA FIRMS, verificación Freivalds,
-            transacciones y registros ERC-8004 en Avalanche Fuji.{" "}
-            <strong className="text-warn">Simulado:</strong> satélites como nodos de cómputo, operadores, radiación (proxy saaBps),
-            vista satelital del lote. Benchmark: {demo.bench.detected}/{demo.bench.faults} fallas detectadas, {demo.bench.false_positives}/
+            <strong className="text-ink">Real:</strong> órbitas (TLE CelesTrak en vivo + SGP4), focos NASA FIRMS en vivo, exposición a la
+            Anomalía y protones GOES (NOAA SWPC), nodo y validador como operadores separados (wallets y máquinas distintas),
+            verificación Freivalds, transacciones y registros ERC-8004 en Avalanche Fuji.{" "}
+            <strong className="text-warn">Simulado:</strong> el cómputo a bordo del satélite y la vista satelital del lote. La falla
+            de radiación es inyectada. Benchmark: {demo.bench.detected}/{demo.bench.faults} fallas detectadas, {demo.bench.false_positives}/
             {demo.bench.honest_runs} falsos positivos. Datos exportados {new Date(demo.generatedAt).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })}.
           </p>
         </footer>

@@ -44,6 +44,15 @@ VALIDATION_ABI = [
         {"name": "agentId", "type": "uint256", "indexed": True},
         {"name": "requestURI", "type": "string", "indexed": False},
         {"name": "requestHash", "type": "bytes32", "indexed": True}]},
+    # misma firma que web/lib/live.ts
+    {"type": "event", "name": "ValidationResponse", "anonymous": False, "inputs": [
+        {"name": "validatorAddress", "type": "address", "indexed": True},
+        {"name": "agentId", "type": "uint256", "indexed": True},
+        {"name": "requestHash", "type": "bytes32", "indexed": True},
+        {"name": "response", "type": "uint8", "indexed": False},
+        {"name": "responseURI", "type": "string", "indexed": False},
+        {"name": "responseHash", "type": "bytes32", "indexed": False},
+        {"name": "tag", "type": "string", "indexed": False}]},
 ]
 
 

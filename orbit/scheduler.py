@@ -57,8 +57,38 @@ class Decision:
     reason: str
 
 
+NORAD = {"ORBIT-07": 43013, "ORBIT-03": 54234}  # NOAA 20, NOAA 21
+LIVE_TLE: dict[str, tuple[str, str]] = {}  # TLE bajados en vivo (use_live_tles); si no, los de sample-data/
+
+
+def tle_of(node: Node) -> tuple[str, str]:
+    return LIVE_TLE.get(node.name) or read_tle(node.tle)
+
+
+def use_live_tles(start: datetime = WINDOW) -> list[str]:
+    """Baja de CelesTrak el TLE vigente de cada nodo. Se usa si deja al nodo del mismo lado de la
+    Anomalía que el TLE guardado en la ventana (si no, el guion cambiaría: se avisa y se usa el guardado)."""
+    from .live import fetch_tle, tle_epoch
+
+    log = []
+    for n in NODES:
+        l1s, l2s = read_tle(n.tle)
+        try:
+            name, l1, l2 = fetch_tle(NORAD[n.name])
+        except Exception as e:  # noqa: BLE001
+            log.append(f"▲ {n.name}: CelesTrak no respondió ({e}); TLE guardado")
+            continue
+        live_s, saved_s = saa_bps(l1, l2, start, WINDOW_MIN), saa_bps(l1s, l2s, start, WINDOW_MIN)
+        if (live_s > POLICY_MAX_SAA_BPS) == (saved_s > POLICY_MAX_SAA_BPS):
+            LIVE_TLE[n.name] = (l1, l2)
+            log.append(f"✓ {n.name} ← {name} (NORAD {NORAD[n.name]}) TLE en vivo de CelesTrak, época {tle_epoch(l1)}")
+        else:
+            log.append(f"▲ {n.name}: el TLE vivo da saaBps {live_s} y el guardado {saved_s}; uso el guardado")
+    return log
+
+
 def exposure(node: Node, start: datetime, minutes: float = WINDOW_MIN) -> tuple[int, bytes]:
-    l1, l2 = read_tle(node.tle)
+    l1, l2 = tle_of(node)
     return saa_bps(l1, l2, start, minutes), orbit_hash(l1, l2, start, minutes)
 
 

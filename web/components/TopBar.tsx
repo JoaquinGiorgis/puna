@@ -23,8 +23,8 @@ export function TopBar() {
         <span className="font-mono text-ink">job {job.id}</span>
       </nav>
       <div className="ml-auto flex flex-wrap items-center gap-2 text-xs">
-        <span className="rounded-full bg-warn-bg px-3 py-1 font-mono text-warn" title="Real: órbitas (TLE + SGP4), focos NASA FIRMS, Freivalds, transacciones y ERC-8004 en Fuji. Simulado: satélites como nodos de cómputo, operadores, radiación (saaBps), vista del lote.">
-          <span aria-hidden="true">▲ </span>Simulado: nodos y radiación · Real: órbitas, FIRMS, txs
+        <span className="rounded-full bg-warn-bg px-3 py-1 font-mono text-warn" title="Real: órbitas (TLE de CelesTrak en vivo + SGP4), focos NASA FIRMS en vivo, exposición a la Anomalía y protones GOES, nodo y validador como operadores separados, Freivalds, transacciones y ERC-8004 en Fuji. Simulado: el cómputo a bordo del satélite y la vista del lote. La falla es inyectada.">
+          <span aria-hidden="true">▲ </span>Simulado: cómputo a bordo · falla inyectada · Real: FIRMS, órbitas, GOES, txs
         </span>
         <span className="glass-raised rounded-full px-3 py-1 font-mono" aria-live="polite"
           title={live.kind === "offline" ? live.reason : "Lee PunaEscrow y ERC-8004 en Fuji cada 4–15 s"}>

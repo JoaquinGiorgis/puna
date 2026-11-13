@@ -80,8 +80,14 @@ async function fetchCertificate(uri: string): Promise<Certificate | null> {
   if (certCache.has(uri)) return certCache.get(uri)!;
   // puna-artifacts://<sha256>.json → primero la copia estática del deploy (/artifacts/, para Vercel) y
   // después la ruta que lee out/artifacts en la máquina del validador. El navegador verifica el sha256.
+  // https://<túnel del validador>/<sha256>.json: el túnel es efímero, así que primero la copia estática.
   const m = /^puna-artifacts:\/\/([0-9a-f]{64}\.json)/.exec(uri);
-  const urls = m ? [`/artifacts/${m[1]}`, `/api/artifact/${m[1]}`] : /^https?:\/\//.test(uri) ? [uri.split("#")[0]] : [];
+  const h = /^https?:\/\/[^#]*\/([0-9a-f]{64}\.json)(?:#.*)?$/.exec(uri);
+  const urls = m
+    ? [`/artifacts/${m[1]}`, `/api/artifact/${m[1]}`]
+    : h
+      ? [`/artifacts/${h[1]}`, `/api/artifact/${h[1]}`, uri.split("#")[0]]
+      : /^https?:\/\//.test(uri) ? [uri.split("#")[0]] : [];
   let cert: Certificate | null = null;
   for (const url of urls) {
     try {

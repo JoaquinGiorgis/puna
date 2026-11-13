@@ -52,14 +52,14 @@ pytest -q
   - Plan B si Validation no responde: EIP-712 + ecrecover en el escrow.
 - **Todo entero en el modelo.** Nada de float en lo que se verifica. Si cambiás el modelo, recalibrá: el test `test_honest_index_is_about_37_percent` lo cuida.
 - **Simulado vs real va etiquetado** en UI y pitch.
-  - Simulado: satélites, operadores, radiación.
-  - Real: órbitas (TLE), focos FIRMS, verificación y transacciones.
+  - Simulado: el cómputo a bordo del satélite, la aseguradora y la cartera. La falla de radiación es inyectada.
+  - Real: órbitas (TLE en vivo), focos FIRMS en vivo, exposición a la Anomalía + protones GOES, nodo y validador como operadores separados, verificación y transacciones.
 - **Copy en español rioplatense, sentence case.** El estado nunca se comunica solo con color (ícono + etiqueta). Texto ≥ 11 px y contraste AA.
 - Commits chicos, por issue (`feat(contracts): … (#12)`).
 - **Nunca se recortan:** contrato desplegado, rechazo sin pago y FIRMS real.
 
 ## Números de la demo (mantener sincronizados con la UI)
-- **PunaEscrow congelado en Fuji:** `0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982`. Demo completa: `.venv/bin/python scripts/e2e.py --demo`.
+- **PunaEscrow congelado en Fuji:** `0xBcA4312A49CD8CED7aC61fd630F114E0DD2CF982`. Demo completa: `.venv/bin/python scripts/e2e.py --demo`. Para el video: `--demo --live --remote-validator` (ver `docs/plan-menos-simulado.md`).
 - Grilla 12×12, lote de 135 celdas. Índice honesto: 3.777 bps (37,8 %). Disparador: 3.000 bps.
 - Órbitas: ORBIT-07 = NOAA 20 (en la Anomalía, saaBps 10.000) y ORBIT-03 = NOAA 21 (fuera, 0), ventana 2026-11-12T15:30Z de 9 min. Como el escrow rechaza si saaBps > maxSaaBps, el job de la demo necesita maxSaaBps = 10.000 para asignar ORBIT-07.
 - Lote 14 = incendio **real** de FIRMS en Anta, Salta (-25,06; -62,92), 8–11/11/2026. Zona de soja y poroto, no de caña: el copy del lote tiene que decirlo.

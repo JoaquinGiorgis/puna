@@ -7,7 +7,8 @@
   - El Lote 14 es un incendio real en Anta, Salta.
   - Datos: VIIRS 375 m NRT (NOAA-20 y NOAA-21), 147 detecciones del 31/10 al 11/11/2026, en `sample-data/firms_anta.csv`.
   - "We acknowledge the use of data and imagery from LANCE FIRMS operated by NASA's Earth Science Data and Information System (ESDIS) with funding provided by NASA Headquarters."
-- **CelesTrak** (TLE / GP): https://celestrak.org. Usamos NOAA 20 (NORAD 43013) y NOAA 21 (NORAD 54234), época 26315. Las órbitas son reales; usarlos como nodos de cómputo es simulado.
+- **CelesTrak** (TLE / GP): https://celestrak.org. Usamos NOAA 20 (NORAD 43013) y NOAA 21 (NORAD 54234), época 26315 (guardado) o la vigente, bajada en vivo con `scripts/e2e.py --live`. Las órbitas son reales; usarlos como nodos de cómputo es simulado.
+- **NOAA SWPC / GOES** (protones integrales ≥10 MeV): https://services.swpc.noaa.gov/json/goes/primary/integral-protons-1-day.json. Dato real del flujo en la ventana del job, guardado en `sample-data/goes_protons.json`. La falla en el nodo sigue siendo inyectada.
 - **Datos de Orbview-2** sobre SEU en la Anomalía del Atlántico Sur: NASA NEPP (ver fuentes en `docs/resumen-tecnico.md`).
 - **Renders del equipo** (`docs/design/assets/`), generados proceduralmente:
   - satélites;

@@ -34,3 +34,19 @@ Se completa en cada hito. Explorer: https://testnet.snowtrace.io
 | H4 | Demo job 7: validationResponse score 100 | [0xc94ad8fe…](https://testnet.snowtrace.io/tx/0xc94ad8fe383654790d032092f831638351a32c5c19c84fb0e9a31319311d2f96) |  |
 | H4 | Demo job 7: settle → **Paid** | [0xba0727e9…](https://testnet.snowtrace.io/tx/0xba0727e9691b788e74a1e1c7054a6613413d537dd43749fa3442973c814ddd6b) | productor +0,015 AVAX |
 | H5 | Job 6: refund tras el deadline (aseguradora) | [0x87195ab2…](https://testnet.snowtrace.io/tx/0x87195ab2cab9f7873c90d523441c3209a5d6b7c6a162266421773bc5c3b10e0f) | `Created` → `Refunded`, vuelven 0,005 AVAX; el escrow queda en 0 |
+
+## Job 11: datos en vivo y validador por HTTPS (12/11, noche)
+
+`scripts/e2e.py --demo --live --remote-validator`. FIRMS, TLE y GOES bajados en el momento (la grilla en vivo dio el mismo inputHash `0x2f12227277…`). El validador bajó los tensores por HTTPS y verificó su sha256.
+
+| Paso | Tx |
+|---|---|
+| createJob | [0x7ea47918…](https://testnet.snowtrace.io/tx/0x7ea479183c51b2ccae5125216eaa1abd45a22a85ab4c3d56d43b60f2c075d0d6) |
+| assignNode ORBIT-07 (saaBps 10.000) | [0x1a6e1c26…](https://testnet.snowtrace.io/tx/0x1a6e1c261fa16841ea7d25d5a393a8e97a40f10aacd01a5a221ed255d1ec308d) |
+| submitResult ORBIT-07 (índice 0, falla inyectada) | [0x510ef37b…](https://testnet.snowtrace.io/tx/0x510ef37b882bfa4bce4754b33d5169b542e02cbea6d1b7ea4527e265385e1080) |
+| validationRequest | [0x67908dc1…](https://testnet.snowtrace.io/tx/0x67908dc1ddb3d1a973a4ec9bf9175f5d17381b3847096902cd7ed08f95ce1934) |
+| settle → Rejected (score 49) | [0x46d516ff…](https://testnet.snowtrace.io/tx/0x46d516ff8c4293cf9ffc463205d19620b107d683074cf9aa80d141644c526bec) |
+| reassign ORBIT-03 (saaBps 0) | [0xd1722769…](https://testnet.snowtrace.io/tx/0xd172276945c7dec522644775e2369c890eccca0eedf38a330c641df2668e8c76) |
+| submitResult ORBIT-03 (3.777 bps) | [0x896973e2…](https://testnet.snowtrace.io/tx/0x896973e241ddfdc45fc432ee1c491c420448499d07d71bb3bc8140177492e6c4) |
+| validationRequest | [0x24465bc1…](https://testnet.snowtrace.io/tx/0x24465bc10c06ae1bd14172df4d956e36fcf116594bd0ed6ae33ae2c7fe22fa2d) |
+| settle → Paid (score 100, +0,015 AVAX) | [0x03dbdf5a…](https://testnet.snowtrace.io/tx/0x03dbdf5a423037d9495686b205e01f661546a4eb501218cac901b4b527b1fb17) |

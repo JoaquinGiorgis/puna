@@ -8,3 +8,4 @@
 - `firms_anta.csv`: respuestas de la API de área (VIIRS_NOAA20_NRT + VIIRS_NOAA21_NRT, bbox `-63.2,-25.3,-62.6,-24.8`, 4 ventanas de 5 días, sin duplicados).
 - `firms_*.csv`: respuestas guardadas de la API de área de FIRMS (para correr sin red).
 - `tle/orbit07.tle` (NOAA 20, NORAD 43013) y `tle/orbit03.tle` (NOAA 21, NORAD 54234): TLE de CelesTrak GP bajados el 11/11/2026 (época 26315), proxies reales de los nodos simulados. En la ventana de la demo (2026-11-12T15:30Z, 9 min), ORBIT-07 da 10.000 bps (dentro de la Anomalía) y ORBIT-03 da 0.
+- `goes_protons.json`: protones integrales ≥10 MeV de GOES (NOAA SWPC), último día al 13/11/2026 01:00Z. En la ventana de la demo (12/11 15:30Z): 0,26 pfu, escala S0. `python -m orbit.radiation --save` la renueva.
