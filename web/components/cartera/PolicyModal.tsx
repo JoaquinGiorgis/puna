@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GibsImage } from "@/components/DetailDrawer";
 import { FieldImage } from "@/components/FieldImage";
 import { LevelBadge } from "@/components/Shell";
 import { demo } from "@/lib/data";
@@ -12,7 +11,7 @@ import { DemoRunner } from "@/components/DemoRunner";
 import { INSURED, LEGAL_DAYS, RES315_SOURCE, UVA_1M_USD, type Insured } from "@/lib/insured";
 import { frame } from "@/lib/imagery";
 import { lot14Kpis, policyHistory, policyStages, policyTxs, type Stage, type StepKind } from "@/lib/policy";
-import { distToField, sumInsured, usd } from "@/lib/portfolio";
+import { sumInsured, usd } from "@/lib/portfolio";
 import type { Fire } from "@/lib/sky";
 import type { Row } from "./GlobeView";
 
@@ -46,7 +45,6 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
   const { c, a } = row;
   const box = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<Tab>("historial");
-  const [img, setImg] = useState<"campo" | "dia">("campo");
   const [techOn, setTechOn] = useState(false);
   const [liveRun, setLiveRun] = useState(false);
   const steps = useMemo(() => policyHistory(c, a), [c, a]);
@@ -139,28 +137,8 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
         {/* cuerpo: las dos columnas se estiran a la misma altura */}
         <div className="grid gap-5 md:min-h-0 md:flex-1 md:grid-cols-[380px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
           <div className="scroll-thin flex flex-col gap-3 md:min-h-0 md:overflow-y-auto md:pr-1">
-            <div className="relative">
-              {img === "campo" ? (
-                <FieldImage bbox={c.bbox} fires={[...a.inField, ...a.near, ...history]} tone={a.level === "atencion" ? "bad" : a.level === "vigilancia" ? "warn" : a.level === "siniestro" ? "info" : "ok"}
-                  pad={0.45} px={760} className="aspect-[4/3] w-full rounded-2xl" alt={`Imagen Sentinel-2 de ${c.field} con el contorno del lote`} />
-              ) : (
-                <div className="rounded-2xl bg-[#0c131e] p-2">
-                  <GibsImage bbox={frame(c.bbox, 1.2, 6)} fires={[...fires.filter((f) => distToField(c, f.lat, f.lon) <= 25), ...history]}
-                    now={now} outline={c.bbox} initialLayer={a.level === "atencion" || c.onchain ? "fuego" : "real"} />
-                </div>
-              )}
-              <div role="group" aria-label="Tipo de imagen" className="lg absolute left-2.5 top-2.5 flex gap-0.5 rounded-full p-0.5">
-                {([["campo", "Campo · Sentinel-2"], ["dia", "Día a día · VIIRS"]] as const).map(([v, l]) => (
-                  <button key={v} onClick={() => setImg(v)} aria-pressed={img === v}
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${img === v ? "bg-white text-[#0e1b2c]" : "text-[#e6edf7] hover:bg-white/10"}`}>{l}</button>
-                ))}
-              </div>
-            </div>
-            {img === "campo" && (
-              <p className="text-[11px] leading-snug text-muted">
-                Imagen Sentinel-2 sin nubes (no es de hoy) · contorno del lote{c.onchain || a.inField.length + a.near.length ? " · puntos naranjas: fuego visto por la NASA" : ""}
-              </p>
-            )}
+            <FieldImage bbox={c.bbox} fires={[...a.inField, ...a.near, ...history]} tone={a.level === "atencion" ? "bad" : a.level === "vigilancia" ? "warn" : a.level === "siniestro" ? "info" : "ok"}
+              pad={0.45} px={760} className="aspect-[4/3] w-full rounded-2xl" alt={`Imagen Sentinel-2 de ${c.field} con el contorno del lote y los focos de la NASA`} />
             <section aria-labelledby="poliza-datos" className="lg-tile flex flex-1 flex-col gap-1.5 rounded-[14px] px-3.5 py-3">
               <h3 id="poliza-datos" className="text-[13px] font-semibold">Póliza</h3>
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
