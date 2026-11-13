@@ -77,7 +77,9 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
         ["Área quemada (verificada)", pct(k.indexBps), "text-[#ff9a3d]", `supera el ${pct(k.triggerBps)} pactado`],
         ["Pago al productor", k.indemnity, "text-[#6ee7b7]", k.state === "Paid" ? `pagado · ${k.paidAt}` : "listo para liquidar"],
         ["Suma asegurada", usd(sumInsured(c)), "text-ink", `prima ${usd(sumInsured(c) * (ins?.premium.pct ?? 1.8) / 100)} · campaña 2026/27`],
-        ["Del reclamo al pago", `${k.seconds} s`, "text-ink", `plazo legal: ${LEGAL_DAYS} días · costo de red ${k.fee}`],
+        k.paid
+          ? ["Del reclamo al pago", `${k.seconds} s`, "text-ink", `plazo legal: ${LEGAL_DAYS} días · costo de red ${k.fee}`]
+          : ["Del reclamo a la auditoría", `${k.seconds} s`, "text-ink", `falta liquidar · plazo legal: ${LEGAL_DAYS} días`],
       ]
     : [
         ["Área quemada", a.inField.length ? "sin medir" : "—", "text-ink", a.inField.length ? "falta medir y auditar" : "no hay siniestro abierto"],
@@ -109,7 +111,7 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
           {c.onchain && (
             <button onClick={() => setLiveRun((v) => !v)} aria-expanded={liveRun}
               className="flex items-center gap-1.5 rounded-full bg-[#ea6a12] px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-[#c9560a]">
-              <Zap size={14} aria-hidden="true" /> Disparar siniestro en vivo
+              <Zap size={14} aria-hidden="true" /> {k && !k.paid ? "Liquidar siniestro" : "Disparar siniestro en vivo"}
             </button>
           )}
           {onReplay && (
@@ -175,7 +177,7 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
                   : "se crea al pedir el índice"}</dd>
                 <dt className="text-muted">Validador</dt><dd className="text-right">agente de otro operador · ERC-8004</dd>
                 <dt className="text-muted">Se paga en</dt><dd className="text-right">{c.onchain ? <>AVAX testnet hoy · <span className="text-[#7dd3fc]">USDC en producción</span></> : "pesos o USDC"}</dd>
-                <dt className="text-muted">Plazo de pago</dt><dd className="text-right">{c.onchain && k ? `${k.seconds} s · ` : ""}máximo {LEGAL_DAYS} días (Res. SSN 315)</dd>
+                <dt className="text-muted">Plazo de pago</dt><dd className="text-right">{c.onchain && k?.paid ? `${k.seconds} s · ` : ""}máximo {LEGAL_DAYS} días (Res. SSN 315)</dd>
               </dl>
             </section>
           </div>
@@ -247,7 +249,7 @@ export function PolicyModal({ row, fires, now, onClose, onReplay }: { row: Row; 
 
             {tab === "normativa" && (
               <div id="panel-normativa" role="tabpanel" aria-labelledby="tab-normativa" className="scroll-thin flex flex-1 flex-col gap-2.5 md:min-h-0 md:overflow-y-auto md:pr-1">
-                <Res315Panel sum={sumInsured(c)} triggerPct={c.triggerPct} seconds={c.onchain && k ? k.seconds : null} onchain={c.onchain} />
+                <Res315Panel sum={sumInsured(c)} triggerPct={c.triggerPct} seconds={c.onchain && k?.paid ? k.seconds : null} onchain={c.onchain} />
               </div>
             )}
 

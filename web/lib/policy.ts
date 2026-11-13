@@ -114,8 +114,10 @@ export function policyStages(c: Client, a: Assessment): { stages: Stage[]; summa
   if (c.onchain) {
     const k = lot14Kpis();
     return {
-      summary: `El primer cálculo vino con un error y no se pagó. Se repitió con otro satélite, el auditor lo confirmó y el productor cobró en ${k.seconds} segundos.`,
-      stages: [S("Fuego detectado", "NASA FIRMS", "done"), S("Medición", "2 intentos", "retry"), S("Auditoría", "1 error, 1 aprobada", "done"), S("Pago", k.indemnity, "done")],
+      summary: k.paid
+        ? `El primer cálculo vino con un error y no se pagó. Se repitió con otro satélite, el auditor lo confirmó y el productor cobró en ${k.seconds} segundos.`
+        : `El primer cálculo vino con un error y no se pagó. Se repitió con otro satélite y el auditor lo confirmó en ${k.seconds} segundos. Falta liquidar: el contrato paga ${k.indemnity} al productor.`,
+      stages: [S("Fuego detectado", "NASA FIRMS", "done"), S("Medición", "2 intentos", "retry"), S("Auditoría", "1 error, 1 aprobada", "done"), S("Pago", k.paid ? k.indemnity : "listo para liquidar", k.paid ? "done" : "current")],
     };
   }
   if (a.inField.length) return {
@@ -165,7 +167,7 @@ export function lot14Kpis() {
   const ts = demo.txs.map((t) => t.timestamp);
   const fee = Number(demo.txs.reduce((s, t) => s + BigInt(t.feeWei), 0n)) / 1e18;
   return {
-    indexBps: demo.job.indexBps, triggerBps: demo.job.triggerBps, state: demo.job.state,
+    indexBps: demo.job.indexBps, triggerBps: demo.job.triggerBps, state: demo.job.state, paid: demo.job.state === "Paid",
     indemnity: avaxTxt(demo.job.indemnityWei), paidAt: dayHm(new Date(Math.max(...ts) * 1000)),
     seconds: Math.max(...ts) - Math.min(...ts), txs: demo.txs.length,
     fee: fee < 0.0001 ? "casi nulo" : avaxTxt(BigInt(Math.round(fee * 1e18)), 4),
