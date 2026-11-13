@@ -1,10 +1,24 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Logo } from "@/components/Shell";
+import { ArrowLeft, ArrowRight, Check, TriangleAlert } from "lucide-react";
+import { SkyBackdrop } from "@/components/landing/SkyBackdrop";
 import { INSURER } from "@/lib/portfolio";
 import { signIn } from "@/lib/session";
+
+const ring = "transition duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--act)] focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+const field = "rounded-2xl border border-white bg-white/80 px-4 py-3 font-mono text-[15px] text-[var(--ink)] shadow-[inset_0_1px_2px_rgb(11_36_64/0.06)] outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--act)]";
+
+function Mark() {
+  return (
+    <svg width="30" height="20" viewBox="0 0 34 22" aria-hidden="true">
+      <path d="M1 21 L11 5 L17 13 L23 3 L33 21 Z" fill="none" stroke="#0b2440" strokeWidth="2.4" strokeLinejoin="round" />
+      <circle cx="23" cy="3" r="2.6" fill="#ea6a12" />
+    </svg>
+  );
+}
 
 /** Login de DEMOSTRACIÓN de la aseguradora: no valida credenciales, solo abre la cartera. */
 export default function Login() {
@@ -18,47 +32,72 @@ export default function Login() {
   };
 
   return (
-    <main className="mx-auto grid min-h-dvh w-full max-w-[1100px] items-center gap-10 px-4 py-10 md:grid-cols-[1.1fr_1fr] md:px-8">
-      <section>
-        <Logo />
-        <h1 className="mt-8 max-w-[18ch] text-[34px] leading-[1.1] font-semibold tracking-tight md:text-[42px]">
-          Seguro paramétrico con un índice que se puede auditar
-        </h1>
-        <p className="mt-4 max-w-[52ch] text-[15px] leading-relaxed text-muted">
-          Tu cartera de campos, vigilada con focos de NASA FIRMS en vivo. Cuando hay fuego, el índice de área quemada lo calcula un nodo,
-          lo audita un validador independiente y el contrato en Avalanche paga solo si la cuenta cierra.
-        </p>
-        <ul className="mt-6 grid max-w-[52ch] gap-2 text-[13px]">
-          <li className="flex gap-2"><span className="text-ok" aria-hidden="true">✓</span> Real: focos FIRMS, imágenes satelitales, contrato y transacciones en Fuji.</li>
-          <li className="flex gap-2"><span className="text-warn" aria-hidden="true">▲</span> Simulado: la aseguradora, los productores y sus pólizas (salvo el Lote 14, on-chain).</li>
-        </ul>
-      </section>
+    <div className="sky relative min-h-dvh">
+      <SkyBackdrop scene="sky" />
 
-      <section aria-labelledby="ingresar" className="glass rounded-[26px] p-6 md:p-8">
-        <h2 id="ingresar" className="text-[19px] font-semibold tracking-tight">Ingresar</h2>
-        <p className="mt-1 text-[13px] text-muted">Panel de siniestros · {INSURER.name}</p>
+      <header className="sticky top-3 z-30 mx-auto mt-3 w-full max-w-[1240px] px-4">
+        <nav aria-label="Principal" className="sky-glass flex items-center gap-4 rounded-full py-2 pl-5 pr-2">
+          <Link href="/" className={`flex items-center gap-2.5 rounded-full ${ring}`} aria-label="PUNA, inicio">
+            <Mark />
+            <span className="text-[15px] font-bold tracking-[0.22em]">PUNA</span>
+          </Link>
+          <Link href="/" className={`ml-auto flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[14px] hover:bg-white/60 ${ring}`}>
+            <ArrowLeft size={15} aria-hidden="true" /> Volver al inicio
+          </Link>
+        </nav>
+      </header>
 
-        <form onSubmit={submit} className="mt-6 grid gap-4">
-          <label className="grid gap-1.5 text-[13px]">
-            <span className="font-medium">Correo</span>
-            <input type="email" name="email" defaultValue={INSURER.email} autoComplete="off"
-              className="glass-raised rounded-xl px-3 py-2.5 font-mono text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-cyan" />
-          </label>
-          <label className="grid gap-1.5 text-[13px]">
-            <span className="font-medium">Contraseña</span>
-            <input type="password" name="password" defaultValue="demo-puna" autoComplete="off"
-              className="glass-raised rounded-xl px-3 py-2.5 font-mono text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-cyan" />
-          </label>
-          <button type="submit" disabled={busy}
-            className="mt-2 rounded-xl bg-[#0e1b2c] px-4 py-3 text-[14px] font-semibold text-white transition hover:bg-[#1b2d45] disabled:opacity-70">
-            {busy ? "Entrando…" : "Entrar a la cartera"}
-          </button>
-        </form>
+      <main className="relative z-10 mx-auto grid w-full max-w-[1240px] items-center gap-10 px-4 pb-16 pt-12 md:min-h-[calc(100dvh-88px)] md:px-6 md:pt-6 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+        <section className="flex flex-col gap-5">
+          <p className="text-[14px] font-bold uppercase tracking-[0.14em] text-[var(--ink)]">Panel de la aseguradora</p>
+          <h1 className="max-w-[17ch] text-[40px] font-bold leading-[1.02] tracking-[-0.04em] md:text-[56px]">
+            Tu cartera, vigilada desde el espacio
+          </h1>
+          <p className="max-w-[46ch] text-[17px] leading-relaxed text-[var(--ink)]">
+            Cuando hay fuego en un campo asegurado, un satélite mide el daño, otro operador lo audita y el contrato en Avalanche
+            paga solo si la cuenta cierra.
+          </p>
+          <ul className="mt-2 flex max-w-[52ch] flex-col gap-2.5 text-[14px]">
+            <li className="sky-glass flex items-start gap-2.5 rounded-2xl px-4 py-3">
+              <Check size={16} strokeWidth={3} className="mt-0.5 shrink-0 text-[var(--ok)]" aria-hidden="true" />
+              <span><b>Real:</b> focos NASA FIRMS y órbitas en vivo, el incendio del Lote 14, la auditoría y los pagos en Fuji.</span>
+            </li>
+            <li className="sky-glass flex items-start gap-2.5 rounded-2xl px-4 py-3">
+              <TriangleAlert size={16} strokeWidth={2.5} className="mt-0.5 shrink-0 text-[#9a6200]" aria-hidden="true" />
+              <span><b>Simulado:</b> la aseguradora, los productores y sus pólizas, salvo el Lote 14.</span>
+            </li>
+          </ul>
+        </section>
 
-        <p className="mt-4 rounded-xl bg-warn-bg px-3 py-2 text-[12px] leading-snug text-warn">
-          <span aria-hidden="true">▲ </span>Acceso de demostración: los datos ya están cargados y no se validan. No escribas una contraseña real.
-        </p>
-      </section>
-    </main>
+        <section aria-labelledby="ingresar" className="relative">
+          <img decoding="async" src="/landing/obj-shield.webp" alt="" aria-hidden="true"
+            className="pointer-events-none absolute -right-2 -top-14 z-10 hidden w-[120px] drop-shadow-[0_24px_24px_rgb(11_36_64/0.28)] sm:block" />
+          <div className="sky-glass rounded-[36px] p-7 md:p-10">
+            <h2 id="ingresar" className="text-[28px] font-bold leading-tight tracking-[-0.03em]">Ingresar</h2>
+            <p className="mt-1.5 text-[14px] text-[var(--ink-2)]">Siniestros · {INSURER.name}</p>
+
+            <form onSubmit={submit} className="mt-7 flex flex-col gap-5">
+              <label className="flex flex-col gap-2 text-[14px]">
+                <span className="font-bold">Correo</span>
+                <input type="email" name="email" defaultValue={INSURER.email} autoComplete="off" className={field} />
+              </label>
+              <label className="flex flex-col gap-2 text-[14px]">
+                <span className="font-bold">Contraseña</span>
+                <input type="password" name="password" defaultValue="demo-puna" autoComplete="off" className={field} />
+              </label>
+              <button type="submit" disabled={busy}
+                className={`mt-2 flex items-center justify-center gap-2 rounded-full bg-[var(--ink)] px-6 py-3.5 text-[15px] font-bold text-white hover:bg-[#13365e] disabled:opacity-70 ${ring}`}>
+                {busy ? "Entrando…" : <>Entrar a la cartera <ArrowRight size={16} aria-hidden="true" /></>}
+              </button>
+            </form>
+
+            <p className="mt-5 flex gap-2 rounded-2xl bg-[#fbf1df] px-4 py-3 text-[13px] leading-snug text-[#7a4d00]">
+              <TriangleAlert size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <span>Acceso de demostración: los datos ya están cargados y no se validan. No escribas una contraseña real.</span>
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
   );
 }
