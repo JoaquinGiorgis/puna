@@ -7,7 +7,5 @@ out
 web
 contracts
 docs
-sample-data
-scripts
 tests
 **/__pycache__

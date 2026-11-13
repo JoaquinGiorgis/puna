@@ -5,6 +5,7 @@ import { Timeline } from "@/components/Timeline";
 import { TopBar } from "@/components/TopBar";
 import { demo } from "@/lib/data";
 import { LiveProvider } from "@/components/LiveProvider";
+import { DemoRunner } from "@/components/DemoRunner";
 
 export default function Page() {
   return (
@@ -37,6 +38,7 @@ export default function Page() {
         </footer>
       </main>
       </div>
+      <DemoRunner />
       </LiveProvider>
     </>
   );

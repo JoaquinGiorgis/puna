@@ -19,6 +19,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -51,7 +52,11 @@ class Run:
         self.esc, self.reg = onchain.escrow(self.w3), onchain.validation(self.w3)
         acct = lambda k: self.w3.eth.account.from_key(os.environ[k])  # noqa: E731
         self.acct = acct
-        self.insurer, self.sched, self.validator = acct("INSURER_PK"), acct("SCHEDULER_PK"), acct("VALIDATOR_PK")
+        self.insurer, self.sched = acct("INSURER_PK"), acct("SCHEDULER_PK")
+        if os.getenv("VALIDATOR_PK"):
+            self.validator = acct("VALIDATOR_PK")
+        else:  # validador remoto (otro operador): acá solo se conoce su dirección
+            self.validator = SimpleNamespace(address=Web3.to_checksum_address(os.environ["VALIDATOR_ADDR"]))
         self.producer = Web3.to_checksum_address(os.environ["PRODUCER_ADDR"])
         self.model = default_model()
         if a.live:
