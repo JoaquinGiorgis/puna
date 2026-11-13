@@ -1,1 +1,1 @@
-PUNA: peritaje satelital para aseguradoras agro. Un satélite dorado sobre un cielo celeste con nubes.
+PUNA, peritaje satelital para seguros agro: un satélite mide el daño, otro operador lo audita y el seguro se paga solo.
